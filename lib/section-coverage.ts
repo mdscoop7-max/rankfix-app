@@ -26,7 +26,12 @@ const SECTIONS: Array<{ section: string; label: string; types: string[]; shopOnl
 const blockedStatus = (p: SampledPage) => p.status !== "audited" && (p.httpStatus === 401 || p.httpStatus === 403 || p.httpStatus === 405 || p.httpStatus === 429 || p.httpStatus === 202 || p.nonContent === "challenge");
 const missingStatus = (p: SampledPage) => p.status !== "audited" && (p.httpStatus === 404 || p.httpStatus === 410);
 
-export function sectionCoverage(input: { pages: SampledPage[]; isShop: boolean; homepageUrl: string; homepageAccess?: "is_start_page" | "accessible" | "blocked" | "missing" | "not_retrieved" | "not_sampled"; homepageHttpStatus?: number | null }): { items: SectionCoverageItem[]; summary: string } {
+export function sectionCoverage(input: {
+  /** 31 Oct (PDF P8): phone, e-mail or address visible on the homepage (header/footer). */
+  contactOnHomepage?: string[];
+  /** Main navigation labels that name the offer ("Applications", "Brands", "Producten"). */
+  offerNavigation?: string[];
+  pages: SampledPage[]; isShop: boolean; homepageUrl: string; homepageAccess?: "is_start_page" | "accessible" | "blocked" | "missing" | "not_retrieved" | "not_sampled"; homepageHttpStatus?: number | null }): { items: SectionCoverageItem[]; summary: string } {
   const pages = input.pages.filter((p) => !p.excludedUtility);
   const items: SectionCoverageItem[] = [];
   for (const def of SECTIONS) {
@@ -48,6 +53,11 @@ export function sectionCoverage(input: { pages: SampledPage[]; isShop: boolean; 
     else if (blocked.length) { status = "not_accessible"; urls = blocked.map((p) => p.url).slice(0, 5); note = `Niet toegankelijk voor RankFix (HTTP ${[...new Set(blocked.map((p) => p.httpStatus ?? "challenge"))].join("/")}); niet gecontroleerd en niet als fout geteld.`; }
     else if (missing.length) { status = "missing"; urls = missing.map((p) => p.url).slice(0, 5); note = `Gelinkte pagina('s) bestaan niet (HTTP ${[...new Set(missing.map((p) => p.httpStatus))].join("/")}).`; }
     else if (matching.length) { status = "not_examined"; urls = matching.map((p) => p.url).slice(0, 5); note = `Geselecteerd maar niet opgehaald (${matching.map((p) => p.fetchFailure || "geen antwoord").slice(0, 2).join(", ")}); niet gecontroleerd.`; }
+    // Contact details in the header/footer ARE contact evidence (Kwik-Fit, HousingNet:
+    // "contact niet gevonden" next to a visible phone number and e-mail address).
+    else if (def.section === "contact" && (input.contactOnHomepage || []).length) { status = "checked"; urls = [input.homepageUrl]; note = `Contactgegevens zichtbaar op de homepage (${(input.contactOnHomepage || []).join(", ")}); geen aparte contactpagina in de steekproef.`; }
+    // The offer named in the main navigation (Enerco: "Brands", "Applications").
+    else if (def.section === "offer" && (input.offerNavigation || []).length) { status = "not_examined"; urls = []; note = `Aanbod gevonden in de hoofdnavigatie (${(input.offerNavigation || []).slice(0, 4).join(", ")}), maar die pagina's zaten niet in de steekproef; niet inhoudelijk gecontroleerd.`; }
     else { status = "not_found"; urls = []; note = "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."; }
     items.push({ section: def.section, label: def.label, status, urls, note });
   }

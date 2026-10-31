@@ -5428,7 +5428,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
           || /<meta\b[^>]*content\s*=\s*["'][^"']*\bnoindex\b[^"']*["'][^>]*name\s*=\s*["'](?:robots|googlebot)["']/i.test(pageHtml)
           || /\bnoindex\b/i.test(r.headers.get("x-robots-tag") || "");
-        if (pageNoindex && !isScannedPage) {
+        // PDF P8: HTTP status and robots are separate facts. A refused page (401/403)
+        // often serves a WAF template with noindex; that is "geblokkeerd" (handled by
+        // the access rules below), never "noindex".
+        if (pageNoindex && !isScannedPage && r.status !== 401 && r.status !== 403) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"noindex",status:"UNABLE_TO_CONFIRM",details:"Pagina staat op noindex en telt daarom niet mee in de steekproefscore."}] };
         }
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
@@ -7079,6 +7082,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       homepageUrl: siteAccess.homepage.url || finalUrl.toString(),
       homepageAccess: siteAccess.homepage.access,
       homepageHttpStatus: siteAccess.homepage.httpStatus,
+      contactOnHomepage: [businessContactDetails.phone && "telefoon", businessContactDetails.email && "e-mail", businessContactDetails.address && "adres"].filter(Boolean) as string[],
+      offerNavigation: identityNavLabels.filter((label) => /^(?:diensten|services?|producten|products?|oplossingen|solutions?|applications?|toepassingen|brands?|merken|aanbod|assortiment|behandelingen|treatments?|leistungen|produkte|lösungen|prestations|produits)$/i.test(label.trim())),
     });
     const multiPage = {
       sectionCoverage: sectionCoverageReport,

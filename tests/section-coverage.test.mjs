@@ -21,3 +21,13 @@ test("organisation: 404 is 'bestaat niet', a 429 is not accessible, blocked home
   assert.equal(by.contact.status, "not_accessible"); assert.match(by.contact.note, /429/);
   assert.equal(by.offer.status, "checked"); assert.equal(by.product, undefined); assert.equal(by.checkout, undefined);
 });
+
+test("PDF P8: contact details in header/footer count as contact; offer named in the navigation is reported", () => {
+  const out = sectionCoverage({ pages: [], isShop: false, homepageUrl: "https://x.nl/", contactOnHomepage: ["telefoon", "e-mail"], offerNavigation: ["Applications", "Brands"] });
+  const contact = out.items.find((i) => i.section === "contact");
+  assert.equal(contact.status, "checked"); assert.match(contact.note, /telefoon, e-mail/);
+  const offer = out.items.find((i) => i.section === "offer");
+  assert.equal(offer.status, "not_examined"); assert.match(offer.note, /Applications, Brands/);
+  const none = sectionCoverage({ pages: [], isShop: false, homepageUrl: "https://x.nl/" });
+  assert.equal(none.items.find((i) => i.section === "contact").status, "not_found");
+});
