@@ -266,7 +266,8 @@ test("score engine keeps independent penalties independent", async () => {
 test("advisory evidence does not become a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
+  assert.match(source, /Mediaan van \$\{responseSamples\.length\} metingen/);
+  assert.match(source, /medianResponseTime <= 3000/);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
   assert.match(source, /schema:\s*"structured_data_context"/);

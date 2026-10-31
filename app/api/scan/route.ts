@@ -1,3 +1,5 @@
+import { detectCmsSignatures } from "@/lib/cms-signatures";
+import { classifyLinkOutcome, findConflictingAnchorTargets, isErrorPagePath, isHiddenAnchor, LINK_RETRY_DELAY_MS } from "@/lib/link-audit-rules";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
@@ -178,6 +180,12 @@ function check(
   };
 }
 
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
 function grade(score: number) {
   return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E";
 }
@@ -328,6 +336,22 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
   else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
 
+  // Generic signature detection (generator meta, unique asset paths, response headers).
+  // Fills only labels the legacy detection left empty, so existing results stay stable.
+  const extraSignatures = detectCmsSignatures(html, Object.fromEntries(headers.entries()));
+  const extraCms = extraSignatures.find((entry) => entry.role === "cms" || entry.role === "site_builder");
+  const extraFramework = extraSignatures.find((entry) => entry.role === "framework");
+  if (!cms && extraCms && extraCms.strength >= 2) {
+    cms = extraCms.name;
+    strongest = Math.max(strongest, extraCms.strength);
+    extraCms.evidence.forEach((label) => evidence.push(`${extraCms.name}: ${label}`));
+  }
+  if (!framework && extraFramework && extraFramework.strength >= 2) {
+    framework = extraFramework.name;
+    strongest = Math.max(strongest, extraFramework.strength);
+    extraFramework.evidence.forEach((label) => evidence.push(`${extraFramework.name}: ${label}`));
+  }
+
   const isCommerce = Boolean(commercePlatform || commerceSignal);
   if (!commercePlatform && isCommerce) {
     commercePlatform = "Custom / niet bevestigd";
@@ -340,9 +364,10 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   // Score confidence per displayed label. Do not let a strong marker for one
   // technology accidentally inflate the confidence of another label (for example
   // a framework marker making an otherwise weak CMS detection look certain).
+  const extraCmsStrength = extraCms && cms === extraCms.name ? extraCms.strength : 0;
   const cmsStrength = cms === "WordPress" ? wordpressSignals
     : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" ? 2
-    : 0;
+    : extraCmsStrength;
   const commerceStrength = /headless/.test(commercePlatform || "") ? 1.5
     : commercePlatform === "WooCommerce" ? Math.max(2, wooSignals + Math.min(wordpressSignals, 1))
     : commercePlatform === "Shopify" ? shopifySignals
@@ -352,6 +377,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     : 0;
   const frameworkStrength = framework === "Next.js" ? nextSignals
     : framework === "Nuxt" ? nuxtSignals
+    : extraFramework && framework === extraFramework.name ? extraFramework.strength
     : 0;
   const confirmedLabelStrength = Math.max(
     commerceStrength,
@@ -391,6 +417,8 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
       if (label.startsWith("Webflow") && cms !== "Webflow") return false;
       if (label.startsWith("Next.js") && framework !== "Next.js") return false;
       if (label.startsWith("Nuxt") && framework !== "Nuxt") return false;
+      if (extraCms && label.startsWith(`${extraCms.name}:`) && cms !== extraCms.name) return false;
+      if (extraFramework && label.startsWith(`${extraFramework.name}:`) && framework !== extraFramework.name) return false;
       return true;
     }).slice(0, 8),
   };
@@ -1543,15 +1571,19 @@ async function runScan(request: Request) {
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
     type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
-    const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
+    const allAnchorTags = [...html.matchAll(/<a\b([^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
-        const sourceHref = decode(match[1] || "");
-        const body = match[2] || "";
+        const attributes = match[1] || "";
+        const sourceHref = decode(match[2] || "");
+        const body = match[3] || "";
         const anchorText = stripHtml(body);
         const imageAlt = [...body.matchAll(/<img\b[^>]*\balt\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
-        return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
+        return { sourceHref, hidden: isHiddenAnchor(attributes, anchorText), context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
       .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
+    // Hidden/honeypot anchors are traps for crawlers, not site navigation: never followed or counted.
+    const anchorTags = allAnchorTags.filter((item) => !item.hidden);
+    const hiddenAnchorCount = allAnchorTags.length - anchorTags.length;
     const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
@@ -1563,20 +1595,35 @@ async function runScan(request: Request) {
     // A representative bounded sample is enough for the synchronous scan.
     // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
-    const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+    const fetchLinkOnce = async (item: { url: string; sourceHref: string; context: string }, accept: string): Promise<LinkAuditResult> => {
       try {
-        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept });
         const res = result.response;
         const destination = res.url || item.url;
         return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
       } catch {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
       }
+    };
+    const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+      const first = await fetchLinkOnce(item, "text/html,application/xhtml+xml,text/plain");
+      if (!first.error) return first;
+      // A time-out or reset is retried once with a GET and a short backoff before the link is called unconfirmed.
+      await new Promise((resolve) => setTimeout(resolve, LINK_RETRY_DELAY_MS));
+      return fetchLinkOnce(item, "*/*");
     }));
+    // The page fetch itself proves these URLs answered (the scanned page and its final URL).
+    const knownGoodLinkUrls = new Set<string>([finalUrl.toString(), normalizeScanUrl(finalUrl.toString())]);
+    const linkVerdicts = linkAuditResults.map((item) => classifyLinkOutcome({ status: item.status, error: item.error }, item.url, knownGoodLinkUrls));
+    const softErrorLinks = linkAuditResults.filter((item, index) => linkVerdicts[index] === "soft_error_page" || (item.redirected && item.finalUrl && !item.error && isErrorPagePath(new URL(item.finalUrl).pathname)));
+    const conflictingAnchorTargets = findConflictingAnchorTargets(allUniqueInternalAnchors.map((item) => ({ text: item.context, url: item.url })));
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
-    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null);
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500));
+    const unconfirmedInternalLinks = linkAuditResults.filter((item, index) => linkVerdicts[index] === "unconfirmed");
+    const brokenInternalLinks = [
+      ...linkAuditResults.filter((item, index) => linkVerdicts[index] === "broken"),
+      ...softErrorLinks.filter((item) => !linkAuditResults.some((other, index) => other === item && linkVerdicts[index] === "broken")),
+    ];
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -2346,7 +2393,7 @@ async function runScan(request: Request) {
         : uniqueInternalAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
         : brokenInternalLinks.length > 0
-          ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
+          ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → ${brokenInternalLinks[0]?.status && brokenInternalLinks[0].status >= 400 ? `HTTP ${brokenInternalLinks[0].status}` : "foutpagina (URL-pad wijst naar een 'pagina niet gevonden'-pagina)"}.${conflictingAnchorTargets.length ? ` Let op: dezelfde linktekst "${conflictingAnchorTargets[0].text}" verwijst naar ${conflictingAnchorTargets[0].targets.length} verschillende doelen.` : ""}`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
           : unconfirmedInternalLinks.length > 0
             ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
             : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
@@ -2793,6 +2840,10 @@ async function runScan(request: Request) {
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
+    // Structured data is only "unconfirmed" when JSON-LD can realistically be injected client-side:
+    // a near-empty raw document, or a client-rendering framework without substantive server HTML.
+    // A server-rendered page without JSON-LD simply lacks it (attention point), it is not unknown.
+    const schemaMayBeClientInjected = metadataMayBeClientRendered && (rawVisibleWords < 50 || (!rawSubstantiveDocument && javascriptFrameworkSignal));
     // One shared rule for text/link evidence. A thin client shell is insufficient
     // evidence for negative content, trust or commercial-link conclusions.
     const thinRawHtmlEvidence = !javascriptExecuted && (
@@ -2856,7 +2907,7 @@ async function runScan(request: Request) {
       : h1s.length === 0
         ? bodyStructureMayBeClientRendered
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
-          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
+          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een lichte structuurbevinding (2 van 8 punten aftrek) en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
     const subheadingCount = headings.length;
@@ -2989,11 +3040,23 @@ async function runScan(request: Request) {
     // responseTime is RankFix's own end-to-end fetch duration from its scan environment.
     // It is useful as a server-response signal, but it is not browser TTFB and must never
     // be presented as measured Core Web Vitals (LCP/CLS/INP).
-    seoChecks.push(responseTime < 1500
-      ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
-      : responseTime < 3000
-        ? check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.`, "Onderzoek server, caching, database en SSR als mogelijke oorzaken; bevestig prestaties afzonderlijk met browser- of veldmetingen.", 3, 5)
-        : check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Deze ene meting is traag, maar bewijst geen structureel performanceprobleem en is geen Core Web Vitals-meting.`, "Herhaal de meting en onderzoek pas daarna server, caching, database of SSR wanneer de vertraging reproduceerbaar is.", 2, 5)
+    // One slow measurement proves nothing: slower first responses are measured two more times
+    // and the median decides. Points are only deducted when the median is above 3 s.
+    const responseSamples: number[] = [responseTime];
+    if (responseTime >= 1500) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const sampleStarted = Date.now();
+        try {
+          await safePublicFetch(finalUrl, { timeoutMs: 8000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
+          responseSamples.push(Date.now() - sampleStarted);
+        } catch { /* a failed extra measurement is simply not counted */ }
+      }
+    }
+    const medianResponseTime = medianOf(responseSamples);
+    const responseMeasurementNote = responseSamples.length > 1 ? ` Mediaan van ${responseSamples.length} metingen (${responseSamples.join(", ")} ms).` : "";
+    seoChecks.push(medianResponseTime <= 3000
+      ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${medianResponseTime} ms vanuit de scanomgeving.${responseMeasurementNote} Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
+      : check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${medianResponseTime} ms vanuit de scanomgeving.${responseMeasurementNote} Dit is geen browser-TTFB en geen Core Web Vitals-meting, maar de mediaan ligt boven 3 seconden.`, "Onderzoek server, caching, database en SSR als mogelijke oorzaken; bevestig prestaties afzonderlijk met browser- of veldmetingen.", responseSamples.length >= 3 ? 2 : 3, 5)
     );
     const missingOpenGraphFields = [
       !ogTitle ? "og:title" : null,
@@ -3034,7 +3097,7 @@ async function runScan(request: Request) {
           ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
           : validJsonLd > 0
             ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
-            : metadataMayBeClientRendered
+            : schemaMayBeClientInjected
             ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
             : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
         : validJsonLd > 0
@@ -3043,7 +3106,7 @@ async function runScan(request: Request) {
             : hasEntitySchema
               ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
               : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
-          : metadataMayBeClientRendered
+          : schemaMayBeClientInjected
             ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
             : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
     );
@@ -5668,6 +5731,7 @@ async function runScan(request: Request) {
       javascriptExecuted,
       internalLinks: {
         anchorsFound: anchorTags.length,
+        hiddenAnchorsSkipped: hiddenAnchorCount,
         uniqueInternal: allUniqueInternalAnchors.length,
         checked: linkAuditResults.length,
         limit: 24,

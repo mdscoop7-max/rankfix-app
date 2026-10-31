@@ -225,7 +225,7 @@ export type EvidenceLevel = "complete" | "provisional" | "insufficient";
 export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[] }): { level: EvidenceLevel; reasons: string[] } {
   const reasons: string[] = [];
   if (input.coveragePercent < 60) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 60%)`);
-  else if (input.coveragePercent < 90) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 90%)`);
+  else if (input.coveragePercent < 95) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 95%)`);
   if (input.javascriptRequiredButNotRendered) reasons.push("JavaScript-pagina niet volledig gerenderd");
   if (input.renderDegraded) reasons.push("Browser-rendering leverde minder inhoud dan de ruwe HTML");
   if (input.renderPartial) reasons.push("Pagina laadde niet volledig binnen de tijdslimiet; een momentopname van de browser is gebruikt");
@@ -240,17 +240,17 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (sectorUnknown) reasons.push("Hoofdsector niet vastgesteld: alleen algemene controles toegepast");
   const important = input.importantUnconfirmed || [];
   if (important.length) reasons.push(`Belangrijke controle(s) niet bevestigd: ${important.slice(0, 3).join(", ")}`);
-  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown ? "provisional" : "complete";
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 95 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown ? "provisional" : "complete";
   return { level, reasons };
 }
 
 /**
- * What the big headline number shows. With less than 70% of the applicable
+ * What the big headline number shows. With less than 90% of the applicable
  * evidence confirmed (or an "insufficient" evidence level), a single number
  * such as 99 claims more than the scan can support, so the headline becomes
  * the range ("64–99") and the point score moves to the detail line.
  */
 export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, coveragePercent: number, level: EvidenceLevel) {
-  const asRange = Boolean(range) && (coveragePercent < 70 || level === "insufficient") && range!.low < range!.high;
+  const asRange = Boolean(range) && (coveragePercent < 90 || level === "insufficient") && range!.low < range!.high;
   return { numeric: score, kind: asRange ? "range" as const : "score" as const, display: asRange ? `${range!.low}–${range!.high}` : String(score) };
 }
