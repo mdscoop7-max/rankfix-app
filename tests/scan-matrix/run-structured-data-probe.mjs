@@ -12,6 +12,8 @@ const CASES = {
   "render-fails.test": [GTM, null, { probe: 1, schema: "unable_to_confirm", org: "unable_to_confirm", obs: /observation=not_observed.*browserProbe=failed/ }],
   "no-injector.test": ["", LD, { probe: 0, schema: "warning", org: "warning", obs: /observation=proven_absent; basis=raw_html_no_injectors/ }],
   "server-ld.test": [GTM + LD, GTM + LD, { probe: 0, org: "pass" }],
+  // JSON-LD only on an own subpage: shown as context with URL, status/points unchanged.
+  "subpage-ld.test": ["", null, { probe: 0, schema: "warning", org: "warning", points: [4, 4], context: /Context \(telt niet mee[^]*over-ons/, orgContext: /Organization\/WebSite-schema staat wel op [^ ]*over-ons/ }, { "/over-ons": LD }],
 };
 const renderCalls = {};
 globalThis.fetch = async (input) => {
@@ -19,7 +21,8 @@ globalThis.fetch = async (input) => {
   const c = CASES[u.host];
   if (!c) return new Response("nf", { status: 404 });
   if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } });
-  return new Response(page(c[0], u.pathname).replaceAll("HOST", u.host), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+  if (u.pathname !== "/" && !(c[3] && c[3][u.pathname] !== undefined)) return new Response("nf", { status: 404 });
+  return new Response(page(u.pathname === "/" ? c[0] : c[3][u.pathname], u.pathname).replaceAll("HOST", u.host), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async (url) => {
   const u = new URL(url);
@@ -40,6 +43,9 @@ for (const [host, [, , e]] of Object.entries(CASES)) {
   if (e.schema && e.schema !== "pass-or-warning" && schema.status !== e.schema) problems.push(`${host}: schema ${schema.status}, expected ${e.schema}`);
   if (e.org && org.status !== e.org) problems.push(`${host}: organization_website ${org.status}, expected ${e.org}`);
   if (e.obs && !e.obs.test(String(schema.evidence?.found))) problems.push(`${host}: evidence "${schema.evidence?.found}" does not match ${e.obs}`);
+  if (e.points && (schema.points !== e.points[0] || org.points !== e.points[1])) problems.push(`${host}: subpage context changed points (${schema.points}, ${org.points})`);
+  if (e.context && !e.context.test(String(schema.message))) problems.push(`${host}: schema message lacks subpage context: ${String(schema.message).slice(-160)}`);
+  if (e.orgContext && !e.orgContext.test(String(org.message))) problems.push(`${host}: organization_website lacks subpage context: ${String(org.message).slice(-160)}`);
   if (j.rendering?.javascriptExecuted) problems.push(`${host}: the structured-data probe must not turn the whole report into a browser report`);
 }
 for (const r of rows) console.log(JSON.stringify(r));

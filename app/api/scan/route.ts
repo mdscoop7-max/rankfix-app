@@ -6082,6 +6082,27 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const ownCartEvidence = Boolean(confirmedAddToCart || auditedMultiPages.some((item)=>item.status==="audited" && item.commerceEvidence?.strongCommerceAction));
     const referralPlatform = Boolean(platformIdentity && !ownCartEvidence);
     if (referralPlatform) finalCommerceDecision.confirmed = false;
+    // 1 Nov (P5 phase 2): JSON-LD on the site's own sampled subpages is shown as
+    // context on the homepage checks, with source URLs. It never changes their
+    // status or points: Organization/WebSite on the homepage is its own check.
+    {
+      const own = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } };
+      const subpagesWithSchema = auditedMultiPages.filter((item) => item.status === "audited" && own(item.url) && !isSiteHomepagePath(new URL(item.url).pathname) && (item.schemaTypes || []).length > 0);
+      if (subpagesWithSchema.length) {
+        const summary = subpagesWithSchema.slice(0, 3).map((item) => `${shortUrl(item.url)} (${entityTypesForDisplay(item.schemaTypes || []).slice(0, 4).join(", ")})`).join("; ");
+        const identityOnSubpages = subpagesWithSchema.filter((item) => (item.schemaTypes || []).some((type) => /^(organization|website|corporation|localbusiness|onlinestore|newsmediaorganization)$/i.test(type)));
+        for (const item of geoChecks) {
+          if (item.key === "schema" && item.status !== "pass") {
+            item.message = `${item.message} Context (telt niet mee voor deze homepagecontrole): op ${subpagesWithSchema.length} eigen subpagina('s) staat wel JSON-LD, bijvoorbeeld ${summary}.`;
+            if (item.evidence) item.evidence.details = item.message;
+          }
+          if (item.key === "organization_website" && item.status !== "pass" && identityOnSubpages.length) {
+            item.message = `${item.message} Context: Organization/WebSite-schema staat wel op ${shortUrl(identityOnSubpages[0].url)}; voor de homepage-identiteit telt alleen de homepage zelf.`;
+            if (item.evidence) item.evidence.details = item.message;
+          }
+        }
+      }
+    }
     // 31 Oct (five-site QA, P6/P9): YMYL expertise from the site's own sampled
     // organisation, team/expert, contact and legal pages, each named by URL.
     // Two independent kinds of evidence confirm it; fewer stays "unconfirmed"
