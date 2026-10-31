@@ -13,6 +13,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
+import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -4159,7 +4160,7 @@ async function runScan(request: Request) {
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
-    const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
+    const rankedMultiPage = eligibleSampleCandidates(discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a)), preferredLocale);
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
     // into an unbounded crawler. Cap the selection at thirty distinct URLs;
@@ -4209,7 +4210,7 @@ async function runScan(request: Request) {
     // One site section (e.g. /klantenservice/ or /keuzehulp/) may fill at most five
     // fill-phase slots, so the sample keeps covering categories, products and services.
     // Product detail pages keep their own per-type ceiling.
-    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>normalizeScanUrl(stripTrackingParams(url)), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] });
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>normalizeScanUrl(stripTrackingParams(url)), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] }, 2);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       if (Date.now() - started > SAMPLE_DEADLINE_MS) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] };
