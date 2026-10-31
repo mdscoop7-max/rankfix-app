@@ -287,3 +287,28 @@ test("fix route (F4): the stored head SHA is the commit RankFix wrote, verified 
   assert.doesNotMatch(src, /const headRef=await githubFetch/);
   assert.match(src, /approved_content_sha256/);
 });
+
+/* ------------------------------------------------------------ recovery (F5) */
+const R = await import("../lib/fix-recovery.ts");
+test("recovery actions: resume only for stops new evidence can resolve; cancel only unmerged tasks", () => {
+  for (const code of ["REQUIRED_CHECKS_UNDEFINED", "NOT_SERVER_ENFORCED", "CI_UNAVAILABLE", "EVIDENCE_MISSING", "MERGE_TIMEOUT", "POLICY_UNAVAILABLE"])
+    assert.equal(R.fixActions({ status: "NEEDS_ATTENTION", last_error_code: code, merged_at: null }).resume, true, code);
+  for (const code of ["CONTENT_MISMATCH", "HEAD_CHANGED", "UNEXPECTED_FILES", "STALE_BASE", "POLICY_WEAKENED", "PR_CLOSED", "DEPLOY_FAILED"])
+    assert.equal(R.fixActions({ status: "NEEDS_ATTENTION", last_error_code: code, merged_at: null }).resume, false, code);
+  assert.equal(R.fixActions({ status: "AWAITING_MERGE", last_error_code: "CI_UNAVAILABLE", merged_at: null }).resume, false);
+  assert.equal(R.fixActions({ status: "NEEDS_ATTENTION", last_error_code: "MERGE_REJECTED", merged_at: new Date() }).cancel, false);
+  assert.equal(R.fixActions({ status: "AWAITING_DEPLOYMENT", last_error_code: null, merged_at: null }).cancel, false);
+});
+
+test("legacy evidence is recovered only from the approved content at the PR's immutable head", async () => {
+  const proposal = { proposed_content: APPROVED, base_blob_sha: "b1", file_path: "templates/index.html", repository: "o/r", base_branch: "main" };
+  const legacy = { head_sha: null, approved_content_sha256: null, base_blob_sha: null };
+  const ok = await R.recoverLegacyEvidence(fakeGithub().gh, fixRow(legacy), proposal);
+  assert.deepEqual(ok, { ok: true, fields: { head_sha: H, approved_content_sha256: APPROVED_SHA256, base_blob_sha: "b1" } });
+  assert.equal((await R.recoverLegacyEvidence(fakeGithub({ headContent: APPROVED + "x" }).gh, fixRow(legacy), proposal)).code, "CONTENT_MISMATCH");
+  assert.equal((await R.recoverLegacyEvidence(fakeGithub().gh, fixRow(legacy), null)).code, "EVIDENCE_MISSING");
+  assert.equal((await R.recoverLegacyEvidence(fakeGithub().gh, fixRow(legacy), { ...proposal, file_path: "other.html" })).code, "EVIDENCE_MISSING");
+  assert.equal((await R.recoverLegacyEvidence(fakeGithub({ fresh: null, head: "c".repeat(40) }).gh, fixRow({ ...legacy, head_sha: H }), proposal)).code, "HEAD_CHANGED");
+  const merged = await R.recoverLegacyEvidence(async (path) => (/pulls\/7$/.test(path) ? { merged: true, state: "closed", head: { sha: H, ref: "rankfix/x" } } : {}), fixRow(legacy), proposal);
+  assert.equal(merged.code, "EVIDENCE_MISSING");
+});

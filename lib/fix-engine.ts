@@ -602,6 +602,23 @@ export function confirmedFixIsStale(
     && ["WARNING","FAIL"].includes(String(c.issue_status||c.status||"").toUpperCase()));
 }
 
+/** Stop reasons that new evidence can resolve (Astra F5); everything else needs a new fix. */
+export const RESUMABLE_CODES = new Set([
+  "GITHUB_UNAVAILABLE", "GITHUB_NOT_CONNECTED", "MERGE_TIMEOUT", "CHECKS_PENDING", "MERGEABILITY_PENDING",
+  "CI_UNAVAILABLE", "CI_INCOMPLETE", "CI_UNRELIABLE", "CI_AMBIGUOUS", "CI_SHA_MISMATCH", "REQUIRED_CHECK_MISSING", "REQUIRED_CHECK_NOT_SUCCESSFUL", "CHECKS_FAILED",
+  "POLICY_UNAVAILABLE", "POLICY_UNREADABLE", "REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "MERGE_QUEUE_REQUIRED",
+  "EVIDENCE_CHANGED", "EVIDENCE_MISSING", "CONTENT_UNAVAILABLE", "BASE_UNAVAILABLE", "MERGE_REJECTED", "BRANCH_PROTECTED",
+  "LIVE_UNREACHABLE", "DEPLOY_TIMEOUT",
+]);
+const CANCELLABLE_STATUSES = new Set(["AWAITING_MERGE", "PR_CREATED", "NEEDS_ATTENTION"]);
+/** What the owner may do with a task: resume with fresh evidence, or cancel an unmerged task. */
+export function fixActions(row: Pick<FixRow, "status" | "last_error_code" | "merged_at">): { resume: boolean; cancel: boolean } {
+  return {
+    resume: row.status === "NEEDS_ATTENTION" && RESUMABLE_CODES.has(String(row.last_error_code || "")),
+    cancel: !row.merged_at && CANCELLABLE_STATUSES.has(row.status),
+  };
+}
+
 export function publicFixView(row: FixRow) {
   const stage = customerStage(row);
   const code = row.status === "AWAITING_MERGE" && !row.auto_publish ? "PR_AWAITING_OWNER" : row.last_error_code || null;
@@ -613,6 +630,7 @@ export function publicFixView(row: FixRow) {
     reason_code: stage === "manual" || code === "LIVE_UNREACHABLE" ? code : null,
     reason: (stage === "manual" || code === "LIVE_UNREACHABLE") && code ? REASON_NL[code] || null : null,
     ready_for_scan: readyForVerificationScan(row),
+    actions: fixActions(row),
     technical: {
       repository: row.repository || null, file: row.file_path || null, branch: row.branch || null,
       pr_number: row.pr_number ? Number(row.pr_number) : null, pr_url: row.pr_url || null,

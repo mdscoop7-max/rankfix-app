@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { siteConsentValid } from "@/lib/fix-engine";
-import { parseRecordedPolicy } from "@/lib/merge-policy";
+import { evaluatePolicy, parseRecordedPolicy, readServerPolicy } from "@/lib/merge-policy";
+import { decryptToken, githubFetch } from "@/lib/github";
 
 const publicPolicy=(value:unknown)=>{const p=parseRecordedPolicy(value);return {valid:p.valid,checks:p.checks.map(c=>({context:c.context,app_id:c.appId})),error:p.error||null};};
 
@@ -25,7 +26,20 @@ export async function GET(request:Request){
   );
   if(!result.rowCount) return NextResponse.json({mapped:false,website_host:host,autofix:{enabled:false}});
   const row=result.rows[0];
-  return NextResponse.json({mapped:true,website_host:host,repository:row.repository,baseBranch:row.base_branch,verifiedAt:row.verified_at,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,requiredChecks:publicPolicy(row.autofix_required_checks)}});
+  // Astra F5 onboarding: what GitHub itself enforces for this branch, read with
+  // the owner's own token. AutoFix merges only when this is "enforced".
+  let serverPolicy:{state:string;code:string;checks:Array<{context:string;app_id:number|null;source:string}>}={state:"unknown",code:"GITHUB_NOT_CONNECTED",checks:[]};
+  try{
+    const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1 LIMIT 1",[user.id]);
+    if(connection.rowCount){
+      const token=decryptToken(connection.rows[0].access_token_encrypted);
+      const gh=<T,>(path:string,init?:RequestInit)=>githubFetch<T>(token,path,init);
+      const server=await readServerPolicy(gh,String(row.repository),String(row.base_branch));
+      const decision=evaluatePolicy({server,recorded:parseRecordedPolicy(row.autofix_required_checks),snapshot:null});
+      serverPolicy={state:decision.verdict==="ok"?"enforced":decision.verdict==="wait"?"unavailable":"not_enforced",code:decision.code,checks:decision.required.map(c=>({context:c.context,app_id:c.appId,source:c.source}))};
+    }
+  }catch{ serverPolicy={state:"unavailable",code:"POLICY_UNAVAILABLE",checks:[]}; }
+  return NextResponse.json({mapped:true,serverPolicy,website_host:host,repository:row.repository,baseBranch:row.base_branch,verifiedAt:row.verified_at,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,requiredChecks:publicPolicy(row.autofix_required_checks)}});
 }
 
 // Explicit, per-website AutoFix publication consent. It is bound to the exact
@@ -55,7 +69,17 @@ export async function PATCH(request:Request){
   );
   if(!result.rowCount) return NextResponse.json({error:"Koppel eerst de GitHub-repository van deze website.",code:"NOT_MAPPED"},{status:409});
   const row=result.rows[0];
-  return NextResponse.json({ok:true,website_host:host,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:publicPolicy(row.autofix_required_checks)}});
+  // Astra review point 10: revoking AutoFix stops automatic publication of every
+  // unmerged task of this website (they stay available as Pull Request only).
+  let tasksMadePrOnly=0;
+  if(!enable){
+    const stopped=await getDb().query(
+      "UPDATE pending_fixes SET auto_publish=FALSE,updated_at=NOW() WHERE user_id=$1 AND merged_at IS NULL AND auto_publish=TRUE AND status IN ('AWAITING_MERGE','PR_CREATED','NEEDS_ATTENTION') AND regexp_replace(lower(split_part(split_part(scanned_url,'://',2),'/',1)),'^www\\.','')=$2 RETURNING id",
+      [user.id,host]
+    );
+    tasksMadePrOnly=stopped.rowCount||0;
+  }
+  return NextResponse.json({ok:true,website_host:host,tasksMadePrOnly,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:publicPolicy(row.autofix_required_checks)}});
 }
 
 

@@ -13,7 +13,7 @@ type Check = { title?: string; message?: string; fix?: string; status?: string; 
 type ScanData = { scanned_url: string; final_url?: string | null; result?: { seo?: { checks?: Check[] }; geo?: { checks?: Check[] }; metrics?: Record<string, unknown> } };
 type Preview = { startLine: number; before: string[]; after: string[]; truncated?: boolean; changedLines?: number; summary?: string };
 type Stage = "preparing" | "executing" | "updating" | "checking" | "confirmed" | "manual";
-type FixView = { issue_id: string; status: string; stage: Stage; stage_label: string; reason_code: string | null; reason: string | null; ready_for_scan: boolean; review?: {proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}|null; technical: { repository: string | null; file: string | null; branch: string | null; pr_number: number | null; pr_url: string | null; merge_commit: string | null; deployment: string | null; verification_attempts: number } };
+type FixView = { issue_id: string; status: string; stage: Stage; stage_label: string; reason_code: string | null; reason: string | null; ready_for_scan: boolean; actions?: { resume: boolean; cancel: boolean }; review?: {proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}|null; technical: { repository: string | null; file: string | null; branch: string | null; pr_number: number | null; pr_url: string | null; merge_commit: string | null; deployment: string | null; verification_attempts: number } };
 type Plan = { proposalId: string; proposalHash: string; text: string; summary: string; preview: Preview | null; publishable: boolean; siteConsent: boolean; level: string; path: string };
 
 const STAGES: Stage[] = ["preparing", "executing", "updating", "checking", "confirmed"];
@@ -56,6 +56,10 @@ export default function GithubPage() {
   const [mapped, setMapped] = useState(false);
   const [autofix, setAutofix] = useState(false);
   const [consentOpen, setConsentOpen] = useState(false);
+  // Astra F5: what GitHub enforces for this branch + the owner's extra required checks.
+  const [serverPolicy, setServerPolicy] = useState<{ state: string; code: string; checks: Array<{ context: string; app_id: number | null; source: string }> } | null>(null);
+  const [policyText, setPolicyText] = useState("");
+  const [policyNotice, setPolicyNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -122,6 +126,8 @@ export default function GithubPage() {
           setBaseBranch(md.baseBranch || "main");
           setMapped(true);
           setAutofix(Boolean(md.autofix?.enabled));
+          setServerPolicy(md.serverPolicy || null);
+          setPolicyText(((md.autofix?.requiredChecks?.checks || []) as Array<{ context: string; app_id: number }>).map((c) => `${c.context}:${c.app_id}`).join("\n"));
         } else if (!mr.value.ok) {
           setMappingWarning(md.error || "De bestaande websitekoppeling kon niet worden geladen. Probeer de pagina opnieuw te openen.");
         }
@@ -273,6 +279,36 @@ export default function GithubPage() {
     finally { setBusy(false); }
   }
 
+  // "build:15368" per line → [{context, app_id}]; the API validates every item (400 on any invalid one).
+  async function saveRequiredChecks() {
+    if (!siteUrl || busy) return;
+    setBusy(true); setError(""); setPolicyNotice("");
+    try {
+      const lines = policyText.split("\n").map((l) => l.trim()).filter(Boolean);
+      const required_checks = lines.map((l) => { const at = l.lastIndexOf(":"); return { context: at > 0 ? l.slice(0, at).trim() : l, app_id: at > 0 ? Number(l.slice(at + 1).trim()) : null }; });
+      const r = await fetch("/api/github/site-repository", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: siteUrl, autofix_publish: autofix, confirm: autofix ? "AUTOFIX_PUBLISH_CONSENT" : undefined, required_checks }) });
+      const d = await readJson(r);
+      if (!r.ok) throw new Error(d.error || tx("De verplichte controles konden niet worden opgeslagen.", "The required checks could not be saved."));
+      setPolicyNotice(tx("Verplichte controles opgeslagen. Ze gelden als extra eis naast de regels die GitHub zelf afdwingt.", "Required checks saved. They apply in addition to the rules GitHub itself enforces."));
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
+  }
+
+  // Resume a stopped fix with fresh evidence, or cancel an unmerged one (nothing is skipped or merged here).
+  async function fixAction(action: "resume" | "cancel") {
+    if (!siteUrl || !fix || busy) return;
+    setBusy(true); setError("");
+    try {
+      const r = await fetch("/api/fixes/status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: siteUrl, issue_id: fix.issue_id, action }) });
+      const d = await readJson(r);
+      if (!r.ok) throw new Error(d.error || tx("De actie kon niet veilig worden uitgevoerd.", "The action could not be performed safely."));
+      if (action === "cancel") { setFix(null); setNotice(String(d.note || tx("De Fix is geannuleerd.", "The fix was cancelled."))); }
+      else if (d.fix) setFix(d.fix as FixView);
+      await refreshStatus(siteUrl);
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
+  }
+
   async function releaseMapping() {
     if (!siteUrl || busy) return;
     setBusy(true);
@@ -373,7 +409,9 @@ export default function GithubPage() {
                    <button type="button" disabled={busy || contextLoading || !repo || connected!==true || !check} onClick={() => { setFix(null); setFixPlan(null); void runFix(); }} className="mt-4 min-h-12 w-full rounded-xl bg-[#5DCAA5] px-4 py-3 font-bold text-[#04342C] disabled:opacity-50">{tx("Nieuw veilig voorstel maken","Prepare a new safe proposal")}</button>
                  </>}
            </div>}
-           {fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Nieuwe controle proberen", "Try checking again")}</button>}
+           {fix.actions?.resume && <button type="button" disabled={busy} onClick={() => void fixAction("resume")} className="mt-4 min-h-11 w-full rounded-xl bg-[#5DCAA5] px-4 py-2 text-sm font-bold text-[#04342C] disabled:opacity-50">{tx("Opnieuw controleren en hervatten", "Re-check and resume")}</button>}
+           {fix.actions?.cancel && fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && <button type="button" disabled={busy} onClick={() => void fixAction("cancel")} className="mt-3 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Deze Fix annuleren (Pull Request blijft open in GitHub)", "Cancel this fix (the Pull Request stays open in GitHub)")}</button>}
+           {fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && !fix.actions && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Nieuwe controle proberen", "Try checking again")}</button>}
         </section>}
 
         {contextLoading && <p role="status" className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm text-cyan-100">RankFix haalt je opgeslagen scan, websitekoppeling en bestaande Fix-status op…</p>}
@@ -446,6 +484,18 @@ export default function GithubPage() {
             <p>{tx(`Hiermee geef je RankFix toestemming om voor ${host} ondersteunde, veilige fixes (zoals een meta description) zonder extra klik samen te voegen in ${repo} (${baseBranch}). RankFix doet dit alleen als precies één verwacht bestand met een kleine wijziging verandert, de broncode niet intussen is gewijzigd en GitHub-controles slagen. Andere problemen blijven handmatige controle vragen. Je kunt dit altijd uitzetten.`, `This allows RankFix to merge supported, safe fixes (such as a meta description) for ${host} into ${repo} (${baseBranch}) without an extra click — only when exactly one expected file changes by a small amount, the source has not changed meanwhile and GitHub checks pass. Other issues still require manual review. You can turn this off at any time.`)}</p>
             <div className="mt-3 flex gap-2"><button type="button" disabled={busy} onClick={() => void setAutofixConsent(true)} className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950">{tx("Ja, ik geef toestemming", "Yes, I consent")}</button><button type="button" onClick={() => setConsentOpen(false)} className="rounded-lg border border-white/15 px-3 py-2 text-xs">{tx("Annuleren", "Cancel")}</button></div>
           </div>}
+          {serverPolicy && <div className={`mt-3 rounded-xl border p-3 text-xs ${serverPolicy.state === "enforced" ? "border-emerald-300/25 bg-emerald-300/5 text-emerald-50" : "border-amber-300/25 bg-amber-300/10 text-amber-50"}`}>
+            <strong>{serverPolicy.state === "enforced" ? tx("GitHub dwingt de verplichte controles af", "GitHub enforces the required checks") : tx("Alleen Pull Requests: GitHub dwingt (nog) geen controles af", "Pull Requests only: GitHub does not (yet) enforce checks")}</strong>
+            <p className="mt-1">{serverPolicy.state === "enforced"
+              ? tx("RankFix publiceert automatisch alleen als deze controles op precies de goedgekeurde wijziging geslaagd zijn: ", "RankFix publishes automatically only when these checks passed on exactly the approved change: ") + serverPolicy.checks.map((c) => c.context).join(", ")
+              : tx("Zet in GitHub een ruleset aan voor deze branch met ‘Require status checks to pass’, kies de controle van GitHub Actions als bron en geef RankFix geen bypass-recht. Tot die tijd maakt RankFix alleen Pull Requests die jij samenvoegt. Reden: ", "Enable a ruleset for this branch in GitHub with ‘Require status checks to pass’, pick the GitHub Actions check as source and give RankFix no bypass. Until then RankFix only opens Pull Requests for you to merge. Reason: ") + serverPolicy.code}</p>
+          </div>}
+          <details className="mt-3 text-xs text-slate-400"><summary className="cursor-pointer">{tx("Extra verplichte controles (optioneel)", "Extra required checks (optional)")}</summary>
+            <p className="mt-2">{tx("Eén per regel als naam:app-ID, bijvoorbeeld build:15368 (GitHub Actions). Dit is een extra eis naast de regels van GitHub, nooit een vervanging.", "One per line as name:app-ID, e.g. build:15368 (GitHub Actions). This is an extra requirement on top of GitHub's rules, never a replacement.")}</p>
+            <textarea value={policyText} onChange={(e) => setPolicyText(e.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-white/15 bg-black/20 p-2 font-mono text-xs text-white" aria-label={tx("Extra verplichte controles", "Extra required checks")} />
+            <button type="button" disabled={busy} onClick={() => void saveRequiredChecks()} className="mt-2 rounded-lg border border-white/15 px-3 py-2 text-xs">{tx("Opslaan", "Save")}</button>
+            {policyNotice && <p role="status" className="mt-2 text-emerald-200">{policyNotice}</p>}
+          </details>
           <details className="mt-3 text-xs text-slate-500"><summary className="cursor-pointer">{tx("GitHub-koppeling", "GitHub link")}</summary><p className="mt-2">{tx("Verbonden als", "Connected as")} {login}. <button type="button" onClick={() => void releaseMapping()} className="underline">{tx("Andere repository kiezen", "Choose another repository")}</button> · <button type="button" onClick={() => window.location.assign("/api/github/connect")} className="underline">{tx("GitHub opnieuw verbinden", "Reconnect GitHub")}</button></p></details>
         </section>}
 
