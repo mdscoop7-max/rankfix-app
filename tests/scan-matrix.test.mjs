@@ -202,6 +202,12 @@ test("P7 (31 Oct): language/variant copies never re-enter the sample via the pro
   assert.equal(r.failed, 0, r.log);
 });
 
+test("P5 phase 2 (1 Nov): targeted structured-data browser probe — JSON-LD after JS counts, completed render without JSON-LD is proven absent, failed render is not observed, no probe without a tag manager", () => {
+  const r = run("run-structured-data-probe.mjs");
+  assert.equal(r.total, 6);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
   const r = run("run-local-business.mjs", { PROFILES: "qa144" });
   assert.ok(r.total >= 11, `profiles missing: ${r.total}`);

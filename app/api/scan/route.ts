@@ -1,5 +1,6 @@
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
+import { validJsonLdBlockTexts } from "@/lib/structured-data-evidence";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
@@ -1469,6 +1470,32 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const ogImageIsAbsolute = isAbsoluteHttpUrl(ogImage);
     const ogUrlIsAbsolute = !ogUrl || isAbsoluteHttpUrl(ogUrl);
 
+    // 1 Nov (P5 phase 2): targeted, bounded browser observation for structured
+    // data only. A server-rendered homepage without valid JSON-LD that loads a tag
+    // manager or holds an empty ld+json placeholder can get JSON-LD in the browser.
+    // One render (8 s, shared render budget, homepage only, time left); the rest of
+    // the report keeps the server HTML. Found blocks count with the browser as
+    // source; a completed render without blocks is a proven absence; a failed
+    // render stays "not observed".
+    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null };
+    if (!javascriptExecuted && !javascriptCandidate && isSiteHomepagePath(finalUrl.pathname) && !clock.expired && Date.now() - started < 60_000
+      && validJsonLdBlockTexts(html).length === 0 && jsonLdInjectorSignals(rawHtml).length > 0) {
+      structuredDataProbe.attempted = true;
+      const probeStarted = Date.now();
+      try {
+        const probed = await renderPublicPage(finalUrl.toString(), 8000, renderBudget);
+        const blocks = validJsonLdBlockTexts(probed.html);
+        structuredDataProbe.ok = true;
+        structuredDataProbe.addedBlocks = blocks.length;
+        if (blocks.length) {
+          const tags = blocks.map((block) => `<script type="application/ld+json" data-rankfix-source="browser">${block}</script>`).join("");
+          html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tags}</head>`) : tags + html;
+        }
+      } catch (probeError) {
+        structuredDataProbe.error = String(probeError instanceof Error ? probeError.message : probeError).slice(0, 160);
+      }
+      structuredDataProbe.elapsedMs = Date.now() - probeStarted;
+    }
     const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
     const schemaObjects: any[] = [];
@@ -3665,7 +3692,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // "No JSON-LD" is only a proven absence when a render saw the final DOM, or the raw
     // HTML is server-rendered and nothing (a tag manager) can add markup later.
     const jsonLdInjectors = jsonLdInjectorSignals(rawHtml);
-    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted, clientRenderedRisk: metadataMayBeClientRendered, injectors: jsonLdInjectors });
+    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted || structuredDataProbe.ok, clientRenderedRisk: metadataMayBeClientRendered && !structuredDataProbe.ok, injectors: jsonLdInjectors });
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
@@ -4536,7 +4563,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         viewport: viewportContent || (item.key === "viewport" && (rawServerRendered || javascriptExecuted) ? "viewportMetaPresent=false; head=server-rendered" : null),
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}` : null),
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}${structuredDataProbe.addedBlocks ? `; observation=present_after_javascript; browserBlocks=${structuredDataProbe.addedBlocks}` : ""}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}${structuredDataProbe.attempted ? `; browserProbe=${structuredDataProbe.ok ? "completed" : `failed:${structuredDataProbe.error}`}` : ""}` : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseMedian,
@@ -5006,6 +5033,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       es:"RankFix renderizó este sitio JavaScript en un navegador limitado. No se ejecutaron los flujos de inicio de sesión, carrito ni pago."
     };
     const rendering = {
+      // Targeted structured-data observation (not a full browser report).
+      structuredDataProbe,
       mode: javascriptExecuted ? "javascript_rendered" as const : "raw_html" as const,
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),

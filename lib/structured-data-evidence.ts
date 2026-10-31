@@ -63,3 +63,14 @@ export function structuredDataUnprovenMessage(basis: StructuredDataBasis, contex
   }
   return `Structured data kon niet betrouwbaar worden bevestigd voor deze ${context}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`;
 }
+
+/** Raw text of every ld+json block that parses as JSON (empty placeholders excluded). */
+export function validJsonLdBlockTexts(html: string): string[] {
+  const out: string[] = [];
+  for (const m of String(html || "").matchAll(/<script\b[^>]*type\s*=\s*["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const text = m[1].trim();
+    if (!text) continue;
+    try { JSON.parse(text); out.push(text.replace(/<\/script/gi, "<\\/script")); } catch { /* invalid JSON is not structured data */ }
+  }
+  return out;
+}
