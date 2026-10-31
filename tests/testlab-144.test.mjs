@@ -40,3 +40,14 @@ test("real QA lab requires tester authentication and exact deployed preview SHA"
  assert.match(source,/Only the fixed QA preview is allowed/);
  assert.match(source,/Stopped on QA/);
 });
+
+test("fresh 144 catalog has no historical hosts",()=>{
+ const fresh=JSON.parse(readFileSync(join(root,"tests/fixtures/testlab-144/catalog-fresh-144-20261029.json"),"utf8"));
+ const commerce=JSON.parse(readFileSync(join(root,"tests/fixtures/testlab-144/catalog-commerce-diverse-20261026.json"),"utf8"));
+ const normalize=s=>s.hosts[0].toLowerCase().replace("www.","");
+ const historical=new Set([...sites,...commerce.sites].map(normalize));
+ const hosts=fresh.sites.map(normalize);
+ assert.equal(hosts.length,144);
+ assert.equal(new Set(hosts).size,144);
+ assert.ok(hosts.every(h=>!historical.has(h)));
+});

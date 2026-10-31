@@ -1,3 +1,4 @@
+import { schemaTypesOf } from "./schema-type.ts";
 import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
@@ -124,7 +125,7 @@ export const SERVICE_INTENT = /(?<![\p{L}])(?:diensten|dienstverlening|aanvragen
 export function countIndependentProducts(html: string): number {
   let count = 0;
   const isProduct = (value: Record<string, unknown>) => {
-    const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
+    const types = schemaTypesOf(value);
     return types.some((type) => String(type || "").toLowerCase() === "product");
   };
   const walk = (value: unknown, insideProduct: boolean, depth: number) => {

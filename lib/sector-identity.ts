@@ -41,6 +41,26 @@ const ORGANIZATION_SCHEMA_TYPES = new Set([
   ...RETAIL_STORE_SCHEMA_TYPES,
 ]);
 
+// Organization types that are not a typed local entity: plain/umbrella parents.
+const GENERIC_ORGANIZATION_TYPES = new Set([
+  "organization", "corporation", "onlinebusiness", "ngo", "consortium", "cooperative", "fundingscheme",
+  "politicalparty", "workersunion", "researchorganization", "librarysystem", "performinggroup",
+  "sportsteam", "sportsorganization", "airline", "newsmediaorganization", "governmentorganization",
+  "educationalorganization", "collegeoruniversity", "onlinestore",
+]);
+/**
+ * A declared LocalBusiness subtype (Dentist, Restaurant, Store…) or a medical
+ * organization (MedicalOrganization, Hospital) is a typed local entity: it
+ * satisfies "local business schema present" even when it is not the exact
+ * subtype RankFix would recommend.
+ */
+export function hasTypedLocalEntitySchema(schemaTypes: Iterable<string>): boolean {
+  return [...schemaTypes].some((type) => {
+    const t = String(type).toLowerCase();
+    return t === "localbusiness" || t === "hospital" || t === "medicalorganization" || (ORGANIZATION_SCHEMA_TYPES.has(t) && !GENERIC_ORGANIZATION_TYPES.has(t));
+  });
+}
+
 export function hasOrganizationSchema(schemaTypes: Iterable<string>): boolean {
   return [...schemaTypes].some((type) => ORGANIZATION_SCHEMA_TYPES.has(String(type).toLowerCase()));
 }

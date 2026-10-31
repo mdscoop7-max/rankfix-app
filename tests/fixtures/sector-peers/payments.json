@@ -1,0 +1,218 @@
+{
+ "group": "payments",
+ "note": "Betaaldienstverleners en webshops/dienstverleners die betalen noemen (31 okt: Mollie herkend, PayPal/Adyen/Klarna/MultiSafepay niet).",
+ "sites": {
+  "mollie.test": {
+   "title": "Mollie: online betalingen voor groeiende bedrijven",
+   "desc": "Mollie maakt online betalen eenvoudig. Accepteer iDEAL, creditcards, Apple Pay en meer met één integratie. Transparante tarieven, geen vaste kosten.",
+   "h1": "Betalingen voor groeiende bedrijven",
+   "nav": [
+    "Producten",
+    "Betaalmethoden",
+    "Prijzen",
+    "Ontwikkelaars",
+    "Klantverhalen",
+    "Inloggen",
+    "Aanmelden"
+   ],
+   "h2": [
+    "Accepteer alle populaire betaalmethoden",
+    "Betaallinks en terugkerende betalingen"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable",
+    "platform": "Framer",
+    "schemaType": "FinancialService"
+   },
+   "head": "<meta name=\"generator\" content=\"Framer 3c9a1f2\"><link rel=\"preload\" href=\"https://framerusercontent.com/assets/font.woff2\">"
+  },
+  "paypal.test": {
+   "title": "Online betalen, geld versturen en ontvangen | PayPal NL",
+   "desc": "Met PayPal betaal je veilig online, verstuur je geld naar vrienden en ontvang je betalingen voor je bedrijf. Maak gratis een rekening aan.",
+   "h1": "Betaal, verstuur en ontvang geld met PayPal",
+   "nav": [
+    "Particulier",
+    "Zakelijk",
+    "Ontwikkelaar",
+    "Help",
+    "Inloggen",
+    "Aanmelden"
+   ],
+   "h2": [
+    "Veilig online betalen",
+    "Geld versturen naar vrienden en familie",
+    "Betalingen ontvangen voor je bedrijf"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable",
+    "schemaType": "FinancialService"
+   }
+  },
+  "adyen.test": {
+   "lang": "en",
+   "title": "Adyen | Engineered for ambition",
+   "desc": "Adyen is the financial technology platform of choice for leading companies. Accept payments online, in-app and in-store with one platform.",
+   "h1": "Engineered for ambition",
+   "nav": [
+    "Products",
+    "Industries",
+    "Customers",
+    "Developers",
+    "Pricing",
+    "Contact sales"
+   ],
+   "h2": [
+    "Online payments",
+    "In-person payments",
+    "Embedded financial products"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "stripe.test": {
+   "lang": "en",
+   "title": "Stripe | Financial Infrastructure to Grow Your Revenue",
+   "desc": "Stripe is a suite of APIs powering online payment processing and commerce solutions for internet businesses of all sizes. Accept payments and scale faster.",
+   "h1": "Financial infrastructure to grow your revenue",
+   "nav": [
+    "Products",
+    "Solutions",
+    "Developers",
+    "Resources",
+    "Pricing",
+    "Sign in",
+    "Contact sales"
+   ],
+   "h2": [
+    "Payments",
+    "Billing",
+    "Connect"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "klarna.test": {
+   "title": "Klarna | Betaal later, in 3 delen of direct",
+   "desc": "Shop bij je favoriete winkels en betaal later met Klarna. Gespreid betalen in 3 rentevrije termijnen. Veilig en eenvoudig.",
+   "h1": "Shop nu, betaal later",
+   "nav": [
+    "Winkels",
+    "Betaalopties",
+    "Zakelijk",
+    "Help",
+    "Inloggen"
+   ],
+   "h2": [
+    "Betaal in 3 delen",
+    "Betaal later",
+    "Klarna voor bedrijven"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "multisafepay.test": {
+   "title": "MultiSafepay | Betaaldienstverlener voor online en in-store",
+   "desc": "MultiSafepay is een Nederlandse betaaldienstverlener. Accepteer alle betaalmethoden, online en in de winkel, met één contract.",
+   "h1": "Alle betaalmethoden, één partner",
+   "nav": [
+    "Oplossingen",
+    "Betaalmethoden",
+    "Tarieven",
+    "Integraties",
+    "Over ons",
+    "Contact"
+   ],
+   "h2": [
+    "Online betalingen",
+    "Betalen in de winkel"
+   ],
+   "expect": {
+    "sector": "financial_services",
+    "key": "financial_payments",
+    "type": "services",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "fashion.test": {
+   "title": "Dameskleding & accessoires | Betaal later met Klarna | Lotte Mode",
+   "desc": "Ontdek de nieuwste collectie jurken, jeans en tassen. Achteraf betalen en gratis retour binnen 30 dagen.",
+   "h1": "Nieuwe collectie",
+   "nav": [
+    "Dames",
+    "Jurken",
+    "Tassen",
+    "Sale",
+    "Klantenservice"
+   ],
+   "body": "<div class=product><a href=/p/1>Jurk Mila</a> <span class=price>€ 49,95</span> <button>In winkelwagen</button></div><a href=/winkelwagen>Winkelwagen</a>",
+   "expect": {
+    "sector": "ecommerce",
+    "type": "ecommerce_store"
+   }
+  },
+  "tandarts.test": {
+   "title": "Tandartspraktijk De Linde | Tandarts in Utrecht",
+   "desc": "Uw tandarts in Utrecht voor controle, mondhygiëne en implantaten. Online betalingen en afspraak maken mogelijk.",
+   "h1": "Tandartspraktijk De Linde",
+   "nav": [
+    "Behandelingen",
+    "Team",
+    "Afspraak maken",
+    "Tarieven",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "health_wellness",
+    "key": "dentist",
+    "schemaType": "Dentist"
+   }
+  },
+  "bakkerij.test": {
+   "title": "Bakkerij Van Dam | Vers brood en gebak",
+   "desc": "Ambachtelijke bakkerij in Delft. Bestel taarten online en betaal met iDEAL. Accepteer onze cookies voor de beste ervaring.",
+   "h1": "Bakkerij Van Dam",
+   "nav": [
+    "Brood",
+    "Gebak",
+    "Taarten bestellen",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "food_local_retail",
+    "key": "bakery"
+   }
+  },
+  "boekhouding.test": {
+   "title": "Boekhoudsoftware voor zzp en mkb | Factuurpro",
+   "desc": "Facturen maken, offertes versturen en je btw-aangifte in één boekhoudpakket. Probeer 30 dagen gratis.",
+   "h1": "Boekhouden zonder gedoe",
+   "nav": [
+    "Functies",
+    "Prijzen",
+    "Ontwikkelaars",
+    "Inloggen"
+   ],
+   "expect": {
+    "notKey": "financial_payments"
+   }
+  }
+ }
+}

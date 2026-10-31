@@ -3,6 +3,7 @@ import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/l
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { offerPrice } from "@/lib/price";
+import { schemaTypesOf } from "@/lib/schema-type";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export const CRAWLER_ENGINE_VERSION = "2.6.0";
@@ -108,14 +109,21 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(/\/(filter|filters)\b/.test(p))return "filter";
   const types=jsonTypes.map(x=>x.toLowerCase());
   const hasLocalBusinessType = types.some(t => ["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"].includes(t));
-  const localSignals = /\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\b/i.test(text) && /(\+?\d[\d\s().-]{7,}|\b(postcode|postal code|address|adres|straat|street|rue|straße|via)\b)/i.test(text);
-  if(hasLocalBusinessType || localSignals)return "local_business";
+  // Opening hours and address are frequently repeated in sitewide footers.
+  // Only explicit structured business identity classifies a page as local_business.
+  if(hasLocalBusinessType)return "local_business";
   if(types.includes("product"))return "product";
   if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
-  if(types.includes("faqpage")||/\b(faq|veelgestelde vragen|frequently asked questions)\b/.test(text))return "faq";
-  if(/\/(contact|contacteer-ons)\b/.test(p)||/\bcontact\b/.test(text))return "contact";
+  // Sitewide navigation often contains FAQ and Contact links. Do not let
+  // these boilerplate words reclassify unrelated pages.
+  if(types.includes("faqpage")||/\/(faq|veelgestelde-vragen|frequently-asked-questions)(?:\/|$)/.test(p))return "faq";
+  if(/\/(contact|contacteer-ons)(?:\/|$)/.test(p))return "contact";
   if(/\/(about|over-ons|over-ons)\b/.test(p))return "about";
-  if(types.includes("itemlist")||/\/(category|categorie|categories|collections|collection|shop|producten|products)\b/.test(p))return "product_category";
+  // Industrial manufacturers may publish /products/ without selling online.
+  // A product path alone is not evidence of an ecommerce category.
+  const commerceSignals = /(?:add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|ajouter au panier|in den warenkorb|añadir al carrito|aggiungi al carrello|checkout|afrekenen)/i.test(text) || /(?:itemprop=["']price["']|"@type"\s*:\s*"Offer"|["']priceCurrency["'])/i.test(html);
+  // Generic ItemList and /category/ are also used by blogs and industrial catalogs.
+  if(/\/(collections|collection|shop)\b/.test(p)||(commerceSignals&&(types.includes("itemlist")||/\/(category|categorie|categories|producten|products)\b/.test(p))))return "product_category";
   if(/\/(diensten|services|service)\b/.test(p))return "service";
   if(/\/(stad|city|locatie|locations|regio)\b/.test(p))return "city_landing";
   if(/\/(nl|en|de|fr|es)\//.test(p))return "national_landing";
@@ -192,7 +200,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const product={name:false,image:false,offers:false,price:false,priceCurrency:false,availability:false,brandOrSku:false};
       const localBusiness = {types:[] as string[],name:false,address:false,telephone:false,url:false,openingHours:false,imageOrLogo:false,sameAs:false};
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
-      for(const b of blocks){try{const parsed=JSON.parse(b[2]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= offerPrice(o).price !== null;product.priceCurrency ||= Boolean(offerPrice(o).currency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
+      for(const b of blocks){try{const parsed=JSON.parse(b[2]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const ts=schemaTypesOf(x);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= offerPrice(o).price !== null;product.priceCurrency ||= Boolean(offerPrice(o).currency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
       const text=stripHtml(html);
       let canonicalUrl:string|null=null;
       if(canonical){

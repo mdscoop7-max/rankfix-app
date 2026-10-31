@@ -1,18 +1,20 @@
 import type { Locale } from "@/lib/locales";
+import { dimensionDisplayOf } from "./dimension-score-display.mjs";
 
 /**
  * One wording for "how final is this score?", shared by every place that shows
  * a headline score (issue #151). It reads only fields the scan already returns.
  */
-type DimensionCoverage = { coverage?: { relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null;
+type DimensionCoverage = { score?: number | null; coverage?: { relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null;
 export type QualifiableResult = {
   overallScore?: number;
   seo?: DimensionCoverage;
   geo?: DimensionCoverage;
   mode?: string;
   coverage?: { coveragePercent?: number } | null;
-  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
+  scoreModel?: { seoRange?: { low: number; high: number } | null; geoRange?: { low: number; high: number } | null; dimensionEvidence?: { seo?: { level?: string | null; coveragePercent?: number | null } | null; geo?: { level?: string | null; coveragePercent?: number | null } | null } | null; evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
+  rendering?: { javascriptExecuted?: boolean | null } | null;
   multiPage?: { counts?: { selected?: number; audited?: number } | null; sitewideSummary?: { scoredPageIsHomepage?: boolean; checkedPages?: number; pagesWithIssues?: number; topIssues?: Array<{ key: string; affected: number; checked: number }>; sampleScore?: number | null } } | null;
 };
 
@@ -35,13 +37,13 @@ export function scoreScope(result: QualifiableResult | null | undefined, locale:
   return `${head} · ${t.sample(s.pagesWithIssues || 0, s.checkedPages)}${top ? ` (${top})` : ""}${s.sampleScore != null ? ` · ${t.sampleScore} ${s.sampleScore}` : ""}`;
 }
 
-const TEXT: Record<Locale, { complete: string; final: string; sectorOnly: string; sectorUnknown: string; provisional: string; insufficient: string; coverage: string; pages: (assessed: number, selected: number) => string; range: string; reliability: string; levels: Record<"high" | "medium" | "low", string>; perfect: string; point: string }> = {
-  nl: { complete: "Definitief: alle toepasselijke controles bevestigd", final: "Definitief", sectorOnly: "Voorlopig: alle controles bevestigd, hoofdsector niet eenduidig", sectorUnknown: "Voorlopig: hoofdsector niet vastgesteld, alleen algemene controles", provisional: "Voorlopig: niet alles kon worden bevestigd", insufficient: "Indicatie: onvoldoende bewijs voor een definitieve score", coverage: "bewijsdekking", pages: (a: number, t: number) => `pagina's beoordeeld ${a}/${t}`, range: "mogelijk bereik", reliability: "betrouwbaarheid", levels: { high: "hoog", medium: "gemiddeld", low: "laag" }, perfect: "100/100 wordt alleen gegeven als alle toepasselijke controles bevestigd zijn." , point: "score op bevestigd bewijs" },
-  en: { complete: "Final: all applicable checks confirmed", final: "Final", sectorOnly: "Provisional: all checks confirmed, primary sector ambiguous", sectorUnknown: "Provisional: primary sector not established, generic checks only", provisional: "Provisional: not everything could be confirmed", insufficient: "Indication only: not enough evidence for a final score", coverage: "evidence coverage", pages: (a: number, t: number) => `pages assessed ${a}/${t}`, range: "possible range", reliability: "reliability", levels: { high: "high", medium: "medium", low: "low" }, perfect: "100/100 is only given when every applicable check is confirmed." , point: "score on confirmed evidence" },
-  de: { complete: "Endgültig: alle zutreffenden Prüfungen bestätigt", final: "Endgültig", sectorOnly: "Vorläufig: alle Prüfungen bestätigt, Hauptbranche nicht eindeutig", sectorUnknown: "Vorläufig: Hauptbranche nicht ermittelt, nur allgemeine Prüfungen", provisional: "Vorläufig: nicht alles konnte bestätigt werden", insufficient: "Nur Indikation: zu wenig Belege für eine endgültige Bewertung", coverage: "Belegabdeckung", pages: (a: number, t: number) => `Seiten bewertet ${a}/${t}`, range: "möglicher Bereich", reliability: "Zuverlässigkeit", levels: { high: "hoch", medium: "mittel", low: "niedrig" }, perfect: "100/100 gibt es nur, wenn alle zutreffenden Prüfungen bestätigt sind." , point: "Score auf bestätigten Belegen" },
-  fr: { complete: "Définitif : tous les contrôles applicables confirmés", final: "Définitif", sectorOnly: "Provisoire : tous les contrôles confirmés, secteur principal ambigu", sectorUnknown: "Provisoire : secteur principal non établi, contrôles généraux uniquement", provisional: "Provisoire : tout n'a pas pu être confirmé", insufficient: "Indication : preuves insuffisantes pour un score définitif", coverage: "couverture des preuves", pages: (a: number, t: number) => `pages évaluées ${a}/${t}`, range: "plage possible", reliability: "fiabilité", levels: { high: "élevée", medium: "moyenne", low: "faible" }, perfect: "100/100 n'est attribué que si tous les contrôles applicables sont confirmés." , point: "score sur preuves confirmées" },
-  it: { complete: "Definitivo: tutti i controlli applicabili confermati", final: "Definitivo", sectorOnly: "Provvisorio: tutti i controlli confermati, settore principale ambiguo", sectorUnknown: "Provvisorio: settore principale non determinato, solo controlli generali", provisional: "Provvisorio: non tutto è stato confermato", insufficient: "Indicazione: prove insufficienti per un punteggio definitivo", coverage: "copertura delle prove", pages: (a: number, t: number) => `pagine valutate ${a}/${t}`, range: "intervallo possibile", reliability: "affidabilità", levels: { high: "alta", medium: "media", low: "bassa" }, perfect: "100/100 viene assegnato solo se tutti i controlli applicabili sono confermati." , point: "punteggio su prove confermate" },
-  es: { complete: "Definitivo: todos los controles aplicables confirmados", final: "Definitivo", sectorOnly: "Provisional: todos los controles confirmados, sector principal ambiguo", sectorUnknown: "Provisional: sector principal no determinado, solo controles generales", provisional: "Provisional: no todo pudo confirmarse", insufficient: "Indicación: evidencia insuficiente para una puntuación definitiva", coverage: "cobertura de evidencia", pages: (a: number, t: number) => `páginas evaluadas ${a}/${t}`, range: "rango posible", reliability: "fiabilidad", levels: { high: "alta", medium: "media", low: "baja" }, perfect: "100/100 solo se da cuando todos los controles aplicables están confirmados." , point: "puntuación sobre evidencia confirmada" },
+const TEXT: Record<Locale, { rawComplete: string; complete: string; final: string; sectorOnly: string; sectorUnknown: string; provisional: string; insufficient: string; coverage: string; pages: (assessed: number, selected: number) => string; range: string; reliability: string; levels: Record<"high" | "medium" | "low", string>; perfect: string; point: string }> = {
+  nl: { rawComplete: "Volledig bevestigd in de server-HTML (zonder browserweergave)", complete: "Definitief: alle toepasselijke controles bevestigd", final: "Definitief", sectorOnly: "Voorlopig: alle controles bevestigd, hoofdsector niet eenduidig", sectorUnknown: "Voorlopig: hoofdsector niet vastgesteld, alleen algemene controles", provisional: "Voorlopig: niet alles kon worden bevestigd", insufficient: "Indicatie: onvoldoende bewijs voor een definitieve score", coverage: "bewijsdekking", pages: (a: number, t: number) => `pagina's beoordeeld ${a}/${t}`, range: "mogelijk bereik", reliability: "betrouwbaarheid", levels: { high: "hoog", medium: "gemiddeld", low: "laag" }, perfect: "100/100 wordt alleen gegeven als alle toepasselijke controles bevestigd zijn." , point: "score op bevestigd bewijs" },
+  en: { rawComplete: "Fully confirmed in the server HTML (no browser rendering)", complete: "Final: all applicable checks confirmed", final: "Final", sectorOnly: "Provisional: all checks confirmed, primary sector ambiguous", sectorUnknown: "Provisional: primary sector not established, generic checks only", provisional: "Provisional: not everything could be confirmed", insufficient: "Indication only: not enough evidence for a final score", coverage: "evidence coverage", pages: (a: number, t: number) => `pages assessed ${a}/${t}`, range: "possible range", reliability: "reliability", levels: { high: "high", medium: "medium", low: "low" }, perfect: "100/100 is only given when every applicable check is confirmed." , point: "score on confirmed evidence" },
+  de: { rawComplete: "Vollständig im Server-HTML bestätigt (ohne Browser-Rendering)", complete: "Endgültig: alle zutreffenden Prüfungen bestätigt", final: "Endgültig", sectorOnly: "Vorläufig: alle Prüfungen bestätigt, Hauptbranche nicht eindeutig", sectorUnknown: "Vorläufig: Hauptbranche nicht ermittelt, nur allgemeine Prüfungen", provisional: "Vorläufig: nicht alles konnte bestätigt werden", insufficient: "Nur Indikation: zu wenig Belege für eine endgültige Bewertung", coverage: "Belegabdeckung", pages: (a: number, t: number) => `Seiten bewertet ${a}/${t}`, range: "möglicher Bereich", reliability: "Zuverlässigkeit", levels: { high: "hoch", medium: "mittel", low: "niedrig" }, perfect: "100/100 gibt es nur, wenn alle zutreffenden Prüfungen bestätigt sind." , point: "Score auf bestätigten Belegen" },
+  fr: { rawComplete: "Entièrement confirmé dans le HTML serveur (sans rendu navigateur)", complete: "Définitif : tous les contrôles applicables confirmés", final: "Définitif", sectorOnly: "Provisoire : tous les contrôles confirmés, secteur principal ambigu", sectorUnknown: "Provisoire : secteur principal non établi, contrôles généraux uniquement", provisional: "Provisoire : tout n'a pas pu être confirmé", insufficient: "Indication : preuves insuffisantes pour un score définitif", coverage: "couverture des preuves", pages: (a: number, t: number) => `pages évaluées ${a}/${t}`, range: "plage possible", reliability: "fiabilité", levels: { high: "élevée", medium: "moyenne", low: "faible" }, perfect: "100/100 n'est attribué que si tous les contrôles applicables sont confirmés." , point: "score sur preuves confirmées" },
+  it: { rawComplete: "Completamente confermato nell'HTML del server (senza rendering del browser)", complete: "Definitivo: tutti i controlli applicabili confermati", final: "Definitivo", sectorOnly: "Provvisorio: tutti i controlli confermati, settore principale ambiguo", sectorUnknown: "Provvisorio: settore principale non determinato, solo controlli generali", provisional: "Provvisorio: non tutto è stato confermato", insufficient: "Indicazione: prove insufficienti per un punteggio definitivo", coverage: "copertura delle prove", pages: (a: number, t: number) => `pagine valutate ${a}/${t}`, range: "intervallo possibile", reliability: "affidabilità", levels: { high: "alta", medium: "media", low: "bassa" }, perfect: "100/100 viene assegnato solo se tutti i controlli applicabili sono confermati." , point: "punteggio su prove confermate" },
+  es: { rawComplete: "Totalmente confirmado en el HTML del servidor (sin renderizado del navegador)", complete: "Definitivo: todos los controles aplicables confirmados", final: "Definitivo", sectorOnly: "Provisional: todos los controles confirmados, sector principal ambiguo", sectorUnknown: "Provisional: sector principal no determinado, solo controles generales", provisional: "Provisional: no todo pudo confirmarse", insufficient: "Indicación: evidencia insuficiente para una puntuación definitiva", coverage: "cobertura de evidencia", pages: (a: number, t: number) => `páginas evaluadas ${a}/${t}`, range: "rango posible", reliability: "fiabilidad", levels: { high: "alta", medium: "media", low: "baja" }, perfect: "100/100 solo se da cuando todos los controles aplicables están confirmados." , point: "puntuación sobre evidencia confirmada" },
 };
 
 // "SEO 18/20 controles bevestigd": unconfirmed checks are not in the score and
@@ -99,13 +101,31 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
   const reasons: string[] = model.evidenceReasons || [];
   // A missing sector is named as such, also when other reasons apply (it changes which modules count).
   const unknownSector = level === "provisional" && reasons.some((r) => /^Hoofdsector niet vastgesteld/.test(r));
-  const label = level === "complete" && !fully ? t.final : level === "provisional" && storedLevel === "complete" ? t.provisional : onlySector ? t.sectorOnly : unknownSector ? t.sectorUnknown : t[level];
+  // PDF P6: "Definitief" only for a rendered scan (browser DOM); a fully confirmed
+  // raw-HTML scan says exactly that instead.
+  const label = level === "complete" && result?.rendering && result.rendering.javascriptExecuted !== true ? t.rawComplete
+    : level === "complete" && !fully ? t.final : level === "provisional" && storedLevel === "complete" ? t.provisional : onlySector ? t.sectorOnly : unknownSector ? t.sectorUnknown : t[level];
   return { level, label, detail: parts.join(" · "), note: level === "complete" ? "" : t.perfect };
 }
 
 /** The big headline: a range ("64–99") when evidence is below 70%, else the score. */
+/**
+ * SEO or GEO number as it may be shown: a range or "indicatie" when that
+ * dimension's own evidence is insufficient (lib/dimension-score-display.mjs).
+ */
+export function dimensionScoreDisplay(result: QualifiableResult | null | undefined, dimension: "seo" | "geo", locale: Locale = "nl"): { text: string; indication: boolean; coveragePercent: number | null } {
+  return dimensionDisplayOf(result, dimension, locale);
+}
+/** Plain-text label for one dimension: "64–99 (indicatie)" or "97". */
+export function dimensionScoreText(result: QualifiableResult | null | undefined, dimension: "seo" | "geo", locale: Locale = "nl"): string {
+  return dimensionDisplayOf(result, dimension, locale).text;
+}
 export function headlineDisplay(result: QualifiableResult | null | undefined): string {
   const h = result?.scoreModel?.headline;
   if (h?.kind === "range" && h.display) return h.display;
+  // Reports stored before the headline existed: incomplete evidence with a real
+  // range still shows the range, never the bare point score.
+  const r = result?.scoreModel?.range;
+  if (!h && r && r.low < r.high && result?.scoreModel?.evidenceLevel !== "complete") return `${r.low}–${r.high}`;
   return result?.overallScore == null ? "—" : String(result.overallScore);
 }

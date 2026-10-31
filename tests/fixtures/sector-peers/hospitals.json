@@ -1,0 +1,64 @@
+{
+ "group": "hospitals",
+ "note": "Ziekenhuizen/academische centra (Charité e.a.)",
+ "sites": {
+  "charite.test": {
+   "lang": "de",
+   "title": "Charité – Universitätsmedizin Berlin",
+   "desc": "Die Charité – Universitätsmedizin Berlin ist eine der größten Universitätskliniken Europas. Patientenversorgung, Forschung und Lehre.",
+   "h1": "Charité – Universitätsmedizin Berlin",
+   "nav": [
+    "Patienten",
+    "Kliniken",
+    "Forschung",
+    "Lehre",
+    "Karriere",
+    "Kontakt"
+   ],
+   "expect": {
+    "sector": "health_wellness",
+    "shopChecks": "not_applicable",
+    "platform": "TYPO3",
+    "schemaType": "Hospital"
+   },
+   "head": "<meta name=\"generator\" content=\"TYPO3 CMS\"><link rel=\"stylesheet\" href=\"/typo3temp/assets/css/main.css\">"
+  },
+  "umcnoord.test": {
+   "title": "UMC Noord | Universitair Medisch Centrum",
+   "desc": "UMC Noord is een universitair medisch centrum voor patiëntenzorg, onderzoek en onderwijs. Informatie voor patiënten en bezoekers.",
+   "h1": "Welkom bij UMC Noord",
+   "nav": [
+    "Patiënten",
+    "Afdelingen",
+    "Onderzoek",
+    "Onderwijs",
+    "Werken bij",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "health_wellness",
+    "shopChecks": "not_applicable",
+    "noPlatform": true,
+    "schemaType": "Hospital"
+   },
+   "body": "<p>Onze nieuwe website is gebouwd met TYPO3 en Drupal-kennis van ons team; lees ook over Framer en Kolibri.</p>"
+  },
+  "ziekenhuisrivierland.test": {
+   "title": "Ziekenhuis Rivierland",
+   "desc": "Ziekenhuis Rivierland in Tiel: afspraak maken, poliklinieken, bezoektijden en informatie over uw behandeling.",
+   "h1": "Ziekenhuis Rivierland",
+   "nav": [
+    "Patiënten",
+    "Specialismen",
+    "Bezoekers",
+    "Werken bij",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "health_wellness",
+    "shopChecks": "not_applicable",
+    "schemaType": "Hospital"
+   }
+  }
+ }
+}

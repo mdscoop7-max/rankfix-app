@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Puppeteer browser download (see .puppeteerrc.cjs)
 /.cache
+
+# local QA output (evidence exports, runner results)
+qa-results/

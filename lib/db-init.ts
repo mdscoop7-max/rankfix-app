@@ -112,6 +112,17 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS expected_value TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS head_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS base_blob_sha TEXT`,
+  // P0 (31 Oct): snapshot of the owner's explicitly recorded required CI checks (JSON array).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_checks TEXT`,
+  // Astra F1: trusted policy seen for this fix (JSON); may only get stricter.
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_policy TEXT`,
+  // Astra F4: SHA-256 of the approved file content, checked at the immutable head commit.
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS approved_content_sha256 TEXT`,
+  // Astra F6: root cause of the latest stop/wait (JSON: code, missing checks, timedOut, head, time).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS stop_detail TEXT`,
+  // Atomic last-moment merge claim (cancel/revoke race, 31 Oct).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_claim TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_claim_at TIMESTAMPTZ`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,
@@ -199,6 +210,9 @@ const statements = [
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_repository TEXT`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_branch TEXT`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_consented_at TIMESTAMPTZ`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_required_checks TEXT`,
+  // Strictest merge policy ever observed for this repository+branch (JSON floor; may only get stricter).
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_policy_floor TEXT`,
   `CREATE TABLE IF NOT EXISTS website_health_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

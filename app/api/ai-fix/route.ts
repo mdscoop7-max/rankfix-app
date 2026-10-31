@@ -165,7 +165,7 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
   if (type==="structured_data") {
     const classificationText = [safeContext.recommendedSchema, safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].filter(Boolean).join(" ");
     const inferredSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
-      ? "Hairdresser"
+      ? "HairSalon"
       : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
         ? "Restaurant"
         : /\b(dentist|tandarts|tandheelkunde)\b/i.test(classificationText)
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
     if (type === "structured_data" && (!expectedSchema || expectedSchema === "WebPage")) {
       const classificationText = [safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].filter(Boolean).join(" ");
       expectedSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
-        ? "Hairdresser"
+        ? "HairSalon"
         : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
           ? "Restaurant"
           : /\b(dentist|tandarts|tandheelkunde)\b/i.test(classificationText)

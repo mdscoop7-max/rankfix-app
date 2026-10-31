@@ -157,6 +157,10 @@ const HYBRID_MODULES: Record<string, string[]> = {
   home_services: ["professional_services"],
   automotive: ["home_services"],
   ecommerce: [],
+  // An airport or seaport is the more specific form of transport (DECLARED_REFINES
+  // in the scan route): passenger/timetable checks of transport still apply.
+  airports: ["transport_travel"],
+  maritime_ports: ["transport_travel"],
 };
 
 /** Sectors that are not a local walk-in business: LocalBusiness advice contradicts them. */
@@ -164,6 +168,9 @@ const NON_LOCAL_SECTORS = new Set([
   "financial_services", "telecom_technology", "news_media", "saas_b2b", "government",
   "ecommerce", "education", "nonprofit", "energy_utilities", "recruitment",
 ]);
+export function isNonLocalSector(sector: string | null | undefined): boolean {
+  return NON_LOCAL_SECTORS.has(String(sector || ""));
+}
 
 function registrableHost(host: string): string {
   const parts = host.toLowerCase().replace(/^www\./, "").split(".").filter(Boolean);

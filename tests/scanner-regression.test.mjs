@@ -269,7 +269,9 @@ test("score engine keeps independent penalties independent", async () => {
 test("advisory evidence does not become a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
-  assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
+  // 31 Oct (PDF P6): one slow measurement is never a finding; the median of three counts.
+  assert.match(source, /Eén meting bewijst geen trage server; daarom geen aftrek/);
+  assert.match(source, /const responseMedian = /);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
   assert.match(source, /schema:\s*"structured_data_context"/);
@@ -306,7 +308,7 @@ test("description length advice is gradual without changing fix identity", async
   assert.match(source, /const descriptionLengthPoints = \(length: number\) =>/);
   assert.match(source, /length >= 50 && length < 70/);
   assert.match(source, /length >= 30 && length < 50/);
-  assert.match(source, /descriptionLengthPoints\(description\.length\), 10/);
+  assert.match(source, /descriptionLengthPoints\(descriptionChars\), 10/);
   assert.match(source, /description: \{ rule_id: description \? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING"/);
   assert.match(source, /description: description \|\| \(item\.key === "description" \? "metaDescriptionPresent=false" : null\)/);
 });
@@ -833,7 +835,8 @@ test("Scan Motor 3.0 audits a bounded diverse representative sample", async () =
   assert.match(scanner,/const representativePageLimit = 30;/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
-  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, \(url\)=>normalizeScanUrl\(stripTrackingParams\(url\)\), templateShapeKey[,)]/);
+  // 31 Oct (PDF P7): one identity per page — locale prefix and variant parameters do not make a different page.
+  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, \(url\)=>sampleIdentityKey\(normalizeScanUrl\(stripTrackingParams\(url\)\)\), templateShapeKey[,)]/);
   assert.match(scanner,/const representativeAuditConcurrency = 4;/);
 });
 
@@ -1175,7 +1178,10 @@ test("commerce applicability: country picker and JS shell are unable-to-confirm,
 
 test("commerce applicability: weak shop signals or a thin sample are unable-to-confirm", () => {
   assert.deepEqual(commerce({ commerceHints: true }), { state: "unconfirmed", reason: "weak_commerce_signals" });
-  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "unconfirmed", reason: "low_coverage" });
+  // 31 Oct (PDF P2): without ANY shop signal on a fully read page the checks are N.v.t.;
+  // the cautious "thin sample" verdict only when explicitly required.
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "absent", reason: "no_commerce_evidence" });
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1, requireSampleForAbsence: true }), { state: "unconfirmed", reason: "low_coverage" });
 });
 
 test("commerce applicability: N/A only with evidence that the site is not a shop", () => {
@@ -1224,8 +1230,9 @@ test("report shows commerce applicability and raw-HTML limitations separately fr
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
   assert.match(report, /Webshopfunctionaliteit:/);
   assert.match(report, /Beperking scanbron:/);
-  assert.match(report, /r\.seo\?\.score/);
-  assert.match(report, /r\.geo\?\.score/);
+  // 31 Oct: SEO/GEO through the shared display (range/indication on thin evidence).
+  assert.match(report, /dimensionScoreText\(r as never,"seo",language\)/);
+  assert.match(report, /dimensionScoreText\(r as never,"geo",language\)/);
   assert.match(report, /r\.security\?\.score/);
   assert.match(report, /toepasselijke controles/);
 });
@@ -1732,7 +1739,7 @@ test("canonical to the same page without query parameters is equivalent, not a w
   assert.match(source, /function canonicalEquivalent\(canonical: URL, page: URL\): boolean/);
   assert.match(source, /canonicalEquivalent\(resolved, finalCandidate\)\?"PASS":"WARNING"/);
   // Long homepage descriptions: advice, no deduction.
-  assert.match(source, /description\.length > 160\n\s+\? check\("pass", "description"/);
+  assert.match(source, /descriptionChars > 160\n\s+\? check\("pass", "description"/);
 });
 
 test("a sampled link that redirects to an account or personal page leaves the sample", async () => {

@@ -59,16 +59,19 @@ test("primary-sector evidence: weaker conflicting identity abstains instead of g
 });
 
 test("generic homepage aliases do not create product pages", () => {
-  for (const path of ["/","/us/home","/nl/home","/en-us/home","/fr/","/home","/us/en/home","/en/gb/home","/index.html"])
+  for (const path of ["/","/us/home","/nl/home","/en-us/home","/fr/","/home","/us/en/home","/en/gb/home","/index.html",
+    // Server start pages (QA replay: telekom /start, esselunga /it-it/homepage.html, enterprise /en/home.html).
+    "/start","/de/start","/en/home.html","/it-it/homepage.html","/de/startseite","/fr/accueil","/es/inicio","/index.php"])
     assert.equal(isSiteHomepagePath(path),true,path);
-  for (const path of ["/us/products","/shop/home","/products/home","/guides/home","/us/home/product","/us/products/example"])
+  for (const path of ["/us/products","/shop/home","/products/home","/guides/home","/us/home/product","/us/products/example",
+    "/shop/start","/blog/homepage.html","/products/index.html","/startpakket","/home-improvement"])
     assert.equal(isSiteHomepagePath(path),false,path);
 });
 
 test("primary-sector and page classification are wired into RankFix before commerce checks", async () => {
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url),"utf8");
   assert.match(route,/const isHomepage = isLocalizedHomepage \|\| isSiteHomepagePath\(pathname\)/);
-  assert.match(route,/const primaryBusinessEvidence = detectPrimaryBusinessIdentity\(\{title,description,headings:h1s,schemaTypes\}\)/);
+  assert.match(route,/const primaryBusinessEvidence = detectPrimaryBusinessIdentity\(\{title,description,headings:h1s,schemaTypes,navigation:identityNavLabels\}\)/);
   assert.match(route,/const shortStayIdentity = primaryBusinessEvidence\.sector === "hospitality" && Boolean/);
   assert.match(route,/primaryBusinessEvidence\.sector === "financial_services"/);
   assert.match(route,/retailPurchaseEvidence\s*&& primaryBusinessEvidence\.sector !== "financial_services"/);
