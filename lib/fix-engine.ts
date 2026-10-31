@@ -131,6 +131,8 @@ export const REASON_NL: Record<string, string> = {
   MERGE_QUEUE_REQUIRED: "Deze branch gebruikt een merge queue. RankFix voegt niet zelf samen; de Pull Request staat klaar voor de queue.",
   CONTENT_MISMATCH: "De inhoud van de Pull Request is niet exact de goedgekeurde wijziging. RankFix publiceert niet automatisch.",
   CONTENT_UNAVAILABLE: "De inhoud van de goedgekeurde versie kon niet in GitHub worden gecontroleerd. RankFix publiceert niet.",
+  AUTHORIZATION_CHANGED: "De Fix is tijdens de laatste controle geannuleerd, de toestemming is ingetrokken of een andere controle voert hem al uit. RankFix heeft niet samengevoegd.",
+  MERGE_IN_PROGRESS: "RankFix voegt deze wijziging op dit moment samen. Annuleren of intrekken kan pas nadat GitHub heeft geantwoord; vernieuw de status over een minuut.",
   EVIDENCE_CHANGED: "Tussen de laatste twee controles veranderde de situatie in GitHub (base, controles of regels). RankFix publiceert niet automatisch.",
   CI_AMBIGUOUS: "Meerdere afzonderlijke workflows of jobs leveren een controle met dezelfde naam, en GitHub bevestigt niet dat het om een herhaling van één job gaat. RankFix publiceert niet automatisch; geef de jobs unieke namen.",
   RULESET_UNREADABLE: "Een GitHub-ruleset voor deze branch is niet (volledig) leesbaar voor RankFix; of RankFix de regels zou kunnen omzeilen is onbekend. RankFix publiceert niet automatisch.",
@@ -352,7 +354,7 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
 export type FixRow = {
   id: string; user_id: string; issue_id: string; scanned_url: string; status: string;
   repository?: string | null; pr_number?: number | null; pr_url?: string | null; branch?: string | null; base_branch?: string | null; file_path?: string | null;
-  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null; approved_content_sha256?: string | null; stop_detail?: string | null;
+  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null; approved_content_sha256?: string | null; stop_detail?: string | null; merge_claim?: string | null;
   merge_commit_sha?: string | null; merged_at?: string | Date | null; deploy_state?: string | null; deploy_success_at?: string | Date | null;
   live_seen_at?: string | Date | null; merge_attempts?: number | null; verification_attempts?: number | null;
   last_error_code?: string | null; phase_started_at?: string | Date | null; next_check_at?: string | Date | null; proposal_id?: string | null;
@@ -407,6 +409,9 @@ async function keep(deps: EngineDeps, row: FixRow, code: string | null, delayMs:
 }
 
 const CI_PAGE_LIMIT = 10;
+/** A merge claim older than this is stale (crashed worker); cancel then re-checks GitHub first. */
+export const MERGE_CLAIM_TTL_MINUTES = 5;
+const MERGE_REQUEST_TIMEOUT_MS = 30_000;
 
 /** All check runs of one commit, every page. Any error or malformed page → not ok. */
 export async function fetchCheckRuns(gh: NonNullable<EngineDeps["github"]>, repo: string, sha: string): Promise<CiEvidenceInput["checkRuns"]> {
@@ -589,14 +594,27 @@ export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<Merge
   if (second.decision.decision !== "merge") return second.decision;
   if (first.fingerprint !== second.fingerprint) return { decision: "block", code: "EVIDENCE_CHANGED", policy: second.decision.policy };
   const headSha = String(row.head_sha);
+  // 31 Oct: the authorisation is re-checked IN THE DATABASE at the last moment and
+  // atomically claimed. A cancel or a revoked consent that landed during the
+  // evaluation makes the claim fail; while the claim is held, cancel and revoke
+  // refuse with MERGE_IN_PROGRESS instead of reporting a stop that is not true.
+  const claim = crypto.randomUUID();
+  const claimed = await deps.db.query(
+    `UPDATE pending_fixes SET merge_claim=$3, merge_claim_at=NOW() WHERE id=$1 AND user_id=$2 AND status IN ('AWAITING_MERGE','PR_CREATED') AND auto_publish=TRUE AND merged_at IS NULL AND head_sha=$4 AND (merge_claim IS NULL OR merge_claim_at < NOW() - INTERVAL '${MERGE_CLAIM_TTL_MINUTES} minutes') RETURNING id`,
+    [row.id, row.user_id, claim, headSha],
+  );
+  if (!claimed.rowCount) return { decision: "wait", code: "AUTHORIZATION_CHANGED" };
+  const release = () => deps.db.query("UPDATE pending_fixes SET merge_claim=NULL, merge_claim_at=NULL WHERE id=$1 AND user_id=$2 AND merge_claim=$3", [row.id, row.user_id, claim]).catch(() => undefined);
   try {
-    await gh(`/repos/${repo}/pulls/${Number(row.pr_number)}/merge`, { method: "PUT", body: JSON.stringify({ merge_method: "squash", sha: headSha, commit_title: `RankFix: ${row.issue_id} (#${row.pr_number})` }) });
+    await gh(`/repos/${repo}/pulls/${Number(row.pr_number)}/merge`, { method: "PUT", body: JSON.stringify({ merge_method: "squash", sha: headSha, commit_title: `RankFix: ${row.issue_id} (#${row.pr_number})` }), signal: AbortSignal.timeout(MERGE_REQUEST_TIMEOUT_MS) });
     return { decision: "merged", code: "MERGED", policy: second.decision.policy };
   } catch (error) {
     const status = (error as { status?: number }).status;
-    if (status === 409) return { decision: "block", code: "HEAD_CHANGED" };
+    // A definitive refusal releases the claim. An unknown outcome (time-out,
+    // network) keeps it until it expires, so a cancel cannot race an in-flight merge.
+    if (status === 409) { await release(); return { decision: "block", code: "HEAD_CHANGED" }; }
     // GitHub refused the merge (protection, rulesets, hooks): never retried blindly.
-    if (status === 405 || status === 403 || status === 422) return { decision: "block", code: "MERGE_REJECTED" };
+    if (status === 405 || status === 403 || status === 422) { await release(); return { decision: "block", code: "MERGE_REJECTED" }; }
     throw error;
   }
 }
@@ -615,6 +633,9 @@ export async function advanceFix(deps: EngineDeps, row: FixRow): Promise<FixRow>
       if (!deps.github) { await keep(deps, row, "GITHUB_NOT_CONNECTED", 60_000); return row; }
       if (row.auto_publish) {
         const result = await tryAutoMerge(deps, row);
+        // Cancelled, revoked or claimed by a parallel poller in the meantime: the
+        // database state is authoritative; nothing is written from this stale copy.
+        if (result.code === "AUTHORIZATION_CHANGED") return row;
         // The policy seen for this fix is kept; a later evaluation may only be stricter.
         const policyField = result.policy && result.policy !== row.required_policy ? { required_policy: result.policy } : {};
         if (result.policy) await raiseRepositoryFloor(deps, row, result.policy);
@@ -622,7 +643,7 @@ export async function advanceFix(deps: EngineDeps, row: FixRow): Promise<FixRow>
         const detail = (timedOut: boolean) => ({ stop_detail: JSON.stringify({ code: result.code, missing: result.missing || [], timedOut, headSha: row.head_sha || null, observedAt: new Date(now).toISOString() }) });
         if (result.decision === "merged") {
           const pr = await deps.github<PullInfo>(`/repos/${row.repository}/pulls/${Number(row.pr_number)}`).catch(() => ({} as PullInfo));
-          await transition(deps, row, "AWAITING_DEPLOYMENT", { merged_at: new Date(now).toISOString(), merge_commit_sha: pr.merge_commit_sha || null });
+          await transition(deps, row, "AWAITING_DEPLOYMENT", { merged_at: new Date(now).toISOString(), merge_commit_sha: pr.merge_commit_sha || null, merge_claim: null, merge_claim_at: null });
         } else if (result.decision === "block") {
           await transition(deps, row, "NEEDS_ATTENTION", { ...policyField, ...detail(false) }, result.code);
         } else if (phaseAge > LIMITS.mergeWaitMs) {

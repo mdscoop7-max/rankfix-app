@@ -120,6 +120,9 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS approved_content_sha256 TEXT`,
   // Astra F6: root cause of the latest stop/wait (JSON: code, missing checks, timedOut, head, time).
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS stop_detail TEXT`,
+  // Atomic last-moment merge claim (cancel/revoke race, 31 Oct).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_claim TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_claim_at TIMESTAMPTZ`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,

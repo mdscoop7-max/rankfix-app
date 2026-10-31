@@ -275,6 +275,7 @@ export default function GithubPage() {
       const d = await readJson(r);
       if (!r.ok) throw new Error(d.error || tx("De instelling kon niet worden opgeslagen.", "The setting could not be saved."));
       setAutofix(Boolean(d.autofix?.enabled)); setConsentOpen(false);
+      if (!enable && Number(d.tasksMergeInProgress) > 0) setNotice(tx("Automatisch publiceren staat uit. Eén lopende Fix werd op dat moment al samengevoegd en kon niet meer worden gestopt; RankFix controleert de publicatie.", "Automatic publishing is off. One running fix was already being merged and could not be stopped; RankFix is checking the publication."));
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }

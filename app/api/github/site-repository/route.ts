@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
-import { siteConsentValid } from "@/lib/fix-engine";
+import { siteConsentValid, MERGE_CLAIM_TTL_MINUTES } from "@/lib/fix-engine";
 import { evaluatePolicy, parsePolicySnapshot, parseRecordedPolicy, readServerPolicy } from "@/lib/merge-policy";
 import { decryptToken, githubFetch } from "@/lib/github";
 
@@ -76,14 +76,23 @@ export async function PATCH(request:Request){
   // Astra review point 10: revoking AutoFix stops automatic publication of every
   // unmerged task of this website (they stay available as Pull Request only).
   let tasksMadePrOnly=0;
+  let tasksMergeInProgress=0;
   if(!enable){
+    // A task whose merge is already claimed cannot be stopped any more; it is
+    // reported honestly instead of being shown as "PR-only" (31 Oct race fix).
+    const hostSql="regexp_replace(lower(split_part(split_part(scanned_url,'://',2),'/',1)),'^www\\.','')=$2";
     const stopped=await getDb().query(
-      "UPDATE pending_fixes SET auto_publish=FALSE,updated_at=NOW() WHERE user_id=$1 AND merged_at IS NULL AND auto_publish=TRUE AND status IN ('AWAITING_MERGE','PR_CREATED','NEEDS_ATTENTION') AND regexp_replace(lower(split_part(split_part(scanned_url,'://',2),'/',1)),'^www\\.','')=$2 RETURNING id",
+      `UPDATE pending_fixes SET auto_publish=FALSE,updated_at=NOW() WHERE user_id=$1 AND merged_at IS NULL AND auto_publish=TRUE AND status IN ('AWAITING_MERGE','PR_CREATED','NEEDS_ATTENTION') AND ${hostSql} AND (merge_claim IS NULL OR merge_claim_at < NOW() - INTERVAL '${MERGE_CLAIM_TTL_MINUTES} minutes') RETURNING id`,
       [user.id,host]
     );
     tasksMadePrOnly=stopped.rowCount||0;
+    const busy=await getDb().query(
+      `SELECT id FROM pending_fixes WHERE user_id=$1 AND merged_at IS NULL AND auto_publish=TRUE AND ${hostSql} AND merge_claim IS NOT NULL AND merge_claim_at >= NOW() - INTERVAL '${MERGE_CLAIM_TTL_MINUTES} minutes'`,
+      [user.id,host]
+    );
+    tasksMergeInProgress=busy.rowCount||0;
   }
-  return NextResponse.json({ok:true,website_host:host,tasksMadePrOnly,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:publicPolicy(row.autofix_required_checks)}});
+  return NextResponse.json({ok:true,website_host:host,tasksMadePrOnly,tasksMergeInProgress,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:publicPolicy(row.autofix_required_checks)}});
 }
 
 

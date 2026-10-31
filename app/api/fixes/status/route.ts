@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { decryptToken } from "@/lib/github";
-import { advanceFix, publicFixView, autoPublishSupported, confirmedFixIsStale, fixActions, ACTIVE_FIX_STATUS_SQL, type FixRow } from "@/lib/fix-engine";
+import { advanceFix, publicFixView, autoPublishSupported, confirmedFixIsStale, fixActions, ACTIVE_FIX_STATUS_SQL, MERGE_CLAIM_TTL_MINUTES, REASON_NL, type FixRow } from "@/lib/fix-engine";
 import { recoverLegacyEvidence, type StoredProposal } from "@/lib/fix-recovery";
 import { createEngineDeps } from "@/lib/fix-engine-deps";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
@@ -162,8 +162,13 @@ export async function POST(request:Request){
     if(action==="cancel"){
       const pr=await gh<{merged?:boolean;merged_at?:string|null}>(`/repos/${row.repository}/pulls/${Number(row.pr_number)}`);
       if(pr.merged||pr.merged_at){ await advanceFix(deps,row); return NextResponse.json({error:"Deze Fix is in GitHub al samengevoegd en kan niet worden geannuleerd.",code:"ALREADY_MERGED"},{status:409}); }
-      const done=await db.query("UPDATE pending_fixes SET status='CANCELLED',auto_publish=FALSE,last_error_code='CANCELLED_BY_OWNER',next_check_at=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status=$3 AND merged_at IS NULL RETURNING id",[row.id,user.id,row.status]);
-      if(!done.rowCount) return NextResponse.json({error:"De Fix is intussen gewijzigd. Vernieuw de status.",code:"FIX_STATE_CHANGED"},{status:409});
+      // Never while a merge claim is active: the merge may already be on its way.
+      const done=await db.query(`UPDATE pending_fixes SET status='CANCELLED',auto_publish=FALSE,last_error_code='CANCELLED_BY_OWNER',next_check_at=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status=$3 AND merged_at IS NULL AND (merge_claim IS NULL OR merge_claim_at < NOW() - INTERVAL '${MERGE_CLAIM_TTL_MINUTES} minutes') RETURNING id`,[row.id,user.id,row.status]);
+      if(!done.rowCount){
+        const claimed=await db.query(`SELECT 1 FROM pending_fixes WHERE id=$1 AND user_id=$2 AND merge_claim IS NOT NULL AND merge_claim_at >= NOW() - INTERVAL '${MERGE_CLAIM_TTL_MINUTES} minutes'`,[row.id,user.id]);
+        if(claimed.rowCount) return NextResponse.json({error:REASON_NL.MERGE_IN_PROGRESS,code:"MERGE_IN_PROGRESS"},{status:409});
+        return NextResponse.json({error:"De Fix is intussen gewijzigd. Vernieuw de status.",code:"FIX_STATE_CHANGED"},{status:409});
+      }
       await db.query("INSERT INTO fix_events (proposal_id,pending_fix_id,user_id,stage,reason_code,detail) VALUES ($1,$2,$3,'CANCELLED','CANCELLED_BY_OWNER','{}'::jsonb)",[row.proposal_id||null,row.id,user.id]).catch(()=>{});
       return NextResponse.json({ok:true,cancelled:true,pr_url:row.pr_url||null,note:"De Pull Request staat nog open in GitHub; sluit hem daar als je hem niet meer nodig hebt."});
     }

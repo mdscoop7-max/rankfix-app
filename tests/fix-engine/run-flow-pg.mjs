@@ -181,10 +181,16 @@ function renderSite(host) {
 }
 
 let OPENAI = null; // null = no key configured; otherwise a handler
+let BETWEEN_REQUESTS = null;
 globalThis.fetch = async (input, init = {}) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const body = init.body ? JSON.parse(init.body) : undefined;
-  if (u.host === "api.github.com") return github(init.method || "GET", u.pathname + u.search, body);
+  if (u.host === "api.github.com") {
+    // Owner actions that land WHILE RankFix evaluates (31 Oct race): run against
+    // the real database between two GitHub requests of the same evaluation.
+    if (BETWEEN_REQUESTS) { const hook = BETWEEN_REQUESTS; if (await hook(init.method || "GET", u.pathname)) BETWEEN_REQUESTS = null; }
+    return github(init.method || "GET", u.pathname + u.search, body);
+  }
   if (u.host === "api.openai.com") return OPENAI ? OPENAI(body) : new Response("{}", { status: 500 });
   if (LIVE[u.host]) return u.pathname === "/" ? renderSite(u.host) : new Response("<html><body>nf</body></html>", { status: u.pathname === "/robots.txt" ? 404 : 200, headers: { "content-type": "text/html" } });
   return new Response("nf", { status: 404 });
@@ -483,6 +489,46 @@ await scenario("R6 stricter policy seen while blocked survives resume; only an e
   check(noConfirm.status === 400 && noConfirm.body.code === "CONFIRMATION_REQUIRED", `R6: reset needs confirmation (${noConfirm.status})`);
   const floor = (await db.query("SELECT autofix_policy_floor FROM website_repositories WHERE user_id=$1", [globalThis.__RF_USER.id])).rows[0]?.autofix_policy_floor;
   check(/"e2e"/.test(String(floor)), `R6: repository floor keeps e2e (${floor})`);
+});
+
+// 31 Oct: revoking consent or cancelling WHILE the engine evaluates never merges.
+const raceScenario = (label, ownerAction) => scenario(`${label}: owner acts during the evaluation → no merge`, async () => {
+  const id = label.toLowerCase();
+  await newUser(id);
+  const repo = freshSite(`${id}.voorbeeld.test`, `acme/${id}-shop`, { deployPolls: 1 });
+  const url = `https://${id}.voorbeeld.test/`;
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, `acme/${id}-shop`, true, url);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  let checkReads = 0;
+  // After the first full evaluation has read CI, the owner acts.
+  BETWEEN_REQUESTS = async (method, path) => { if (/check-runs$/.test(path) && ++checkReads === 1) { await ownerAction(url); return true; } return false; };
+  await publish(s1.body.scanId, ISSUE, `acme/${id}-shop`, pv, "auto");
+  BETWEEN_REQUESTS = null;
+  await poll(url, ISSUE, 3);
+  const state = await lastCode(url);
+  check(repo.merges === undefined && !repo.calls.some((c) => c.startsWith("PUT /pulls/") && c.endsWith("/merge")), `${label}: merged after the owner stopped it (${repo.merges}) ${JSON.stringify(state)}`);
+  return state;
+});
+await raceScenario("X1", (url) => call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false }));
+await raceScenario("X2", (url) => action(url, "cancel"));
+
+await scenario("X3 while a merge claim is active, cancel and revoke refuse honestly; a stale claim does not block", async () => {
+  await newUser("x3");
+  const repo = freshSite("x3.voorbeeld.test", "acme/x3-shop", { ci: "missing" });
+  const url = "https://x3.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/x3-shop", true, url);
+  await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  await publish(s1.body.scanId, ISSUE, "acme/x3-shop", pv, "auto");
+  await db.query("UPDATE pending_fixes SET merge_claim='worker-1',merge_claim_at=NOW() WHERE scanned_url=$1", [url]);
+  const cancel = await action(url, "cancel");
+  check(cancel.status === 409 && cancel.body.code === "MERGE_IN_PROGRESS", `X3: cancel during claim (${cancel.status} ${cancel.body.code})`);
+  const off = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false });
+  check(off.body.tasksMadePrOnly === 0 && off.body.tasksMergeInProgress === 1, `X3: revoke during claim ${JSON.stringify(off.body)}`);
+  await db.query("UPDATE pending_fixes SET merge_claim_at=NOW()-INTERVAL '10 minutes' WHERE scanned_url=$1", [url]);
+  const later = await action(url, "cancel");
+  check(later.status === 200 && repo.merges === undefined, `X3: stale claim, unmerged PR → cancel allowed (${later.status})`);
 });
 
 await scenario("U1 upgrade: an existing name-only policy is shown as invalid and kept until the owner changes it", async () => {

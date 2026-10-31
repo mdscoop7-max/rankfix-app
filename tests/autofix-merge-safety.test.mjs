@@ -34,6 +34,7 @@ export function fakeGithub(over = {}) {
   const fail = (status) => { const e = new Error("GitHub " + status); e.status = status; throw e; };
   const gh = async (path, init = {}) => {
     const method = init.method || "GET"; calls.push(method + " " + path);
+    if (s.onRequest) await s.onRequest(method, path, reads);
     const url = new URL("http://x" + path);
     if (/\/pulls\/7$/.test(url.pathname)) {
       reads.pull++;
@@ -79,10 +80,33 @@ export function fakeGithub(over = {}) {
   return { gh, calls, reads, state: s };
 }
 export const fixRow = (over = {}) => ({ id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://x.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 7, branch: "rankfix/x", base_branch: "main", file_path: "templates/index.html", auto_publish: true, head_sha: H, base_blob_sha: "b1", approved_content_sha256: APPROVED_SHA256, ...over });
-export async function attempt(ghOver = {}, rowOver = {}) {
-  const f = fakeGithub(ghOver);
-  const result = await E.tryAutoMerge({ github: f.gh, db: null, probe: null }, fixRow(rowOver));
-  return { result, merged: f.calls.some((c) => c.startsWith("PUT ") && c.endsWith("/merge")), calls: f.calls, reads: f.reads };
+// Minimal pending_fixes table: applies every "column=$n" of the engine's UPDATEs.
+function tableDb(row, repo = { id: "m1", autofix_policy_floor: null }) {
+  return { repo, query: async (sql, params = []) => {
+    if (/^SELECT (?:id,)?autofix_policy_floor FROM website_repositories/.test(sql)) return { rows: [{ ...repo }], rowCount: 1 };
+    if (/^UPDATE website_repositories SET autofix_policy_floor=\$3/.test(sql)) {
+      if ((repo.autofix_policy_floor ?? null) !== params[3]) return { rows: [], rowCount: 0 };
+      repo.autofix_policy_floor = params[2]; return { rows: [], rowCount: 1 };
+    }
+    if (/^UPDATE pending_fixes SET merge_claim=\$3, merge_claim_at=NOW\(\)/.test(sql)) {
+      const free = !row.merge_claim || (row.merge_claim_at && Date.now() - new Date(row.merge_claim_at).getTime() > 5 * 60_000);
+      if (!["AWAITING_MERGE", "PR_CREATED"].includes(row.status) || row.auto_publish !== true || row.merged_at || row.head_sha !== params[3] || !free) return { rows: [], rowCount: 0 };
+      row.merge_claim = params[2]; row.merge_claim_at = new Date(); return { rows: [{ id: row.id }], rowCount: 1 };
+    }
+    if (/^UPDATE pending_fixes SET merge_claim=NULL/.test(sql)) { if (row.merge_claim === params[2]) { row.merge_claim = null; row.merge_claim_at = null; } return { rows: [], rowCount: 1 }; }
+    if (!/^UPDATE pending_fixes SET/.test(sql)) return { rows: [], rowCount: 1 };
+    if (/status=\$\d+ RETURNING/.test(sql) && row.status !== params[params.length - 1]) return { rows: [], rowCount: 0 };
+    for (const [, key, n] of sql.split(" WHERE ")[0].matchAll(/(\w+)=\$(\d+)/g)) row[key] = params[Number(n) - 1];
+    return { rows: [{ ...row }], rowCount: 1 };
+  } };
+}
+// The database row and the engine's copy are separate objects, as in production.
+export async function attempt(ghOver = {}, rowOver = {}, dbOver = {}) {
+  const dbRow = fixRow({ ...rowOver, ...dbOver });
+  const db = tableDb(dbRow);
+  const f = fakeGithub(typeof ghOver === "function" ? ghOver(dbRow) : ghOver);
+  const result = await E.tryAutoMerge({ github: f.gh, db, probe: null }, fixRow(rowOver));
+  return { result, merged: f.calls.some((c) => c.startsWith("PUT ") && c.endsWith("/merge")), calls: f.calls, reads: f.reads, dbRow };
 }
 const noMerge = async (name, ghOver, rowOver, code) => {
   const { result, merged } = await attempt(ghOver, rowOver);
@@ -343,20 +367,6 @@ test("legacy evidence is recovered only from the approved content at the PR's im
 });
 
 /* ------------------------------------------------------------ real cause instead of MERGE_TIMEOUT (F6) */
-// Minimal pending_fixes table: applies every "column=$n" of the engine's UPDATEs.
-function tableDb(row, repo = { id: "m1", autofix_policy_floor: null }) {
-  return { repo, query: async (sql, params = []) => {
-    if (/^SELECT (?:id,)?autofix_policy_floor FROM website_repositories/.test(sql)) return { rows: [{ ...repo }], rowCount: 1 };
-    if (/^UPDATE website_repositories SET autofix_policy_floor=\$3/.test(sql)) {
-      if ((repo.autofix_policy_floor ?? null) !== params[3]) return { rows: [], rowCount: 0 };
-      repo.autofix_policy_floor = params[2]; return { rows: [], rowCount: 1 };
-    }
-    if (!/^UPDATE pending_fixes SET/.test(sql)) return { rows: [], rowCount: 1 };
-    if (/status=\$\d+ RETURNING/.test(sql) && row.status !== params[params.length - 1]) return { rows: [], rowCount: 0 };
-    for (const [, key, n] of sql.split(" WHERE ")[0].matchAll(/(\w+)=\$(\d+)/g)) row[key] = params[Number(n) - 1];
-    return { rows: [{ ...row }], rowCount: 1 };
-  } };
-}
 const advance = async (ghOver, rowOver) => {
   const row = fixRow({ phase_started_at: new Date(Date.now() - 20 * 60_000), ...rowOver });
   const f = fakeGithub(ghOver);
@@ -448,4 +458,48 @@ test("resume after a blocked policy keeps the stricter requirements (Astra scena
   await E.advanceFix({ db: tableDb(fresh, db.repo), github: g.gh, probe }, fresh);
   assert.equal(g.calls.some((c) => c.startsWith("PUT ")), false);
   assert.equal(fresh.last_error_code, "POLICY_WEAKENED");
+});
+
+/* ------------------------------------------------------------ cancel / revoke during the evaluation (31 Oct, point 1) */
+test("a cancel, a revoked consent or a parallel merge during the evaluation prevents the merge", async () => {
+  // The owner acts while RankFix is between its first evaluation and the merge.
+  const during = (change) => (dbRow) => ({ onRequest: async (method, path, reads) => { if (reads.pull === 2) change(dbRow); } });
+  for (const [name, change] of [
+    ["cancelled", (r) => { r.status = "CANCELLED"; r.auto_publish = false; }],
+    ["consent revoked (auto_publish off)", (r) => { r.auto_publish = false; }],
+    ["moved to NEEDS_ATTENTION", (r) => { r.status = "NEEDS_ATTENTION"; }],
+    ["head SHA replaced in the database", (r) => { r.head_sha = "f".repeat(40); }],
+    ["another poller already claimed the merge", (r) => { r.merge_claim = "other"; r.merge_claim_at = new Date(); }],
+  ]) {
+    const { result, merged } = await attempt(during(change));
+    assert.equal(merged, false, name); assert.equal(result.code, "AUTHORIZATION_CHANGED", name);
+  }
+  // A stale claim (crashed worker) does not block forever.
+  const stale = await attempt({}, {}, { merge_claim: "old", merge_claim_at: new Date(Date.now() - 10 * 60_000) });
+  assert.equal(stale.merged, true);
+});
+
+test("the claim is held during the merge request and released only on a definitive answer", async () => {
+  const ok = await attempt();
+  assert.equal(ok.merged, true); assert.ok(ok.dbRow.merge_claim, "claim held until the engine records the merge");
+  const refused = await attempt({ mergeError: 405 });
+  assert.equal(refused.result.code, "MERGE_REJECTED"); assert.equal(refused.dbRow.merge_claim, null);
+  // Unknown outcome (network/time-out): the claim stays, so a cancel cannot race the in-flight merge.
+  const dbRow = fixRow(); const db = tableDb(dbRow); const f = fakeGithub({ mergeError: 504 });
+  await assert.rejects(E.tryAutoMerge({ github: f.gh, db, probe: null }, fixRow()));
+  assert.ok(dbRow.merge_claim);
+  // The merge request carries a time-out signal.
+  const src = readFileSync(new URL("../lib/fix-engine.ts", import.meta.url), "utf8");
+  assert.match(src, /signal: AbortSignal\.timeout\(MERGE_REQUEST_TIMEOUT_MS\)/);
+});
+
+test("advanceFix: after AUTHORIZATION_CHANGED nothing is written from the stale copy; a merge clears the claim", async () => {
+  const dbRow = fixRow({ phase_started_at: new Date() }); const db = tableDb(dbRow);
+  const engineRow = { ...dbRow };
+  const f = fakeGithub({ onRequest: async (m, p, reads) => { if (reads.pull === 2) { dbRow.status = "CANCELLED"; dbRow.last_error_code = "CANCELLED_BY_OWNER"; } } });
+  await E.advanceFix({ db, github: f.gh, probe: async () => ({ reachable: false }) }, engineRow);
+  assert.equal(dbRow.status, "CANCELLED"); assert.equal(dbRow.last_error_code, "CANCELLED_BY_OWNER");
+  const okRow = fixRow({ phase_started_at: new Date() }); const okDb = tableDb(okRow);
+  await E.advanceFix({ db: okDb, github: fakeGithub().gh, probe: async () => ({ reachable: false }) }, { ...okRow });
+  assert.equal(okRow.status, "AWAITING_DEPLOYMENT"); assert.equal(okRow.merge_claim, null);
 });
