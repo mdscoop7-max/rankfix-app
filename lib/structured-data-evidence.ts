@@ -7,6 +7,8 @@
  * server HTML. A missing check is not a proven defect. Generic, no site rules.
  */
 
+import { detectGoogleTagManager } from "./tag-manager.ts";
+
 // Containers that can inject arbitrary markup, including JSON-LD, at runtime.
 // Measurement libraries (gtag.js, analytics.js) are deliberately not listed: they
 // do not run a container's custom HTML tags.
@@ -20,7 +22,7 @@ const INJECTORS: Array<{ name: string; pattern: RegExp }> = [
 
 export function jsonLdInjectorSignals(html: string): string[] {
   if (!html) return [];
-  const found = INJECTORS.filter(({ pattern }) => pattern.test(html)).map(({ name }) => name);
+  const found = INJECTORS.filter(({ name, pattern }) => name === "Google Tag Manager" ? (pattern.test(html) || detectGoogleTagManager(html).present) : pattern.test(html)).map(({ name }) => name);
   // 1 Nov (A/B P5): an EMPTY ld+json script is a placeholder the page fills in
   // the browser (nu.nl-like). Its presence means JSON-LD is client-side.
   if (emptyJsonLdPlaceholders(html) > 0) found.push("lege JSON-LD-placeholder");

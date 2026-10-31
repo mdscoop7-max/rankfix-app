@@ -40,3 +40,13 @@ test("PDF P7: language and colour variants are one page; carts and bot traps are
   for (const u of ["https://x.nl/shoppingcart", "https://x.nl/checkout", "https://x.nl/secret-link", "https://x.nl/nl/honeypot"]) assert.equal(isNonContentUrl(u), true, u);
   assert.equal(isNonContentUrl("https://x.nl/banden"), false);
 });
+
+test("1 Nov: one GTM detector — Google host, first-party server-side loader and inline snippet; gtag.js alone is not GTM", async () => {
+  const { detectGoogleTagManager } = await import("../lib/tag-manager.ts");
+  assert.deepEqual(detectGoogleTagManager(`<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-AB12CD"></script>`).present, true);
+  const firstParty = detectGoogleTagManager(`<script>(function(w,d,s,l,i){j.src='https://metrix.shop.test/gtm.js?id='+i+dl;})(window,document,'script','dataLayer','GTM-WSRFH82');</script>`);
+  assert.equal(firstParty.present, true); assert.equal(firstParty.firstParty, true); assert.deepEqual(firstParty.loaders, ["metrix.shop.test"]);
+  assert.equal(detectGoogleTagManager(`<script src="https://sst.shop.test/gtm.js?id=GTM-ZZ99XX"></script>`).present, true);
+  assert.equal(detectGoogleTagManager(`<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"></script>`).present, false);
+  assert.equal(detectGoogleTagManager(`<p>Onze GTM-ABCD consultant</p>`).present, false);
+});

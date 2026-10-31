@@ -1,6 +1,7 @@
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { validJsonLdBlockTexts } from "@/lib/structured-data-evidence";
+import { detectGoogleTagManager } from "@/lib/tag-manager";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
@@ -3288,7 +3289,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const hasCookieLink = Boolean(cookieEvidence);
     // A missing cookie link only counts when the site demonstrably uses cookies
     // or tracking: no Set-Cookie and no known tracker means there is nothing to disclose that RankFix can prove.
-    const cookieUseObserved = cookieObservations.length > 0 || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
+    const cookieUseObserved = cookieObservations.length > 0 || detectGoogleTagManager(html).present || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
     const cookieSignalOk = hasCookieLink || !cookieUseObserved;
     const cookieNotRequiredNote = !hasCookieLink && !cookieUseObserved ? " Geen cookies of trackers waargenomen; een cookielink is daarom niet als ontbrekend beoordeeld." : "";
     const hasTermsLink = Boolean(termsEvidence);
@@ -3575,7 +3576,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
     const gtmContainerIds = [...new Set(html.match(/\bGTM-[A-Z0-9]{4,}\b/gi) || [])];
     const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
-    const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html);
+    // 1 Nov: shared detector, also GTM served from the site's own domain.
+    const gtmDetection = detectGoogleTagManager(html);
+    const hasGtmLoader = gtmDetection.loaders.length > 0;
     const configuredGa4Ids = [...new Set(
       [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](G-[A-Z0-9]{6,})["']/gi)].map((match) => match[1].toUpperCase())
     )];
