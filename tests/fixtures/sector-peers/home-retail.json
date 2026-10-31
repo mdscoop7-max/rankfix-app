@@ -1,0 +1,58 @@
+{
+ "group": "home-retail",
+ "note": "Woonwinkels met webshop (IKEA, Leen Bakker e.a.)",
+ "sites": {
+  "ikea.test": {
+   "title": "IKEA Nederland | Meubels en woonaccessoires",
+   "desc": "Betaalbare meubels, woonaccessoires en inspiratie voor elke kamer. Bestel online of bezoek een IKEA-woonwarenhuis.",
+   "h1": "Inspiratie voor je hele huis",
+   "nav": [
+    "Producten",
+    "Kamers",
+    "Aanbiedingen",
+    "Woonwarenhuizen",
+    "Klantenservice"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">BILLY boekenkast</a> <span class=\"price\">€ 49,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">KALLAX kast</a> <span class=\"price\">€ 59,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/2\">MALM bed</a> <span class=\"price\">€ 199,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "type": "ecommerce_store"
+   }
+  },
+  "leenbakker.test": {
+   "title": "Leen Bakker | Meubels, bedden en raamdecoratie",
+   "desc": "Leen Bakker is dé woonwinkel voor iedereen. Bestel meubels, boxsprings en gordijnen online of in een van onze winkels.",
+   "h1": "Welkom bij Leen Bakker",
+   "nav": [
+    "Meubels",
+    "Bedden",
+    "Raamdecoratie",
+    "Tuin",
+    "Winkels"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Boxspring Nice</a> <span class=\"price\">€ 499,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Bank Lisa</a> <span class=\"price\">€ 349,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "type": "ecommerce_store",
+    "notKey": "bakery"
+   }
+  },
+  "kwantum.test": {
+   "title": "Kwantum | Woonwinkel voor vloeren, gordijnen en meubels",
+   "desc": "Shop vloeren, gordijnen, verf en meubels online bij Kwantum. Gratis bezorging vanaf € 50 of afhalen in de winkel.",
+   "h1": "Mooi wonen voor minder",
+   "nav": [
+    "Vloeren",
+    "Gordijnen",
+    "Meubels",
+    "Verf",
+    "Winkels"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Laminaat eiken</a> <span class=\"price\">€ 12,99</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Rolgordijn wit</a> <span class=\"price\">€ 19,99</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "type": "ecommerce_store"
+   }
+  }
+ }
+}

@@ -2298,12 +2298,6 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     // Primary identity comes from title, description, H1 and typed schema only;
     // marketing examples, visitors and customer sectors in body text are secondary.
-    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes});
-    // Multilingual primary identity (EU languages, typed schema, government host
-    // label, navigation as a medium-confidence fallback). Cookie/consent dialog
-    // headings are removed first: they describe the banner, not the organisation.
-    const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
-    const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
     const identityNavLabels: string[] = [];
     {
       const navSource = html.slice(0, 600000);
@@ -2317,6 +2311,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       }
     }
+    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes,navigation:identityNavLabels});
+    // Multilingual primary identity (EU languages, typed schema, government host
+    // label, navigation as a medium-confidence fallback). Cookie/consent dialog
+    // headings are removed first: they describe the banner, not the organisation.
+    const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
+    const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
     const euPrimaryIdentity = detectEuPrimaryIdentity({
       title, description: identityDescription, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
@@ -5798,6 +5798,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           productDetailSchema: confirmedCurrentProduct,
           addToCart: confirmedAddToCart,
           productAndPrice: corroboratedProductAndPrice,
+          // The site's OWN title/description must also name selling ("banden kopen",
+          // "bestel online"); a telecom provider with a phone shop stays a provider.
+          storefrontChain: Boolean(/(?<![\p{L}])(?:kopen|bestellen|bestel(?:\s+\p{L}+)?\s+online|online\s+(?:kopen|bestellen)|webshop|webwinkel|kaufen|bestellen sie|online[- ]?shop|acheter|commander|comprar|acquista|buy|order online|shop online)(?![\p{L}])/iu.test([title, description].join(" "))
+            && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high"
+            && scanEvidence.commerce.prices.value.count > 0 && scanEvidence.commerce.prices.value.currencies.length > 0 && scanEvidence.commerce.prices.confidence === "high"
+            && !serviceCommerceSignals.subscription
+            // Recurring prices (plans, rent) are never retail products, in any EU language.
+            && !/(?:\/\s?(?:mnd|maand|month|mo|monat|mon|mes|mois|mese|mies|mies\.|měs|mån|kk|kuu|hó|lună)(?![\p{L}])|(?:per|pro|par|al|a|na|za)\s(?:maand|month|monat|mois|mes|mese|miesiąc|měsíc|månad)|monatlich|mensuel|mensual|mensile|miesięcznie|měsíčně|månadsvis)/iu.test(text.slice(0, 60000))),
         })
       : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
           confirmedCurrentProduct ||

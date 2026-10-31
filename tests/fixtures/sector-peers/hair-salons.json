@@ -1,0 +1,60 @@
+{
+ "group": "hair-salons",
+ "note": "Kapsalons (BrainWash e.a.)",
+ "sites": {
+  "brainwashkappers.test": {
+   "title": "Home | BrainWash Kappers",
+   "desc": "BrainWash Kappers: knippen, kleuren en stylen in 12 salons. Maak online een afspraak bij de kapper bij jou in de buurt.",
+   "h1": "Jouw kapper in de buurt",
+   "nav": [
+    "Salons",
+    "Behandelingen",
+    "Prijzen",
+    "Afspraak maken",
+    "Werken bij"
+   ],
+   "h2": [
+    "Knippen en stylen",
+    "Kleuren"
+   ],
+   "expect": {
+    "sector": "beauty",
+    "key": "hair_salon",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "haarstudiozoe.test": {
+   "title": "Haarstudio Zoë | Kapsalon in Haarlem",
+   "desc": "Kapsalon in Haarlem voor dames, heren en kinderen. Knippen, balayage en bruidskapsels. Plan direct je afspraak.",
+   "h1": "Haarstudio Zoë",
+   "nav": [
+    "Behandelingen",
+    "Tarieven",
+    "Team",
+    "Afspraak",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "beauty",
+    "key": "hair_salon",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "barbershopnoord.test": {
+   "title": "Barbershop Noord – Herenkapper Amsterdam",
+   "desc": "Herenkapper en barbier in Amsterdam-Noord. Fade, baard trimmen en scheren met hete handdoek. Reserveer online.",
+   "h1": "Barbershop Noord",
+   "nav": [
+    "Diensten",
+    "Prijzen",
+    "Boek nu",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "beauty",
+    "key": "hair_salon",
+    "shopChecks": "not_applicable"
+   }
+  }
+ }
+}

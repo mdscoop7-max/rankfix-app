@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const run = (script, env) => {
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...((script.includes("consent-link") || script.includes("sample-h1") || script.includes("person-name-brand")) ? {} : { RF_REAL_DB: "1" }), ...env } });
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...((script.includes("consent-link") || script.includes("sample-h1") || script.includes("person-name-brand") || script.includes("sector-peers")) ? {} : { RF_REAL_DB: "1" }), ...env } });
   const line = out.stdout.split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
   assert.ok(line, out.stderr || out.stdout);
   return { result: JSON.parse(line.slice(19)), out };
@@ -32,5 +32,9 @@ test("sampled page without rendering: missing H1 is unconfirmed when scripts cou
 });
 test("a person name used as brand ('Leen Bakker' webshop) is not a bakery; real bakeries stay bakeries", () => {
   const { result, out } = run("tests/scan-matrix/run-person-name-brand.mjs", {});
+  assert.equal(result.failed, 0, out.stdout);
+});
+test("sector peers: sites with the same sector and function get the same sector, type and webshop gating", () => {
+  const { result, out } = run("tests/scan-matrix/run-sector-peers.mjs", {});
   assert.equal(result.failed, 0, out.stdout);
 });

@@ -19,6 +19,8 @@ export function commerceApplicability(input: {
   refusedRetailPages?: number;
   /** A comparison/quote platform without its own cart (QA #207/#209). */
   referralPlatform?: boolean;
+  /** Keep "unable to confirm" for a thin sample even without any shop signal. */
+  requireSampleForAbsence?: boolean;
 }): CommerceApplicability {
   if (input.referralPlatform) return { state: "unconfirmed", reason: "referral_platform" };
   if (input.confirmed) return { state: "confirmed" };
@@ -33,7 +35,11 @@ export function commerceApplicability(input: {
   if (input.verifiedSecondaryCommerce) return { state: "unconfirmed", reason: "weak_commerce_signals" };
   if (input.primaryNonCommerceIdentity) return { state: "absent", reason: "service_identity" };
   if (input.commerceHints) return { state: "unconfirmed", reason: "weak_commerce_signals" };
-  if (input.auditedRepresentativePages < 2) return { state: "unconfirmed", reason: "low_coverage" };
+  // 31 Oct (PDF P2): a fully read page (no JS shell, no country picker) without
+  // ANY product, price, cart or shop signal is evidence that this is not a shop;
+  // webshop checks are then N.v.t., also when few other pages could be read.
+  // An explicitly requested thin sample keeps the old, cautious verdict.
+  if (input.auditedRepresentativePages < 2 && input.requireSampleForAbsence) return { state: "unconfirmed", reason: "low_coverage" };
   return { state: "absent", reason: "no_commerce_evidence" };
 }
 
@@ -117,9 +123,17 @@ export function confirmedRetailEvidenceForService(input: {
   productDetailSchema: boolean;
   addToCart: boolean;
   productAndPrice: boolean;
+  /**
+   * 31 Oct (Kwik-Fit: tyres with cart and payment logos typed as a garage): the
+   * hard storefront chain on the site's own page: add-to-cart + visible prices with
+   * a currency + its own cart, without subscription pricing. A service business with a real
+   * shop (tyres, parts, phones) is then also a webshop.
+   */
+  storefrontChain?: boolean;
 }): boolean {
   return input.representativePurchase ||
-    (input.productDetailSchema && input.addToCart && input.productAndPrice);
+    (input.productDetailSchema && input.addToCart && input.productAndPrice) ||
+    Boolean(input.storefrontChain && input.addToCart);
 }
 
 /**

@@ -1175,7 +1175,10 @@ test("commerce applicability: country picker and JS shell are unable-to-confirm,
 
 test("commerce applicability: weak shop signals or a thin sample are unable-to-confirm", () => {
   assert.deepEqual(commerce({ commerceHints: true }), { state: "unconfirmed", reason: "weak_commerce_signals" });
-  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "unconfirmed", reason: "low_coverage" });
+  // 31 Oct (PDF P2): without ANY shop signal on a fully read page the checks are N.v.t.;
+  // the cautious "thin sample" verdict only when explicitly required.
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "absent", reason: "no_commerce_evidence" });
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1, requireSampleForAbsence: true }), { state: "unconfirmed", reason: "low_coverage" });
 });
 
 test("commerce applicability: N/A only with evidence that the site is not a shop", () => {

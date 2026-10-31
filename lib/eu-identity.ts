@@ -652,7 +652,13 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
 
   // 5. Passenger transport and postal/parcel operators.
   const airlineSchema = schema.has("airline") || schema.has("busorcoachstop") || schema.has("trainstation") || schema.has("airport");
-  const modes = [AIR.test(own) && "luchtvaart", RAIL.test(own) && "spoor", (BUS.test(own) || FERRY.test(own)) && "openbaar vervoer/veer"].filter(Boolean) as string[];
+  // 31 Oct (Croatia/KLM recognised, Transavia not): an airline that sells its own
+  // flights ("vliegtickets", "vlieg met …") AND offers online check-in in its main
+  // navigation operates the flights; travel agencies and comparison sites do not
+  // offer check-in.
+  const ownCheckIn = /(?<![\p{L}])(?:inchecken|online inchecken|check-?in|online check-?in|enregistrement|einchecken)(?![\p{L}])/iu.test(nav);
+  const ownFlightsWording = /(?<![\p{L}])(?:vliegtickets?|vlieg(?:en)? (?:met|naar)|vluchten|flights?|flugtickets?|flüge|vols?)(?![\p{L}])/iu.test(own);
+  const modes = [(AIR.test(own) || (ownCheckIn && ownFlightsWording)) && "luchtvaart", RAIL.test(own) && "spoor", (BUS.test(own) || FERRY.test(own)) && "openbaar vervoer/veer"].filter(Boolean) as string[];
   const travelOwn = [TICKETS.test(own) && "vervoersbewijzen", TIMETABLE.test(own) && "dienstregeling", JOURNEY.test(own) && "reis/boeking"].filter(Boolean) as string[];
   // A transport mode alone (even in two sources) describes what a business is
   // about, not that it carries passengers: case shops, model-train shops, aviation

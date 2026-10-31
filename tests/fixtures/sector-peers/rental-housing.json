@@ -1,0 +1,55 @@
+{
+ "group": "rental-housing",
+ "note": "Huurplatforms/vastgoed (HousingNet e.a.)",
+ "sites": {
+  "housingnet.test": {
+   "title": "HousingNet | Huurwoningen in Amsterdam en omgeving",
+   "desc": "Vind je huurwoning in Amsterdam. Bekijk ons actuele aanbod appartementen en studio's te huur en plan een bezichtiging.",
+   "h1": "Huurwoningen in Amsterdam",
+   "nav": [
+    "Aanbod",
+    "Verhuren",
+    "Over ons",
+    "Contact"
+   ],
+   "body": "<div class=listing><a href=/w/1>Appartement Jordaan</a> € 1.850 /mnd excl. <a href=/w/1>Bekijk</a></div><div class=listing><a href=/w/2>Studio Oost</a> € 1.150 p/m</div>",
+   "expect": {
+    "sector": "real_estate",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "huurwoningnet.test": {
+   "title": "Appartementen en huurwoningen te huur | Woonplek",
+   "desc": "Huurwoningen, appartementen en kamers te huur in heel Nederland. Reageer direct op het aanbod van verhuurders en makelaars.",
+   "h1": "Huurwoningen te huur",
+   "nav": [
+    "Huren",
+    "Verhuren",
+    "Huurprijscheck",
+    "Inloggen"
+   ],
+   "body": "<div class=listing>Woning Utrecht € 1.450 per maand <a href=/w/3>Bekijk woning</a></div>",
+   "expect": {
+    "sector": "real_estate",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "makelaardevries.test": {
+   "title": "De Vries Makelaars | Makelaar in Leiden",
+   "desc": "Makelaar in Leiden voor verkoop, aankoop en taxatie. Bekijk ons woningaanbod te koop, k.k. en neem contact op.",
+   "h1": "Uw makelaar in Leiden",
+   "nav": [
+    "Aanbod",
+    "Verkopen",
+    "Aankopen",
+    "Taxatie",
+    "Contact"
+   ],
+   "body": "<div class=listing>Herenhuis Leiden € 675.000 k.k.</div>",
+   "expect": {
+    "sector": "real_estate",
+    "shopChecks": "not_applicable"
+   }
+  }
+ }
+}

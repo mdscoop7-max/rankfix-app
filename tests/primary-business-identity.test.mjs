@@ -71,7 +71,7 @@ test("generic homepage aliases do not create product pages", () => {
 test("primary-sector and page classification are wired into RankFix before commerce checks", async () => {
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url),"utf8");
   assert.match(route,/const isHomepage = isLocalizedHomepage \|\| isSiteHomepagePath\(pathname\)/);
-  assert.match(route,/const primaryBusinessEvidence = detectPrimaryBusinessIdentity\(\{title,description,headings:h1s,schemaTypes\}\)/);
+  assert.match(route,/const primaryBusinessEvidence = detectPrimaryBusinessIdentity\(\{title,description,headings:h1s,schemaTypes,navigation:identityNavLabels\}\)/);
   assert.match(route,/const shortStayIdentity = primaryBusinessEvidence\.sector === "hospitality" && Boolean/);
   assert.match(route,/primaryBusinessEvidence\.sector === "financial_services"/);
   assert.match(route,/retailPurchaseEvidence\s*&& primaryBusinessEvidence\.sector !== "financial_services"/);
