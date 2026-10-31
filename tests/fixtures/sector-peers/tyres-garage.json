@@ -13,11 +13,12 @@
     "Onderhoud",
     "Vestigingen"
    ],
-   "body": "<div class=\"product-card\"><a href=\"/p/0\">Michelin Primacy 4 205/55 R16</a> <span class=\"price\">€ 109,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Continental WinterContact</a> <span class=\"price\">€ 124,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/shoppingcart\">Winkelwagen</a><a href=\"/webshopapi/cart\">cart</a>",
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Michelin Primacy 4 205/55 R16</a> <span class=\"price\">€ 109,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Continental WinterContact</a> <span class=\"price\">€ 124,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/shoppingcart\">Winkelwagen</a><a href=\"/webshopapi/cart\">cart</a><img src=\"/binaries/content/gallery/kwikfit/banners/winter.jpg\" alt=\"Winterbanden\">",
    "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
    "expect": {
     "sector": "automotive",
-    "type": "ecommerce_store"
+    "type": "ecommerce_store",
+    "platform": "Bloomreach (Hippo)"
    }
   },
   "bandenexpert.test": {

@@ -275,6 +275,41 @@ type TechnologyProfile = {
   technologies: Array<{ name: string; role: "cms" | "commerce_platform" | "framework"; confidence: number; evidence: string[] }>;
 };
 
+// 31 Oct (PDF P3: TYPO3, Framer, Kolibri and Bloomreach were in the HTML but not
+// recognised). One UNIQUE signature is enough: the generator meta tag, a
+// platform-specific asset path, a response header or a platform footer credit
+// link. The platform name in ordinary text never counts.
+const CMS_SIGNATURES: Array<{ name: string; patterns: RegExp[] }> = [
+  { name: "TYPO3", patterns: [/<meta[^>]+name=["']generator["'][^>]+typo3/i, /\/typo3conf\//i, /\/typo3temp\//i, /\/typo3\/sysext\//i] },
+  { name: "Drupal", patterns: [/<meta[^>]+name=["']generator["'][^>]+drupal/i, /x-generator:\s*drupal/i, /\/sites\/default\/files\//i, /drupal-settings-json/i] },
+  { name: "Joomla", patterns: [/<meta[^>]+name=["']generator["'][^>]+joomla/i, /\/media\/jui\//i, /\/media\/system\/js\/core(?:\.min)?\.js/i] },
+  { name: "Framer", patterns: [/<meta[^>]+name=["']generator["'][^>]+framer/i, /framerusercontent\.com/i, /\bdata-framer-[a-z-]+=/i] },
+  { name: "Bloomreach (Hippo)", patterns: [/\/binaries\/content\/gallery\//i, /\/site\/binaries\/content\//i, /<meta[^>]+name=["']generator["'][^>]+(?:hippo|bloomreach|brxm)/i] },
+  { name: "Kolibri", patterns: [/<meta[^>]+name=["']generator["'][^>]+kolibri/i, /(?:websites?|software|powered by|realisatie|gemaakt door|ontwikkeld door|ontwerp)[^<]{0,120}<a[^>]+href=["'][^"']*kolibri/i, /<a[^>]+href=["'][^"']*kolibri[^"']*["'][^>]*>[^<]{0,80}(?:websites?|software|kolibri)/i] },
+  { name: "Sitecore", patterns: [/<meta[^>]+name=["']generator["'][^>]+sitecore/i, /\/-\/media\/[^"'\s]+\?(?:h|w|la|rev|hash)=/i, /x-sitecore/i] },
+  { name: "Adobe Experience Manager", patterns: [/\/etc\.clientlibs\//i, /\/content\/dam\/[^"'\s]+\.(?:jpe?g|png|webp|svg|pdf)/i] },
+  { name: "Umbraco", patterns: [/<meta[^>]+name=["']generator["'][^>]+umbraco/i, /\/umbraco\/(?:api|surface)\//i] },
+  { name: "Kentico", patterns: [/<meta[^>]+name=["']generator["'][^>]+kentico/i, /\/CMSPages\/GetResource\.ashx/i, /\/kentico\//i] },
+  { name: "Craft CMS", patterns: [/x-powered-by:\s*craft cms/i, /\/cpresources\//i] },
+  { name: "Ghost", patterns: [/<meta[^>]+name=["']generator["'][^>]+ghost/i, /\/ghost\/api\//i] },
+  { name: "HubSpot CMS", patterns: [/<meta[^>]+name=["']generator["'][^>]+hubspot/i, /\/hs-fs\/hubfs\//i, /\.hubspotusercontent[\w-]*\.(?:net|com)\//i] },
+  { name: "Contentful", patterns: [/images\.ctfassets\.net\//i] },
+  { name: "Storyblok", patterns: [/a\.storyblok\.com\//i] },
+  { name: "Jimdo", patterns: [/<meta[^>]+name=["']generator["'][^>]+jimdo/i, /\.jimstatic\.com\//i] },
+  { name: "Concrete CMS", patterns: [/<meta[^>]+name=["']generator["'][^>]+concrete/i] },
+];
+/** The CMS whose unique signature matches (generator meta, asset path, header, credit link). */
+export function detectCmsSignature(html: string, headerText = ""): { name: string; evidence: string } | null {
+  const source = html.slice(0, 1_500_000);
+  for (const cms of CMS_SIGNATURES) {
+    for (const pattern of cms.patterns) {
+      const target = /^x-|x-generator|x-powered-by|x-sitecore/.test(pattern.source) ? headerText : source;
+      if (pattern.test(target)) return { name: cms.name, evidence: `${cms.name}: ${/generator/.test(pattern.source) ? "generator-tag" : /href/.test(pattern.source) ? "credit-link in footer" : /x-/.test(pattern.source) ? "response-header" : "platformspecifiek assetpad"}` };
+    }
+  }
+  return null;
+}
+
 function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
   const source = html.toLowerCase();
   const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("\\n").toLowerCase();
@@ -406,6 +441,11 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "\\n" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
   if (squarespaceSignals && /(?:static\d*\.squarespace\.com|squarespace-cdn|squarespace\.com\/universal\/scripts)/i.test(source)) { cms = "Squarespace"; strongest = Math.max(strongest, 2); }
   if (webflowSignals && /(?:data-wf-page|webflow\.js|website-files\.com)/i.test(source)) { cms = "Webflow"; strongest = Math.max(strongest, 2); }
+  let signatureCms = false;
+  if (!cms) {
+    const signature = detectCmsSignature(html, headerText);
+    if (signature) { cms = signature.name; evidence.push(signature.evidence); strongest = Math.max(strongest, 2); signatureCms = true; }
+  }
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
   else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
 
@@ -422,7 +462,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   // technology accidentally inflate the confidence of another label (for example
   // a framework marker making an otherwise weak CMS detection look certain).
   const cmsStrength = cms === "WordPress" ? wordpressSignals
-    : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" ? 2
+    : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" || signatureCms ? 2
     : 0;
   const commerceStrength = commercePlatform === "Shopify (headless)" && !shopifyHeadless ? 1.25
     : /headless/.test(commercePlatform || "") ? 1.5

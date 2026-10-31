@@ -23,8 +23,10 @@
     "sector": "financial_services",
     "key": "financial_payments",
     "type": "services",
-    "shopChecks": "not_applicable"
-   }
+    "shopChecks": "not_applicable",
+    "platform": "Framer"
+   },
+   "head": "<meta name=\"generator\" content=\"Framer 3c9a1f2\"><link rel=\"preload\" href=\"https://framerusercontent.com/assets/font.woff2\">"
   },
   "paypal.test": {
    "title": "Online betalen, geld versturen en ontvangen | PayPal NL",

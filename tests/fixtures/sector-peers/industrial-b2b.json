@@ -13,8 +13,10 @@
     "Contact"
    ],
    "expect": {
-    "shopChecks": "not_applicable"
-   }
+    "shopChecks": "not_applicable",
+    "platform": "WordPress"
+   },
+   "head": "<meta name=\"generator\" content=\"WordPress 6.6\"><link rel=\"stylesheet\" href=\"/wp-content/themes/enerco/style.css\"><script src=\"/wp-includes/js/jquery/jquery.min.js\"></script>"
   },
   "pompfabriek.test": {
    "title": "Van Rijn Pompen | Fabrikant van industriële pompen",

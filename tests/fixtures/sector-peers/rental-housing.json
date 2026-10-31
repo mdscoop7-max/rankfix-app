@@ -15,8 +15,10 @@
    "body": "<div class=listing><a href=/w/1>Appartement Jordaan</a> € 1.850 /mnd excl. <a href=/w/1>Bekijk</a></div><div class=listing><a href=/w/2>Studio Oost</a> € 1.150 p/m</div>",
    "expect": {
     "sector": "real_estate",
-    "shopChecks": "not_applicable"
-   }
+    "shopChecks": "not_applicable",
+    "platform": "Kolibri"
+   },
+   "footer": "<p>Websites &amp; software voor makelaars: <a href=\"https://www.kolibri.nl\">Kolibri</a></p>"
   },
   "huurwoningnet.test": {
    "title": "Appartementen en huurwoningen te huur | Woonplek",
