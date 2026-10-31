@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isGenericBrandTitle, invisibleTitleCharacters } from "../lib/report-quality.ts";
@@ -107,4 +107,10 @@ process.exit(0);`);
   // P10: proven findings reach the action block, highest impact first.
   assert.ok(r.actions.includes("medium:security_outdated_libraries"), r.actions.join(","));
   assert.equal(r.actions[0].split(":")[0], "high");
+});
+
+test("description > 250 is an attention point (−1); > 160 stays advice; long title is advice without deduction", () => {
+  const src = readFileSync(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(src, /descriptionChars > 250\n\s+\? check\("warning", "description", "seo", "Meta description", [^\n]*, 9, 10\)/);
+  assert.match(src, /titleChars > 70 \? `Meta title gevonden[^`]*Advies, geen aftrek/);
 });

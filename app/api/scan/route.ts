@@ -3717,7 +3717,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? check("warning", "title", "seo", "Meta title", `De title is ${titleChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
             ? check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} Advies, geen aftrek.`, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 10, 10)
-            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${titleChars} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${titleChars} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
+            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${titleChars} tekens). ${titlePixelEstimate.message}` : titleChars > 70 ? `Meta title gevonden (${titleChars} tekens). Titels boven ongeveer 70 tekens worden in zoekresultaten vaak afgekapt; zet het onderwerp vooraan. Advies, geen aftrek: lengte in tekens is geen harde SEO-eis en zonder pixelmeting is afkapping niet bewezen.` : `Meta title gevonden (${titleChars} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -3730,6 +3730,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
           // A long description is truncated in the snippet, not a defect: advice
           // without deduction (same rule as titles and as the sampled pages).
+          // PDF P9: > 250 characters is an attention point (most of it is cut off).
+          : descriptionChars > 250
+            ? check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens. Boven ongeveer 160 tekens wordt de tekst in de zoekpreview ingekort; bij meer dan 250 tekens valt het grootste deel weg (aandachtspunt, −1).`, "Zet de kern in de eerste 150 tekens en kort de rest in tot ongeveer 120–160 tekens.", 9, 10)
           : descriptionChars > 160
             ? check("pass", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
           : descriptionChars >= 70 && descriptionChars <= 160
