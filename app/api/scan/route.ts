@@ -1204,8 +1204,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const rawVisibleText = stripHtml(rawHtml);
     const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
     const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
-    const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
     const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml);
+    // 31 Oct (PDF P1/P5: a 49-word WordPress homepage was read as a "JavaScript
+    // shell", 14 checks became unconfirmed). Server-rendered evidence: the raw
+    // HTML itself carries the page identity (title + H1 with text), real links
+    // and no empty client mount point or framework runtime. Such a page is never a
+    // shell, however short: a missing element there is a real finding (thin
+    // content), not missing evidence.
+    const rawEmptyMount = /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt|___gatsby|svelte)["'][^>]*>\s*<\/div>/i.test(rawHtml);
+    const rawServerRendered = !recoveredHtml && !rawEmptyMount && !javascriptFrameworkSignal
+      && /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml)
+      && /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml)
+      && (rawHtml.match(/<a\b[^>]*\bhref\s*=\s*["'](?!#|javascript:)[^"']+["']/gi) || []).length >= 3;
+    const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4 && !rawServerRendered;
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
@@ -1220,7 +1231,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // evidence when no browser render succeeded: missing metadata there is not a
     // proven website defect. A substantive server-rendered body (250+ words, not a
     // shell) is real evidence for body structure (H1, headings, content, alt).
-    const thinRawDocument = !recoveredHtml && rawVisibleWords < 80 && rawScriptCount >= 1;
+    const thinRawDocument = !recoveredHtml && rawVisibleWords < 80 && rawScriptCount >= 1 && !rawServerRendered;
     const rawSubstantiveDocument = !recoveredHtml && !thinClientShell && rawVisibleWords >= 250;
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
@@ -3585,7 +3596,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // "No JSON-LD" is only a proven absence when a render saw the final DOM, or the raw
     // HTML is server-rendered and nothing (a tag manager) can add markup later.
     const jsonLdInjectors = jsonLdInjectorSignals(rawHtml);
-    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted, clientRenderedRisk: metadataMayBeClientRendered, injectors: jsonLdInjectors });
+    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted, clientRenderedRisk: metadataMayBeClientRendered, injectors: jsonLdInjectors, serverRendered: rawServerRendered && rawVisibleWords >= 50 });
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
@@ -3593,8 +3604,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // evidence for negative content, trust or commercial-link conclusions.
     // A short page without any script is complete static HTML, not a JavaScript shell.
     const thinRawHtmlEvidence = !javascriptExecuted && (
-      (rawVisibleWords < 60 && rawScriptCount >= 1) ||
-      (rawVisibleWords < 100 && rawScriptCount >= 4) ||
+      (rawVisibleWords < 60 && rawScriptCount >= 1 && !rawServerRendered) ||
+      (rawVisibleWords < 100 && rawScriptCount >= 4 && !rawServerRendered) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
 
@@ -3729,9 +3740,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
             : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
     );
-    const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*no(?:$|[,;\s])/i.test(viewportContent) ||
+    // "user-scalable=0" blocks zoom just like "=no" (PDF: Croatia Airlines).
+    const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*(?:no|0)(?:$|[,;\s])/i.test(viewportContent) ||
       /(?:^|[,;\s])maximum-scale\s*=\s*(?:0(?:\.\d+)?|1(?:\.0+)?)(?:$|[,;\s])/i.test(viewportContent);
-    seoChecks.push(!viewportContent
+    seoChecks.push(!viewportContent && (rawServerRendered || javascriptExecuted)
+      // The viewport lives in <head>: on a server-rendered or rendered page its
+      // absence is proven, not "unconfirmed".
+      ? check("fail", "viewport", "seo", "Mobiele viewport", "Er staat geen viewport meta tag in de <head> van deze pagina. Mobiele browsers tonen de pagina dan als verkleinde desktopweergave.", "Voeg <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> toe aan de <head>.", 0, 5)
+      : !viewportContent
       ? check("unable_to_confirm", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML.", "Bevestig de viewport in de gerenderde pagina; ontbrekende raw HTML alleen bewijst geen afwezigheid.", 0, 5)
       : !viewportIsResponsive
         ? check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
@@ -4380,7 +4396,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         h1: h1s.length,
         headings: headings.length,
         canonical: canonical || (item.key === "canonical" ? "canonicalPresent=false" : null),
-        viewport: viewportContent || null,
+        // A missing viewport on a server-rendered/rendered page is proven by the head itself.
+        viewport: viewportContent || (item.key === "viewport" && (rawServerRendered || javascriptExecuted) ? "viewportMetaPresent=false; head=server-rendered" : null),
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
         schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? "validJsonLdBlocks=0" : null),

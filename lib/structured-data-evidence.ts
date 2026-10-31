@@ -28,13 +28,17 @@ export type StructuredDataBasis =
   | "rendered_dom"
   | "raw_html_no_injectors"
   | "tag_manager_unrendered"
-  | "client_rendered_unrendered";
+  | "client_rendered_unrendered" | "raw_html_server_rendered";
 
-export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[] }): { proven: boolean; basis: StructuredDataBasis } {
+export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; serverRendered?: boolean }): { proven: boolean; basis: StructuredDataBasis } {
   if (input.validJsonLd > 0) return { proven: false, basis: "present" };
   // A completed browser render saw the final DOM: absence there is real evidence.
   if (input.rendered) return { proven: true, basis: "rendered_dom" };
   if (input.clientRenderedRisk) return { proven: false, basis: "client_rendered_unrendered" };
+  // 31 Oct (PDF P5): on a substantive server-rendered page the site publishes its
+  // own markup in the HTML; a tag manager alone does not make absence unproven
+  // ("pas na JavaScript zichtbaar" was wrong on Croatia, HousingNet, Kwik-Fit).
+  if (input.injectors.length && input.serverRendered) return { proven: true, basis: "raw_html_server_rendered" };
   if (input.injectors.length) return { proven: false, basis: "tag_manager_unrendered" };
   return { proven: true, basis: "raw_html_no_injectors" };
 }
