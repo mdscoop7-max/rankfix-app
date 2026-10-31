@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { siteConsentValid } from "@/lib/fix-engine";
-import { evaluatePolicy, parseRecordedPolicy, readServerPolicy } from "@/lib/merge-policy";
+import { evaluatePolicy, parsePolicySnapshot, parseRecordedPolicy, readServerPolicy } from "@/lib/merge-policy";
 import { decryptToken, githubFetch } from "@/lib/github";
 
 const publicPolicy=(value:unknown)=>{const p=parseRecordedPolicy(value);return {valid:p.valid,checks:p.checks.map(c=>({context:c.context,app_id:c.appId})),error:p.error||null};};
@@ -21,7 +21,7 @@ export async function GET(request:Request){
   if(!host) return NextResponse.json({error:"Ongeldige website-URL."},{status:400});
   await ensureDatabase();
   const result=await getDb().query(
-    "SELECT repository,base_branch,verified_at,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
+    "SELECT repository,base_branch,verified_at,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks,autofix_policy_floor FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
     [user.id,host]
   );
   if(!result.rowCount) return NextResponse.json({mapped:false,website_host:host,autofix:{enabled:false}});
@@ -35,7 +35,7 @@ export async function GET(request:Request){
       const token=decryptToken(connection.rows[0].access_token_encrypted);
       const gh=<T,>(path:string,init?:RequestInit)=>githubFetch<T>(token,path,init);
       const server=await readServerPolicy(gh,String(row.repository),String(row.base_branch));
-      const decision=evaluatePolicy({server,recorded:parseRecordedPolicy(row.autofix_required_checks),snapshot:null});
+      const decision=evaluatePolicy({server,recorded:parseRecordedPolicy(row.autofix_required_checks),snapshot:parsePolicySnapshot(row.autofix_policy_floor)});
       serverPolicy={state:decision.verdict==="ok"?"enforced":decision.verdict==="wait"?"unavailable":"not_enforced",code:decision.code,checks:decision.required.map(c=>({context:c.context,app_id:c.appId,source:c.source}))};
     }
   }catch{ serverPolicy={state:"unavailable",code:"POLICY_UNAVAILABLE",checks:[]}; }
@@ -60,12 +60,16 @@ export async function PATCH(request:Request){
   const recorded=policyProvided?parseRecordedPolicy(body.required_checks):null;
   if(recorded&&!recorded.valid) return NextResponse.json({error:"Ongeldige lijst verplichte controles: "+recorded.error,code:"POLICY_INVALID"},{status:400});
   const policyValue=recorded?(recorded.checks.length?JSON.stringify(recorded.checks.map(c=>({context:c.context,app_id:c.appId}))):null):undefined;
+  // The strictest policy ever seen for this repository+branch only goes down by an
+  // explicit, confirmed owner action (never as a side effect of PATCH or resume).
+  const resetFloor=body?.reset_policy_floor===true;
+  if(resetFloor&&body?.confirm_policy_reset!=="POLICY_FLOOR_RESET") return NextResponse.json({error:"Bevestig expliciet dat je de eerder strengere GitHub-controles wilt laten vervallen.",code:"CONFIRMATION_REQUIRED"},{status:400});
   await ensureDatabase();
   const result=await getDb().query(
     enable
-      ? "UPDATE website_repositories SET autofix_publish=TRUE,autofix_repository=repository,autofix_branch=base_branch,autofix_consented_at=NOW(),autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks"
-      : "UPDATE website_repositories SET autofix_publish=FALSE,autofix_repository=NULL,autofix_branch=NULL,autofix_consented_at=NULL,autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks",
-    [user.id,host,policyProvided,policyValue??null]
+      ? "UPDATE website_repositories SET autofix_publish=TRUE,autofix_repository=repository,autofix_branch=base_branch,autofix_consented_at=NOW(),autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,autofix_policy_floor=CASE WHEN $5::boolean THEN NULL ELSE autofix_policy_floor END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks"
+      : "UPDATE website_repositories SET autofix_publish=FALSE,autofix_repository=NULL,autofix_branch=NULL,autofix_consented_at=NULL,autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,autofix_policy_floor=CASE WHEN $5::boolean THEN NULL ELSE autofix_policy_floor END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks",
+    [user.id,host,policyProvided,policyValue??null,resetFloor]
   );
   if(!result.rowCount) return NextResponse.json({error:"Koppel eerst de GitHub-repository van deze website.",code:"NOT_MAPPED"},{status:409});
   const row=result.rows[0];

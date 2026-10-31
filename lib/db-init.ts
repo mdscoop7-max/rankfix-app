@@ -208,6 +208,8 @@ const statements = [
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_branch TEXT`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_consented_at TIMESTAMPTZ`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_required_checks TEXT`,
+  // Strictest merge policy ever observed for this repository+branch (JSON floor; may only get stricter).
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_policy_floor TEXT`,
   `CREATE TABLE IF NOT EXISTS website_health_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -133,8 +133,8 @@ test("policy: only server-enforced, app-bound, non-bypassable checks support an 
     ["only a recorded policy, nothing enforced by GitHub", { server: serverOk({ rules: "unreadable", checks: [], enforced: [] }), recorded: { valid: true, checks: [{ context: "build", appId: APP, source: "recorded" }] } }, "block", "NOT_SERVER_ENFORCED"],
     ["merge queue required", { server: serverOk({ mergeQueue: true }) }, "block", "MERGE_QUEUE_REQUIRED"],
     ["invalid recorded policy", { recorded: { valid: false, checks: [] } }, "block", "POLICY_INVALID"],
-    ["earlier stricter requirement disappeared", { snapshot: [{ context: "build", appId: APP }, { context: "e2e", appId: APP }] }, "block", "POLICY_WEAKENED"],
-    ["earlier requirement now unreadable", { server: serverOk({ rules: "unreadable", checks: [], enforced: [] }), snapshot: [{ context: "build", appId: APP }] }, "block", "POLICY_UNREADABLE"],
+    ["earlier stricter requirement disappeared", { snapshot: { checks: [{ context: "build", appId: APP, source: "ruleset" }, { context: "e2e", appId: APP, source: "ruleset" }], strict: false } }, "block", "POLICY_WEAKENED"],
+    ["earlier requirement now unreadable", { server: serverOk({ rules: "unreadable", checks: [], enforced: [] }), snapshot: { checks: [{ context: "build", appId: APP, source: "ruleset" }], strict: false } }, "block", "POLICY_UNREADABLE"],
   ];
   for (const [name, over, verdict, code] of cases) {
     const got = P.evaluatePolicy({ server: serverOk(), recorded: { valid: true, checks: [] }, snapshot: null, ...over });
@@ -191,13 +191,13 @@ test("tryAutoMerge (F1): wrong producer, unbound or unreadable policy, bypass or
   await noMerge("unbound ruleset check", { rules: [{ type: "required_status_checks", ruleset_id: 9, parameters: { required_status_checks: [{ context: "build" }] } }] }, {}, "REQUIRED_CHECK_UNBOUND");
   await noMerge("merge queue", { rules: [{ type: "merge_queue", ruleset_id: 9, parameters: {} }] }, {}, "MERGE_QUEUE_REQUIRED");
   // A stricter policy seen earlier for this fix cannot be lost by a later 403/500.
-  const snapshot = P.serializePolicy([{ context: "build", appId: APP, source: "ruleset" }, { context: "e2e", appId: APP, source: "ruleset" }]);
+  const snapshot = P.serializePolicy([{ context: "build", appId: APP, source: "ruleset", enforced: true }, { context: "e2e", appId: APP, source: "ruleset", enforced: true }]);
   await noMerge("earlier e2e requirement removed", {}, { required_policy: snapshot }, "POLICY_WEAKENED");
   await noMerge("earlier policy, rules now 403", { rulesError: 403 }, { required_policy: snapshot }, "POLICY_UNREADABLE");
   await noMerge("earlier policy, rules now 500", { rulesError: 500 }, { required_policy: snapshot }, "POLICY_UNAVAILABLE");
   // The policy seen is returned so the engine can keep it.
   const seen = await attempt({ runs: () => [] });
-  assert.equal(seen.result.policy, P.serializePolicy([{ context: "build", appId: APP, source: "ruleset" }]));
+  assert.equal(seen.result.policy, P.serializePolicy([{ context: "build", appId: APP, source: "ruleset", enforced: true }]));
 });
 
 test("tryAutoMerge (P0): missing, failing, incomplete or unreadable CI evidence → no merge", async () => {
@@ -315,8 +315,13 @@ test("legacy evidence is recovered only from the approved content at the PR's im
 
 /* ------------------------------------------------------------ real cause instead of MERGE_TIMEOUT (F6) */
 // Minimal pending_fixes table: applies every "column=$n" of the engine's UPDATEs.
-function tableDb(row) {
-  return { query: async (sql, params = []) => {
+function tableDb(row, repo = { id: "m1", autofix_policy_floor: null }) {
+  return { repo, query: async (sql, params = []) => {
+    if (/^SELECT (?:id,)?autofix_policy_floor FROM website_repositories/.test(sql)) return { rows: [{ ...repo }], rowCount: 1 };
+    if (/^UPDATE website_repositories SET autofix_policy_floor=\$3/.test(sql)) {
+      if ((repo.autofix_policy_floor ?? null) !== params[3]) return { rows: [], rowCount: 0 };
+      repo.autofix_policy_floor = params[2]; return { rows: [], rowCount: 1 };
+    }
     if (!/^UPDATE pending_fixes SET/.test(sql)) return { rows: [], rowCount: 1 };
     if (/status=\$\d+ RETURNING/.test(sql) && row.status !== params[params.length - 1]) return { rows: [], rowCount: 0 };
     for (const [, key, n] of sql.split(" WHERE ")[0].matchAll(/(\w+)=\$(\d+)/g)) row[key] = params[Number(n) - 1];
@@ -357,4 +362,61 @@ test("while waiting during execution the customer sees why", async () => {
   const { row, view } = await advance({ runs: () => [run("build", null, { id: 1, status: "in_progress" })] }, { phase_started_at: new Date() });
   assert.equal(row.status, "AWAITING_MERGE");
   assert.equal(view.stage, "executing"); assert.equal(view.reason_code, "CHECKS_PENDING"); assert.equal(view.reason_kind, "ci_missing"); assert.equal(view.timed_out, false);
+});
+
+/* ------------------------------------------------------------ stricter policy survives resume / new tasks; unreadable or weakened server protection (31 Oct, points 2 and 4) */
+const floorOf = (checks, strict = false) => ({ checks: checks.map(([context, enforced = true, source = "ruleset"]) => ({ context, appId: APP, source, enforced })), strict });
+test("policy floor: a requirement, its enforcement or 'strict' can never silently disappear", () => {
+  const ev = (over) => P.evaluatePolicy({ server: serverOk(), recorded: { valid: true, checks: [] }, snapshot: null, ...over });
+  // Server dropped "build" but the owner still records it: was enforced, now only recorded.
+  assert.equal(ev({ server: serverOk({ checks: [{ context: "lint", appId: APP, source: "ruleset" }], enforced: [`lint#${APP}`] }), recorded: { valid: true, checks: [{ context: "build", appId: APP, source: "recorded" }] }, snapshot: floorOf([["build"]]) }).code, "POLICY_WEAKENED");
+  assert.equal(ev({ snapshot: floorOf([["build"]], true) }).code, "POLICY_WEAKENED");
+  assert.equal(ev({ server: serverOk({ strict: true }), snapshot: floorOf([["build"]], true) }).verdict, "ok");
+  assert.equal(ev({ snapshot: "corrupt" }).code, "POLICY_UNREADABLE");
+  assert.equal(ev({ server: serverOk({ rulesetUnreadable: true }) }).code, "RULESET_UNREADABLE");
+  // A blocked evaluation still reports what it saw, so the stricter set is kept.
+  const blocked = ev({ server: serverOk({ checks: [{ context: "build", appId: APP, source: "ruleset" }, { context: "e2e", appId: APP, source: "ruleset" }], enforced: [] }) });
+  assert.equal(blocked.code, "NOT_SERVER_ENFORCED");
+  assert.deepEqual(P.parsePolicySnapshot(blocked.observed).checks.map((c) => c.context).sort(), ["build", "e2e"]);
+  // Old array snapshots still parse; garbage is "corrupt", never "no floor".
+  assert.equal(P.parsePolicySnapshot('[{"context":"build","app_id":15368}]').checks[0].context, "build");
+  for (const bad of ["{", '{"x":1}', '[{"context":""}]', 42]) assert.equal(P.parsePolicySnapshot(bad), "corrupt", String(bad));
+  assert.equal(P.parsePolicySnapshot(null), null);
+});
+
+test("server protection: an unreadable or incomplete ruleset is never skipped", async () => {
+  for (const rulesetError of [403, 404]) assert.equal((await P.readServerPolicy(fakeGithub({ rulesetError }).gh, "o/r", "main")).rulesetUnreadable, true, String(rulesetError));
+  assert.equal((await P.readServerPolicy(fakeGithub({ ruleset: { enforcement: "active" } }).gh, "o/r", "main")).rulesetUnreadable, true);
+  const strict = await P.readServerPolicy(fakeGithub({ rules: [{ type: "required_status_checks", ruleset_id: 9, parameters: { strict_required_status_checks_policy: true, required_status_checks: [{ context: "build", integration_id: APP }] } }] }).gh, "o/r", "main");
+  assert.equal(strict.strict, true);
+  await noMerge("ruleset 403", { rulesetError: 403 }, {}, "RULESET_UNREADABLE");
+  await noMerge("ruleset 404", { rulesetError: 404 }, {}, "RULESET_UNREADABLE");
+  await noMerge("ruleset without bypass information", { ruleset: { enforcement: "active" } }, {}, "RULESET_UNREADABLE");
+  await noMerge("second, unreadable ruleset next to an enforced one", { rules: [...fakeGithub().state.rules, { type: "required_status_checks", ruleset_id: 10, parameters: { required_status_checks: [{ context: "e2e", integration_id: APP }] } }], rulesetError: null, ruleset: undefined }, {}, null);
+  await noMerge("strict switched off since approval", {}, { required_policy: P.serializePolicy([{ context: "build", appId: APP, source: "ruleset", enforced: true }], true) }, "POLICY_WEAKENED");
+  await noMerge("corrupt stored policy", {}, { required_policy: "{not json" }, "POLICY_UNREADABLE");
+});
+
+test("resume after a blocked policy keeps the stricter requirements (Astra scenario)", async () => {
+  const strictRules = [{ type: "required_status_checks", ruleset_id: 9, parameters: { required_status_checks: [{ context: "build", integration_id: APP }, { context: "e2e", integration_id: APP }] } }];
+  const row = fixRow({ phase_started_at: new Date() });
+  const db = tableDb(row);
+  const probe = async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" });
+  // 1. build+e2e required, but RankFix could bypass → blocked, floor stored anyway.
+  await E.advanceFix({ db, github: fakeGithub({ rules: strictRules, ruleset: { enforcement: "active", current_user_can_bypass: "always" } }).gh, probe }, row);
+  assert.equal(row.last_error_code, "NOT_SERVER_ENFORCED");
+  assert.deepEqual(P.parsePolicySnapshot(row.required_policy).checks.map((c) => c.context).sort(), ["build", "e2e"]);
+  assert.deepEqual(P.parsePolicySnapshot(db.repo.autofix_policy_floor).checks.map((c) => c.context).sort(), ["build", "e2e"]);
+  // 2. Owner removes the bypass but also drops e2e, then resumes: no merge.
+  Object.assign(row, { status: "AWAITING_MERGE", last_error_code: null, next_check_at: null });
+  const f = fakeGithub();
+  await E.advanceFix({ db, github: f.gh, probe }, row);
+  assert.equal(f.calls.some((c) => c.startsWith("PUT ")), false);
+  assert.equal(row.last_error_code, "POLICY_WEAKENED");
+  // 3. A NEW task for the same repository+branch inherits the floor.
+  const fresh = fixRow({ id: "2", phase_started_at: new Date() });
+  const g = fakeGithub();
+  await E.advanceFix({ db: tableDb(fresh, db.repo), github: g.gh, probe }, fresh);
+  assert.equal(g.calls.some((c) => c.startsWith("PUT ")), false);
+  assert.equal(fresh.last_error_code, "POLICY_WEAKENED");
 });

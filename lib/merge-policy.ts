@@ -17,7 +17,7 @@
  *    server enforcement.
  */
 
-export type RequiredCheck = { context: string; appId: number | null; source: "ruleset" | "protection" | "recorded" };
+export type RequiredCheck = { context: string; appId: number | null; source: "ruleset" | "protection" | "recorded"; /** Seen enforced by GitHub without bypass for this identity. */ enforced?: boolean };
 export type ReadState = "ok" | "none" | "unreadable" | "unavailable";
 export type ServerPolicy = {
   rules: ReadState;
@@ -26,9 +26,20 @@ export type ServerPolicy = {
   /** Keys (`context#appId`) that GitHub enforces and the current identity cannot bypass. */
   enforced: string[];
   mergeQueue: boolean;
+  /** A ruleset that requires checks could not be read in full (bypass/enforcement unknown). */
+  rulesetUnreadable?: boolean;
+  /** An enforced source requires branches to be up to date ("strict"). */
+  strict?: boolean;
 };
+/**
+ * The strictest policy ever observed for a fix and for its repository+branch
+ * ("floor"). A later evaluation may only add requirements; it may never drop a
+ * check, an enforcement or the strict flag (Astra 31 Oct: stricter requirements
+ * must survive resume, restarts and new tasks).
+ */
+export type PolicyFloor = { checks: RequiredCheck[]; strict: boolean };
 export type RecordedPolicy = { valid: boolean; checks: RequiredCheck[]; error?: string };
-export type PolicyDecision = { verdict: "ok" | "wait" | "block"; code: string; required: RequiredCheck[]; fingerprint: string };
+export type PolicyDecision = { verdict: "ok" | "wait" | "block"; code: string; required: RequiredCheck[]; fingerprint: string; /** Floor to store (complete reads only, also when blocked). */ observed: string | null };
 
 type Gh = <T>(path: string, init?: RequestInit) => Promise<T>;
 
@@ -64,11 +75,13 @@ export async function readServerPolicy(gh: Gh, repo: string, baseBranch: string)
     if (!complete) throw Object.assign(new Error("too many rules"), { status: 502 });
     policy.rules = "ok";
     const byRuleset = new Map<number, RequiredCheck[]>();
+    const strictRuleset = new Set<number>();
     for (const item of items) {
       if (item?.type === "merge_queue") policy.mergeQueue = true;
       if (item?.type !== "required_status_checks") continue;
       const id = boundAppId(item.ruleset_id);
       const list = item.parameters?.required_status_checks;
+      if (id !== null && (item.parameters as { strict_required_status_checks_policy?: unknown } | undefined)?.strict_required_status_checks_policy === true) strictRuleset.add(id);
       if (id === null || !Array.isArray(list)) { policy.rules = "unavailable"; continue; }
       for (const entry of list) {
         if (!validContext(entry?.context)) { policy.rules = "unavailable"; continue; }
@@ -81,9 +94,16 @@ export async function readServerPolicy(gh: Gh, repo: string, baseBranch: string)
     for (const [id, checks] of byRuleset) {
       try {
         const ruleset = await gh<{ enforcement?: string; current_user_can_bypass?: string }>(`/repos/${repo}/rulesets/${id}?includes_parents=true`);
-        if (ruleset?.enforcement === "active" && ruleset.current_user_can_bypass === "never") policy.enforced.push(...checks.map(checkKey));
+        if (!ruleset || typeof ruleset.current_user_can_bypass !== "string" || typeof ruleset.enforcement !== "string") { policy.rulesetUnreadable = true; continue; }
+        if (ruleset.enforcement === "active" && ruleset.current_user_can_bypass === "never") {
+          policy.enforced.push(...checks.map(checkKey));
+          if (strictRuleset.has(id)) policy.strict = true;
+        }
       } catch (error) {
+        // Astra 31 Oct: an unreadable ruleset is never skipped silently; its
+        // enforcement and bypass rights are unknown, so the policy is unproven.
         if (readErrorState(error) === "unavailable") policy.rules = "unavailable";
+        else policy.rulesetUnreadable = true;
       }
     }
   } catch (error) {
@@ -92,7 +112,7 @@ export async function readServerPolicy(gh: Gh, repo: string, baseBranch: string)
 
   // 2. Classic branch protection (admin-readable only).
   try {
-    const body = await gh<{ required_status_checks?: { checks?: Array<{ context?: unknown; app_id?: unknown }>; contexts?: unknown[] } | null; enforce_admins?: { enabled?: boolean } | null }>(`/repos/${repo}/branches/${branch}/protection`);
+    const body = await gh<{ required_status_checks?: { strict?: boolean; checks?: Array<{ context?: unknown; app_id?: unknown }>; contexts?: unknown[] } | null; enforce_admins?: { enabled?: boolean } | null }>(`/repos/${repo}/branches/${branch}/protection`);
     if (!body || typeof body !== "object") throw Object.assign(new Error("malformed protection"), { status: 502 });
     policy.protection = "ok";
     const rsc = body.required_status_checks;
@@ -109,7 +129,10 @@ export async function readServerPolicy(gh: Gh, repo: string, baseBranch: string)
     }
     policy.checks.push(...checks);
     // Readable protection means an admin identity; admins bypass unless enforce_admins is on.
-    if (body.enforce_admins?.enabled === true) policy.enforced.push(...checks.map(checkKey));
+    if (body.enforce_admins?.enabled === true) {
+      policy.enforced.push(...checks.map(checkKey));
+      if (rsc?.strict === true && checks.length) policy.strict = true;
+    }
   } catch (error) {
     policy.protection = readErrorState(error);
   }
@@ -140,42 +163,88 @@ export function parseRecordedPolicy(value: unknown): RecordedPolicy {
   return { valid: true, checks };
 }
 
-export function serializePolicy(checks: RequiredCheck[]): string {
-  return JSON.stringify([...checks].map((c) => ({ context: c.context, app_id: c.appId, source: c.source })).sort((a, b) => checkKey({ context: a.context, appId: a.app_id }).localeCompare(checkKey({ context: b.context, appId: b.app_id }))));
+export function serializePolicy(checks: RequiredCheck[], strict = false): string {
+  const list = [...checks].map((c) => ({ context: c.context, app_id: c.appId, source: c.source, enforced: c.enforced === true })).sort((a, b) => checkKey({ context: a.context, appId: a.app_id }).localeCompare(checkKey({ context: b.context, appId: b.app_id })));
+  return JSON.stringify({ checks: list, strict });
 }
 
-export function parsePolicySnapshot(value: unknown): RequiredCheck[] | null {
-  if (typeof value !== "string" || !value) return null;
+/**
+ * Parses a stored floor. Older snapshots were a plain array. A value that is
+ * present but unreadable is NOT "no floor": it returns "corrupt" so the caller
+ * blocks instead of silently forgetting stricter requirements.
+ */
+export function parsePolicySnapshot(value: unknown): PolicyFloor | null | "corrupt" {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return "corrupt";
   try {
-    const list = JSON.parse(value);
-    if (!Array.isArray(list)) return null;
-    return list.filter((x) => validContext(x?.context)).map((x) => ({ context: x.context, appId: boundAppId(x.app_id), source: x.source === "ruleset" || x.source === "protection" ? x.source : "recorded" }));
-  } catch { return null; }
+    const parsed = JSON.parse(value);
+    const list = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.checks) ? parsed.checks : null;
+    if (!list) return "corrupt";
+    const checks: RequiredCheck[] = [];
+    for (const x of list) {
+      if (!validContext(x?.context)) return "corrupt";
+      checks.push({ context: x.context, appId: boundAppId(x.app_id), source: x.source === "ruleset" || x.source === "protection" ? x.source : "recorded", enforced: x.enforced === true });
+    }
+    return { checks, strict: !Array.isArray(parsed) && parsed.strict === true };
+  } catch { return "corrupt"; }
+}
+
+/** Union of floors: every check, every enforcement and the strict flag ever seen. */
+export function mergeFloors(...floors: Array<PolicyFloor | null | undefined>): PolicyFloor {
+  const out: PolicyFloor = { checks: [], strict: false };
+  for (const floor of floors) {
+    if (!floor) continue;
+    out.strict = out.strict || floor.strict;
+    for (const check of floor.checks) {
+      const existing = out.checks.find((c) => checkKey(c) === checkKey(check));
+      if (!existing) out.checks.push({ ...check });
+      else {
+        existing.enforced = existing.enforced === true || check.enforced === true;
+        if (existing.source === "recorded" && check.source !== "recorded") existing.source = check.source;
+      }
+    }
+  }
+  return out;
 }
 
 /**
  * Decides whether the policy may support an automatic merge. Fail-closed:
  * unavailable → wait; unreadable/unbound/unenforced/weakened → block (PR-only).
  */
-export function evaluatePolicy(input: { server: ServerPolicy; recorded: RecordedPolicy; snapshot: RequiredCheck[] | null }): PolicyDecision {
+export function evaluatePolicy(input: { server: ServerPolicy; recorded: RecordedPolicy; snapshot: PolicyFloor | null | "corrupt" }): PolicyDecision {
   const { server, recorded } = input;
-  const out = (verdict: PolicyDecision["verdict"], code: string, required: RequiredCheck[] = []): PolicyDecision => ({ verdict, code, required, fingerprint: required.map(checkKey).sort().join("|") });
+  const out = (verdict: PolicyDecision["verdict"], code: string, required: RequiredCheck[] = [], observed: string | null = null): PolicyDecision => ({ verdict, code, required, fingerprint: required.map((c) => `${checkKey(c)}${c.enforced ? "+" : ""}`).sort().join("|") + (server.strict ? "|strict" : ""), observed });
+  if (input.snapshot === "corrupt") return out("block", "POLICY_UNREADABLE");
   if (server.rules === "unavailable" || server.protection === "unavailable") return out("wait", "POLICY_UNAVAILABLE");
-  if (server.mergeQueue) return out("block", "MERGE_QUEUE_REQUIRED");
+  if (server.rulesetUnreadable) return out("block", "RULESET_UNREADABLE");
   if (!recorded.valid) return out("block", "POLICY_INVALID");
   const required: RequiredCheck[] = [];
-  for (const check of [...server.checks, ...recorded.checks]) if (!required.some((r) => checkKey(r) === checkKey(check))) required.push(check);
-  // A policy seen earlier for this fix may only get stricter: a requirement that
-  // disappeared (or can no longer be read) stops the automatic merge.
-  for (const earlier of input.snapshot || []) {
-    if (!required.some((r) => checkKey(r) === checkKey(earlier))) {
-      const unreadable = server.rules === "unreadable" || server.protection === "unreadable";
-      return out("block", unreadable ? "POLICY_UNREADABLE" : "POLICY_WEAKENED", required);
-    }
+  for (const check of [...server.checks, ...recorded.checks]) {
+    const enforced = check.source !== "recorded" && server.enforced.includes(checkKey(check));
+    const existing = required.find((r) => checkKey(r) === checkKey(check));
+    if (!existing) required.push({ ...check, enforced });
+    else if (check.source !== "recorded") { existing.source = check.source; existing.enforced = existing.enforced || enforced; }
   }
-  if (!required.length) return out("block", "REQUIRED_CHECKS_UNDEFINED");
-  if (required.some((r) => r.appId === null)) return out("block", "REQUIRED_CHECK_UNBOUND", required);
+  // The reads were complete: what was seen is stored as the new floor, also when
+  // the merge is blocked, so a stricter requirement can never be forgotten.
+  const floor = mergeFloors(input.snapshot, { checks: required, strict: server.strict === true });
+  const observed = serializePolicy(floor.checks, floor.strict);
+  if (server.mergeQueue) return out("block", "MERGE_QUEUE_REQUIRED", required, observed);
+  // A floor may only get stricter: a requirement that disappeared, lost its
+  // server enforcement (e.g. now only "recorded"), or a dropped "strict" flag
+  // stops the automatic merge.
+  for (const earlier of input.snapshot?.checks || []) {
+    const now = required.find((r) => checkKey(r) === checkKey(earlier));
+    if (!now) {
+      const unreadable = server.rules === "unreadable" || server.protection === "unreadable";
+      return out("block", unreadable ? "POLICY_UNREADABLE" : "POLICY_WEAKENED", required, observed);
+    }
+    if (earlier.enforced && !(now.source !== "recorded" && now.enforced)) return out("block", "POLICY_WEAKENED", required, observed);
+  }
+  if (input.snapshot?.strict && !server.strict) return out("block", "POLICY_WEAKENED", required, observed);
+  if (!required.length) return out("block", "REQUIRED_CHECKS_UNDEFINED", required, observed);
+  if (required.some((r) => r.appId === null)) return out("block", "REQUIRED_CHECK_UNBOUND", required, observed);
   const serverChecks = required.filter((r) => r.source !== "recorded");
-  if (!serverChecks.length || serverChecks.some((c) => !server.enforced.includes(checkKey(c)))) return out("block", "NOT_SERVER_ENFORCED", required);
-  return out("ok", "POLICY_OK", required);
+  if (!serverChecks.length || serverChecks.some((c) => !c.enforced)) return out("block", "NOT_SERVER_ENFORCED", required, observed);
+  return out("ok", "POLICY_OK", required, observed);
 }

@@ -18,7 +18,7 @@
  */
 import { getFixPolicy } from "./fix-policy.ts";
 import { normalizeDescriptionText, checkDescriptionCandidate } from "./meta-description-fix.ts";
-import { evaluatePolicy, parsePolicySnapshot, parseRecordedPolicy, readServerPolicy, serializePolicy, type RequiredCheck } from "./merge-policy.ts";
+import { evaluatePolicy, mergeFloors, parsePolicySnapshot, parseRecordedPolicy, readServerPolicy, type PolicyFloor, type RequiredCheck } from "./merge-policy.ts";
 
 export const ACTIVE_FIX_STATUSES = ["PROPOSED", "PR_CREATED", "AWAITING_MERGE", "AWAITING_DEPLOYMENT", "AWAITING_VERIFICATION", "STILL_PRESENT", "PREPARED", "NEEDS_ATTENTION"] as const;
 export const ACTIVE_FIX_STATUS_SQL = ACTIVE_FIX_STATUSES.map((s) => `'${s}'`).join(",");
@@ -443,7 +443,7 @@ function decodeBase64Utf8(value: string): string {
  * mergeability, head and base commit, changed files, trusted policy, CI on the
  * exact head SHA and the approved base blob. Fail-closed at every step.
  */
-async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixRow): Promise<Evaluation> {
+async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixRow, floor: PolicyFloor | null | "corrupt"): Promise<Evaluation> {
   const repo = row.repository!;
   const stop = (decision: MergeDecision): Evaluation => ({ decision, fingerprint: null });
   const pr = await gh<PullInfo & { number?: number }>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
@@ -464,9 +464,10 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
   if (headDigest !== row.approved_content_sha256) return stop({ decision: "block", code: "CONTENT_MISMATCH" });
   // Trusted policy first (Astra F1): server-enforced, app-bound, not bypassable,
   // never weaker than earlier seen for this fix. No fallback on read errors.
-  const policy = evaluatePolicy({ server: await readServerPolicy(gh, repo, String(row.base_branch || "")), recorded: parseRecordedPolicy(row.required_checks), snapshot: parsePolicySnapshot(row.required_policy) });
-  if (policy.verdict !== "ok") return stop({ decision: policy.verdict === "wait" ? "wait" : "block", code: policy.code });
-  const seenPolicy = serializePolicy(policy.required);
+  const policy = evaluatePolicy({ server: await readServerPolicy(gh, repo, String(row.base_branch || "")), recorded: parseRecordedPolicy(row.required_checks), snapshot: floor });
+  // The observed floor is kept also when the policy blocks (Astra 31 Oct).
+  const seenPolicy = policy.observed ?? undefined;
+  if (policy.verdict !== "ok") return stop({ decision: policy.verdict === "wait" ? "wait" : "block", code: policy.code, policy: seenPolicy });
   const [checkRuns, statuses, baseFile] = await Promise.all([
     fetchCheckRuns(gh, repo, headSha),
     fetchCommitStatuses(gh, repo, headSha),
@@ -483,6 +484,31 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
   return { decision: { ...decision, policy: seenPolicy }, fingerprint: [headSha, baseSha, pr.base?.ref, pr.mergeable_state, baseFile, headDigest, policy.fingerprint, ci.code, filesSig].join("\u0000") };
 }
 
+/** Floor of every mapping of this user for the same repository and branch. */
+async function readRepositoryFloor(deps: EngineDeps, row: FixRow): Promise<PolicyFloor | null | "corrupt"> {
+  if (!deps.db) return null;
+  const result = await deps.db.query("SELECT autofix_policy_floor FROM website_repositories WHERE user_id=$1 AND lower(repository)=lower($2) AND base_branch=$3", [row.user_id, row.repository, row.base_branch]);
+  const floors = (result.rows || []).map((r) => parsePolicySnapshot(r.autofix_policy_floor));
+  if (floors.includes("corrupt")) return "corrupt";
+  const valid = floors.filter((f): f is PolicyFloor => Boolean(f) && f !== "corrupt");
+  return valid.length ? mergeFloors(...valid) : null;
+}
+
+/** Stores a stricter floor for the repository+branch (never weaker: observed ⊇ old floor). */
+async function raiseRepositoryFloor(deps: EngineDeps, row: FixRow, observed: string) {
+  const current = await deps.db.query("SELECT id,autofix_policy_floor FROM website_repositories WHERE user_id=$1 AND lower(repository)=lower($2) AND base_branch=$3", [row.user_id, row.repository, row.base_branch]);
+  const next = parsePolicySnapshot(observed);
+  if (!next || next === "corrupt") return;
+  for (const r of current.rows || []) {
+    const old = parsePolicySnapshot(r.autofix_policy_floor);
+    if (old === "corrupt") continue;
+    const merged = JSON.stringify({ checks: mergeFloors(old, next).checks.map((c) => ({ context: c.context, app_id: c.appId, source: c.source, enforced: c.enforced === true })), strict: mergeFloors(old, next).strict });
+    if (merged === r.autofix_policy_floor) continue;
+    // Conditional write: a concurrent stricter update is never overwritten.
+    await deps.db.query("UPDATE website_repositories SET autofix_policy_floor=$3,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND autofix_policy_floor IS NOT DISTINCT FROM $4", [r.id, row.user_id, merged, r.autofix_policy_floor ?? null]);
+  }
+}
+
 /**
  * Tries to merge an authorised, deterministic fix (Astra F3). The complete
  * evaluation runs twice; only when both are positive and describe exactly the
@@ -495,9 +521,14 @@ export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<Merge
   const gh = deps.github!;
   const repo = row.repository!;
   if (!row.head_sha || !row.base_blob_sha) return { decision: "block", code: "EVIDENCE_MISSING" };
-  const first = await evaluateForMerge(gh, row);
+  // Floor = strictest policy seen for this task AND for this repository+branch
+  // (survives resume, restarts and new tasks). Unreadable floor = block.
+  const repoFloor = await readRepositoryFloor(deps, row);
+  const own = parsePolicySnapshot(row.required_policy);
+  const floor = repoFloor === "corrupt" || own === "corrupt" ? "corrupt" : repoFloor || own ? mergeFloors(repoFloor, own) : null;
+  const first = await evaluateForMerge(gh, row, floor);
   if (first.decision.decision !== "merge") return first.decision;
-  const second = await evaluateForMerge(gh, row);
+  const second = await evaluateForMerge(gh, row, floor);
   if (second.decision.decision !== "merge") return second.decision;
   if (first.fingerprint !== second.fingerprint) return { decision: "block", code: "EVIDENCE_CHANGED", policy: second.decision.policy };
   const headSha = String(row.head_sha);
@@ -529,6 +560,7 @@ export async function advanceFix(deps: EngineDeps, row: FixRow): Promise<FixRow>
         const result = await tryAutoMerge(deps, row);
         // The policy seen for this fix is kept; a later evaluation may only be stricter.
         const policyField = result.policy && result.policy !== row.required_policy ? { required_policy: result.policy } : {};
+        if (result.policy) await raiseRepositoryFloor(deps, row, result.policy);
         // Astra F6: keep the real cause (and which checks) instead of a generic time-out.
         const detail = (timedOut: boolean) => ({ stop_detail: JSON.stringify({ code: result.code, missing: result.missing || [], timedOut, headSha: row.head_sha || null, observedAt: new Date(now).toISOString() }) });
         if (result.decision === "merged") {

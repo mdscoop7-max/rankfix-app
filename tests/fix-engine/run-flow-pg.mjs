@@ -122,9 +122,10 @@ function github(method, path, body) {
   // Actions (app 15368) and the RankFix identity cannot bypass it.
   if ((mm = rpath.match(/^\/rules\/branches\/([^/]+)$/))) {
     if (ci === "rules_unreadable" || ci === "rules_unreadable_recorded") return json({ message: "Resource not accessible by integration" }, 403);
-    return json([{ type: "required_status_checks", ruleset_id: 9, ruleset_source_type: "Repository", parameters: { strict_required_status_checks_policy: false, required_status_checks: [{ context: "build", integration_id: 15368 }] } }]);
+    const checks = [{ context: "build", integration_id: 15368 }, ...(ci === "build_e2e_bypass" ? [{ context: "e2e", integration_id: 15368 }] : [])];
+    return json([{ type: "required_status_checks", ruleset_id: 9, ruleset_source_type: "Repository", parameters: { strict_required_status_checks_policy: false, required_status_checks: checks } }]);
   }
-  if ((mm = rpath.match(/^\/rulesets\/(\d+)$/))) return json({ id: 9, enforcement: "active", current_user_can_bypass: ci === "bypass" ? "always" : "never" });
+  if ((mm = rpath.match(/^\/rulesets\/(\d+)$/))) return json({ id: 9, enforcement: "active", current_user_can_bypass: ci === "bypass" || ci === "build_e2e_bypass" ? "always" : "never" });
   if ((mm = rpath.match(/^\/branches\/([^/]+)\/protection$/))) return json({ message: "Branch not protected" }, 404);
   if ((mm = rpath.match(/^\/commits\/([^/]+)\/check-runs$/))) {
     if (ci === "checks_api_error") return json({ message: "Server Error" }, 500);
@@ -441,6 +442,25 @@ await scenario("R5 legacy task whose PR content was changed: never recovered", a
   repo.opts.ci = "green";
   const resumed = await action(url, "resume");
   check(resumed.status === 409 && resumed.body.code === "CONTENT_MISMATCH" && repo.merges === undefined, `R5: ${resumed.status} ${JSON.stringify(resumed.body).slice(0, 160)}`);
+});
+
+await scenario("R6 stricter policy seen while blocked survives resume; only an explicit, confirmed reset lowers it", async () => {
+  await newUser("r6");
+  const repo = freshSite("r6.voorbeeld.test", "acme/r6-shop", { ci: "build_e2e_bypass" });
+  const url = "https://r6.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/r6-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/r6-shop", pv, "publish");
+  check((await lastCode(url))?.last_error_code === "NOT_SERVER_ENFORCED", "R6: first stop expected");
+  repo.opts.ci = "green"; // bypass removed, but e2e dropped as well
+  const resumed = await action(url, "resume");
+  await poll(url, ISSUE, 3);
+  const state = await lastCode(url);
+  check(resumed.status === 200 && repo.merges === undefined && state?.last_error_code === "POLICY_WEAKENED", `R6: weaker policy after resume must not merge (${repo.merges}, ${state?.last_error_code})`);
+  const noConfirm = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: false, reset_policy_floor: true });
+  check(noConfirm.status === 400 && noConfirm.body.code === "CONFIRMATION_REQUIRED", `R6: reset needs confirmation (${noConfirm.status})`);
+  const floor = (await db.query("SELECT autofix_policy_floor FROM website_repositories WHERE user_id=$1", [globalThis.__RF_USER.id])).rows[0]?.autofix_policy_floor;
+  check(/"e2e"/.test(String(floor)), `R6: repository floor keeps e2e (${floor})`);
 });
 
 await scenario("U1 upgrade: an existing name-only policy is shown as invalid and kept until the owner changes it", async () => {
