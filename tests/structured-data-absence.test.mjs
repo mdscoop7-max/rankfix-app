@@ -52,6 +52,12 @@ test("PDF P4: a link to an error page is a missing page, whatever its HTTP statu
   assert.equal(linkOutcome({ url: "https://x.nl/banden", status: null, error: true }), "unconfirmed");
 });
 
+test("1 Nov (P7): account, login and registration pages in DE/FR/IT/ES/PT and compound names are not sampled; content pages stay", async () => {
+  const { isNonContentUrl } = await import("../lib/report-quality.ts");
+  for (const p of ["/customerAccountOverview.xhtml", "/anmelden", "/connexion", "/mon-compte", "/accedi", "/mi-cuenta", "/italiano/registrazione/recupero_pwd.aspx", "/login.php", "/checkout.aspx", "/myaccount/orders", "/minha-conta", "/area-clienti/"]) assert.equal(isNonContentUrl("https://s.test" + p), true, p);
+  for (const p of ["/accounting-services", "/login-tips-blog", "/kassasysteem", "/mijn-verhaal", "/konto-eroeffnen-ratgeber", "/accesso-disabili", "/registro-de-empresas", "/entrar-en-el-mercado", "/klantverhalen", "/customer-stories", "/member-benefits", "/userguide"]) assert.equal(isNonContentUrl("https://s.test" + p), false, p);
+});
+
 test("PDF P7: language and colour variants are one page; carts and bot traps are not sampled", async () => {
   const { sampleIdentityKey, isNonContentUrl } = await import("../lib/report-quality.ts");
   assert.equal(sampleIdentityKey("https://www.mollie.com/nl/pricing"), sampleIdentityKey("https://mollie.com/de/pricing"));

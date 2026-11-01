@@ -95,6 +95,12 @@ const PERSONAL_SEGMENT = /^(?:recupero-credenziali|recupero-password|recuperar-(
 
 // 31 Oct (PDF P7): carts/checkout and bot traps are never representative pages.
 const UTILITY_SEGMENT = /^(?:shoppingcart|shopping-cart|cart|basket|checkout|afrekenen|kassa|warenkorb|panier|carrito|carrello|secret-?link|honeypot|bot-?trap|spider-?trap)$/i;
+// 1 Nov (P7, five-site QA + P5 measurement): account/login/registration pages in
+// DE/FR/IT/ES/PT and compound names ("customerAccountOverview", "recupero_pwd").
+// Exact segments only, so "accounting-services" or "login-tips-blog" stay content.
+const ACCOUNT_SEGMENT_INTL = /^(?:anmelden|abmelden|registrieren|mein-?konto|konto|kundenkonto|kundenlogin|merkzettel|connexion|deconnexion|déconnexion|se-connecter|mon-compte|mon-espace|espace-client|inscription|identification|accedi|accesso-utente|area-?clienti|area-?riservata|il-mio-account|mio-account|registrazione|recupero[_-]?(?:pwd|password|credenziali)|mi-?cuenta|mi-?perfil|iniciar-sesion|iniciar-sesión|registro-usuario|area-?cliente|minha-?conta|entrar)$/i;
+// Compound account pages: (customer|my|user|member)(Account|Login|Profile|Orders|Wishlist)…
+const ACCOUNT_COMPOUND = /^(?:customer|my|user|member|klant|kunden|client)[-_]?(?:account|login|profile|profiel|orders?|wishlist|konto|compte|cuenta|area)[a-z0-9_-]*$/i;
 const LOCALE_SEGMENT = /^(?:[a-z]{2})(?:[-_][a-z]{2})?$/i;
 const VARIANT_QUERY = /^(?:color|colour|kleur|farbe|couleur|size|maat|grootte|groesse|taille|variant|variation|sku|v|option|swatch)$/i;
 /**
@@ -121,7 +127,9 @@ export function isNonContentUrl(value: string): boolean {
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
-  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment) || PERSONAL_SEGMENT.test(segment) || UTILITY_SEGMENT.test(segment))) return true;
+  // Page extensions (.xhtml, .aspx, .php, .html) do not change what a segment is.
+  const bare = (segment: string) => segment.replace(/\.(?:x?html?|aspx?|php|jsp|do|cfm)$/i, "");
+  if (segments.some((segment) => { const b = bare(segment); return ACCOUNT_SEGMENT.test(b) || PERSONAL_SEGMENT.test(b) || UTILITY_SEGMENT.test(b) || ACCOUNT_SEGMENT_INTL.test(b) || ACCOUNT_COMPOUND.test(b); })) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
   for (const key of url.searchParams.keys()) if (NON_CONTENT_QUERY.test(key)) return true;
