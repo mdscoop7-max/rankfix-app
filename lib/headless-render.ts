@@ -31,7 +31,7 @@ export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; 
  * (the crawler view) and reports every limit, so an incomplete observation can
  * never be taken as proof that JSON-LD is absent.
  */
-export type RenderOptions = { mode?: "default" | "structured_data"; settleMs?: number };
+export type RenderOptions = { mode?: "default" | "structured_data"; settleMs?: number; /** Measurement only: extra fixed wait after settling (long-window comparison). */ holdMs?: number };
 export type RenderObservation = { loadReached: boolean; settledMs: number; networkQuiet: boolean; requestCapHit: boolean; abortedRequests: number; failedRequests: number; consent: "none"; window: string };
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
@@ -219,6 +219,8 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     if (structuredMode && !partialNavigation && remaining() > SNAPSHOT_RESERVE_MS) {
       const settleStarted = Date.now();
       try { await page.waitForNetworkIdle({ idleTime: 750, timeout: Math.max(1, Math.min(settleMs, remaining() - SNAPSHOT_RESERVE_MS)) }); networkQuiet = true; } catch {}
+      const hold = Math.max(0, Math.min(options.holdMs ?? 0, 8000, remaining() - SNAPSHOT_RESERVE_MS));
+      if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
       settledMs = Date.now() - settleStarted;
     }
     // Let common hydration/XHR finish, but do not consume several extra seconds
