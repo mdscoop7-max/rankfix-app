@@ -6,9 +6,9 @@ import { validatePublicHttpUrl } from "./safe-fetch.ts";
 export const sameCrawlSite = (a: URL, b: URL) => a.hostname.toLowerCase().replace(/^www\./, "") === b.hostname.toLowerCase().replace(/^www\./, "");
 export function crawlUrl(raw: string, base: URL): string | null {
   try {
-    if (isTemplateHref(raw) || isCartActionUrl(raw)) return null;
+    if (raw.length > 4096 || isTemplateHref(raw) || isCartActionUrl(raw)) return null;
     const u = validatePublicHttpUrl(new URL(decodeHtmlEntities(raw), base).href);
-    if (!sameCrawlSite(u, base)) return null;
+    if (u.href.length > 2048 || !sameCrawlSite(u, base)) return null;
     u.hash = "";
     for (const key of [...u.searchParams.keys()]) if (/^(?:utm_.+|gclid|fbclid|msclkid)$/i.test(key)) u.searchParams.delete(key);
     return u.href;
@@ -64,11 +64,22 @@ export function robotsAllows(text: string, url: URL): boolean {
   groups.push(current);
   const specific = groups.filter(g => g.agents.some(a => a !== "*" && "rankfixbot".includes(a)));
   const selected = specific.length ? specific : groups.filter(g => g.agents.includes("*"));
-  const matches = selected.flatMap(g => g.rules).filter(r => {
-    const end = r.path.endsWith("$");
-    const value = end ? r.path.slice(0, -1) : r.path;
-    const pattern = value.split("*").map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*");
-    return new RegExp("^" + pattern + (end ? "$" : "")).test(url.pathname + url.search);
+  const rules = selected.flatMap(g => g.rules);
+  // Site-controlled wildcard patterns must never become backtracking regexes.
+  // An excessive policy stays conservatively disallowed instead of hanging a worker.
+  if (rules.length > 1000 || rules.some(r => r.path.length > 4096)) return false;
+  const matches = rules.filter(r => {
+    const end = r.path.endsWith("$"), pattern = end ? r.path.slice(0, -1) : r.path;
+    const chunks = pattern.split("*"), value = url.pathname + url.search;
+    if (!value.startsWith(chunks[0])) return false;
+    let cursor = chunks[0].length;
+    for (let i=1; i<chunks.length; i++) {
+      if (!chunks[i]) continue;
+      const at = end && i===chunks.length-1 ? value.length-chunks[i].length : value.indexOf(chunks[i],cursor);
+      if (at<cursor || !value.startsWith(chunks[i],at)) return false;
+      cursor=at+chunks[i].length;
+    }
+    return !end || pattern.endsWith("*") || cursor===value.length;
   }).sort((a,b) => b.path.replace(/[*$]/g, "").length - a.path.replace(/[*$]/g, "").length || Number(b.allow) - Number(a.allow));
   return matches[0]?.allow ?? true;
 }

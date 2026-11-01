@@ -1,0 +1,108 @@
+{
+  "rubricVersion": "1.0.0",
+  "qualityScore": null,
+  "accepted": false,
+  "blocked": [
+    "independent_label_review_missing",
+    "plan_not_frozen_before_tuning",
+    "missing_or_duplicate_cases",
+    "missing_or_duplicate_review_items",
+    "insufficient_independent_family_support",
+    "insufficient_languages",
+    "unmeasured_criteria"
+  ],
+  "criteria": [
+    {
+      "key": "sector",
+      "weight": 1.5,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "applicability",
+      "weight": 1.5,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "seo_geo",
+      "weight": 1.5,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "page_coverage",
+      "weight": 1,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "false_positives",
+      "weight": 1,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "consistency",
+      "weight": 1,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "international",
+      "weight": 1,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "regression",
+      "weight": 1,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    },
+    {
+      "key": "security",
+      "weight": 0.5,
+      "planned": 0,
+      "correct": 0,
+      "rate": null,
+      "points": null
+    }
+  ],
+  "familySupport": {
+    "payments_banking": 0,
+    "retail": 0,
+    "lodging_travel": 0,
+    "restaurants": 0,
+    "healthcare": 0,
+    "beauty": 0,
+    "industry": 0,
+    "logistics_energy": 0,
+    "professional": 0,
+    "hybrid": 0
+  },
+  "perFamily": {},
+  "perLanguage": {},
+  "missingAudits": [],
+  "exposed": [],
+  "invalidReviews": [],
+  "invalidBaselineReviews": [],
+  "regressions": [],
+  "fixed": []
+}

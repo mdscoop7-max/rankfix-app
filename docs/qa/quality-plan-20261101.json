@@ -1,0 +1,13 @@
+{
+  "rubricVersion": "1.0.0",
+  "purpose": "Independent real-audit assessment is pending. Empty cases are deliberately unmeasured, never a passing plan.",
+  "author": "engine-development",
+  "reviewer": null,
+  "reviewState": "pending_independent_review",
+  "frozenAt": null,
+  "tuningStartedAt": null,
+  "cases": [],
+  "reviewItems": [],
+  "artifacts": [],
+  "planSha256": "8d948d72c43635c5bc24f9ffeae681e1cfe724412eaf716ec7ff11438eded168"
+}

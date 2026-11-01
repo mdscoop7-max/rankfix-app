@@ -4,7 +4,9 @@
 import {readFile,writeFile,rename,open,unlink} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {randomUUID} from 'node:crypto';
 export async function runInventoryBatch({url,mode='DEEP',statePath,outPath,maxPages=100,maxRequests=120,batchPages=10,maxDurationMs=30000}) {
+ if(resolve(statePath)===resolve(outPath))throw new Error('State and report must use different files.');
  const {crawlSite}=await import('../lib/crawler.ts');
  const {auditCrawlResult}=await import('../lib/site-audit.ts');
  const lock=await open(statePath+'.lock','wx',0o600);
@@ -13,9 +15,9 @@ export async function runInventoryBatch({url,mode='DEEP',statePath,outPath,maxPa
   try {checkpoint=JSON.parse(await readFile(statePath,'utf8'));} catch(error) {if(error.code!=='ENOENT')throw error;}
   const result=await crawlSite(url,mode,{checkpoint,maxPages,maxRequests,batchPages,maxDurationMs});
   const audit=auditCrawlResult(result);
-  const suffix='.tmp-'+process.pid;
-  await writeFile(outPath+suffix,JSON.stringify({audit,coverage:result.coverage,urls:result.checkpoint.entries},null,2),{mode:0o600});
-  await writeFile(statePath+suffix,JSON.stringify(result.checkpoint),{mode:0o600});
+  const suffix='.tmp-'+randomUUID();
+  await writeFile(outPath+suffix,JSON.stringify({audit,coverage:result.coverage,urls:result.checkpoint.entries},null,2),{mode:0o600,flag:"wx"});
+  await writeFile(statePath+suffix,JSON.stringify(result.checkpoint),{mode:0o600,flag:"wx"});
   await rename(outPath+suffix,outPath);
   await rename(statePath+suffix,statePath);
   return result.coverage;

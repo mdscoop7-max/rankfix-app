@@ -157,6 +157,7 @@ function normalize(raw:string,base:URL){ return crawlUrl(raw,base); }
 
 export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDARD", options: CrawlOptions = {}):Promise<CrawlResult>{
   const start=validate(/^https?:\/\//i.test(startUrl)?startUrl:`https://${startUrl}`);
+  if (start.href.length>2048) throw new Error("CRAWL_URL_TOO_LONG");
   const mode = Object.hasOwn(LIMITS, requestedMode) ? requestedMode : "STANDARD";
   const bounded = (v: number | undefined, fallback: number, max: number) => Number.isFinite(v) ? Math.max(1,Math.min(max,Math.floor(v!))) : fallback;
   const limit=bounded(options.maxPages,LIMITS[mode],LIMITS[mode]);
@@ -172,6 +173,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
   const pages=state.pages, errors=state.errors;
   const entries=new Map(state.entries.map(e=>[e.url,e]));
   const remember = (raw:string,base:URL,depth:number,from:string|null) => {
+    if(raw.length>4096) {state.discoveryLimited=true;return;}
     const url=normalize(raw,base); if(!url || entries.has(url)) return;
     if(entries.size>=5000) { state.discoveryLimited=true; return; }
     const reason=crawlExclusion(url);

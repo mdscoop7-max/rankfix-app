@@ -4,14 +4,19 @@ on:
   pull_request:
     branches:
       - qa/engine-144-reliability-20261028
+      - fix/engine-evidence-new144-20261028
+      - main
     paths:
       - "lib/**"
       - "tests/**"
+      - "scripts/**"
       - "app/**"
       - "components/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/engine-pr-validation.yml"
+  push:
+    branches: [dev/engine-quality-gates-20261101]
   workflow_dispatch:
 
 permissions:
@@ -53,6 +58,15 @@ jobs:
         run: node --test tests/crawler-industrial-products-guard.test.mjs
       - name: Existing regression suite
         run: npm test
+      - name: Fixed-input sector quality and no-regression gate
+        run: RF_QA_COMMIT_SHA="$GITHUB_SHA" npm run qa:quality
+      - name: Preserve quality evidence even on failure
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-quality-${{ github.sha }}
+          path: qa-results/engine-quality-regressions.json
+          if-no-files-found: error
       - name: AutoFix full flow on PostgreSQL (fail-closed merge safety)
         run: npm run test:fix-flow
       - name: Generate Next.js types

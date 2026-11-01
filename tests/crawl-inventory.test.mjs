@@ -140,3 +140,8 @@ test("informational Product markup never requires a retail Offer or SKU, while a
   if(sale) assert.equal(audit.issues.find(i=>i.rule_id==='SITE_PRODUCT_SCHEMA_CORE').status,'FAIL');
  });
 });
+
+test("robots wildcard matching is literal, anchored and safe for adversarial repetition",()=>{
+ for(const [pattern,path,allowed] of [['/a*b$','/axxb',false],['/a*b$','/axxbc',true],['/a?x=1$','/a?x=1',false],['/a[1]','/a1',true],['/a[1]','/a[1]',false]])assert.equal(robotsAllows('User-agent: *\nDisallow: '+pattern,new URL(base+path.slice(1))),allowed,pattern+' '+path);
+ assert.equal(robotsAllows('User-agent: *\nDisallow: /'+('*a'.repeat(500))+'z',new URL(base+'a'.repeat(1500))),true);
+});
