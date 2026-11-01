@@ -21,3 +21,15 @@ test("proven critical failure remains stronger than coverage cap",()=>{
  const items=[pass(),{...pass(),issue_status:"FAIL",severity:"CRITICAL"}];
  assert.equal(applyEvidenceBasedScoreCap(99,items),70);
 });
+
+import { evidenceLevel as evidenceLevelForSample } from "../lib/audit-score.ts";
+test("a site score built from a thin page sample is never definitive", () => {
+  const base = { coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90 };
+  assert.equal(evidenceLevelForSample({ ...base, samplePages: { selected: 15, fetched: 15 } }).level, "complete");
+  assert.equal(evidenceLevelForSample({ ...base, samplePages: { selected: 15, fetched: 11 } }).level, "complete");
+  const half = evidenceLevelForSample({ ...base, samplePages: { selected: 15, fetched: 6 } });
+  assert.equal(half.level, "provisional");
+  assert.match(half.reasons.join(" "), /6 van 15 geselecteerde pagina/);
+  assert.equal(evidenceLevelForSample({ ...base, samplePages: { selected: 15, fetched: 1 } }).level, "insufficient");
+  assert.equal(evidenceLevelForSample({ ...base, samplePages: { selected: 2, fetched: 1 } }).level, "complete");
+});

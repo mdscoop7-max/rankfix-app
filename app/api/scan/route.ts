@@ -5358,6 +5358,8 @@ async function runScan(request: Request) {
       importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
       sectorUnknown: sectorProfile.sector === "unknown",
+      // Actual page coverage of the representative sample (the scanned page itself always counts as fetched).
+      samplePages: { selected: uniqueMultiPagePages.length, fetched: Math.min(uniqueMultiPagePages.length, multiPageAudits.filter((item) => item && (item.status === "audited" || item.status === "unable_to_confirm" && item.httpStatus != null && item.httpStatus < 400)).length + 1) },
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {
