@@ -53,7 +53,10 @@ if (-not $listener) {
     if ($answer -eq 'JA') { Remove-Item '.next/dev/lock' -Force -ErrorAction SilentlyContinue }
   }
   Write-Host 'QA-server starten op 127.0.0.1:3002...'
-  $command = 'set "RF_QA_COMMIT_SHA=' + $sha + '" && set "RF_LOCAL_QA_TOKEN=' + $token + '" && npm.cmd run dev -- -p 3002 -H 127.0.0.1'
+  # Een lokale dev-server is geen Vercel-implementatie: geërfde Vercel-variabelen
+  # (bijvoorbeeld VERCEL_ENV=preview uit scripts\local-qa\start-testlab.ps1 in dezelfde
+  # sessie) worden niet doorgegeven. Token, loopback en commitcontrole blijven gelijk.
+  $command = 'set "VERCEL=" && set "VERCEL_ENV=" && set "VERCEL_URL=" && set "RF_QA_COMMIT_SHA=' + $sha + '" && set "RF_LOCAL_QA_TOKEN=' + $token + '" && npm.cmd run dev -- -p 3002 -H 127.0.0.1'
   Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $PSScriptRoot | Out-Null
   $ready = $false
   for ($i=0; $i -lt 15; $i++) {

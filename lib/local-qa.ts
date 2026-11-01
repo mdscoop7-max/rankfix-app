@@ -1,10 +1,9 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { localQaEnabled } from "./local-qa-mode";
 
 const COOKIE = "rankfix_local_qa";
-export function localQaEnabled() {
-  return process.env.NODE_ENV === "development" && !process.env.VERCEL && /^[a-f0-9]{64}$/i.test(process.env.RF_LOCAL_QA_TOKEN || "");
-}
+export { localQaEnabled };
 export function loopbackRequest(request: Request) {
   const host = new URL(request.url).hostname;
   const headerHost = (request.headers.get("host") || "").split(":")[0].toLowerCase();
