@@ -11,10 +11,12 @@ export type MotorEvidence = {
   euMarket: boolean;
   // Site-wide product evidence, even if the primary identity remains a service.
   secondaryRetailDetail?: boolean;
+  // Independent product + offer + purchase evidence, not a generic payment link.
+  verifiedSecondaryStorefront?: boolean;
 };
 
 export function decideCommerceModules(e: MotorEvidence): string[] {
-  const retailContext = e.primaryBusinessModel === "retail" || (e.primaryBusinessModel === "unknown" && e.retailProduct && e.cart);
+  const retailContext = e.primaryBusinessModel === "retail" || Boolean(e.verifiedSecondaryStorefront && e.retailProduct && e.cart) || (e.primaryBusinessModel === "unknown" && e.retailProduct && e.cart);
   if (!retailContext) {
     // A provider may sell devices alongside services. Product and price checks
     // can apply to proven items without claiming a verified cart/checkout.

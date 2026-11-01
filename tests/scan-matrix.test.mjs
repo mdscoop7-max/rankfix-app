@@ -248,3 +248,10 @@ test("QA 144 run 7a2155c: DIY store chain declared in its title is retail after 
   assert.equal(r.total, 3);
   assert.equal(r.failed, 0, r.log);
 });
+
+// Actual sampled product sale beside a primary trade identity; quotes are leads.
+test("hybrid trades: service identity and verified shop capabilities remain independent", () => {
+  const r = run("run-sector-peers.mjs", { GROUP: "hybrid-capabilities" });
+  assert.ok(r.total >= 13);
+  assert.equal(r.failed, 0, r.log);
+});

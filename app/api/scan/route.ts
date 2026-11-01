@@ -29,7 +29,7 @@ import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
 import { buildWebsiteProfile } from "@/lib/website-profile";
 import { comparisonPlatformIdentity } from "@/lib/platform-identity";
-import { purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
+import { checkoutActionInHtml, purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
@@ -3687,7 +3687,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
     const ecommerceVariantUrlSignal = isProductPage && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
     const cartHrefSignal = links.some((href) => /(?:\/cart(?:\/|$|[?#])|\/basket(?:\/|$|[?#])|\/winkelwagen(?:\/|$|[?#]))/i.test(href));
-    const checkoutHrefSignal = links.some((href) => /(?:\/checkout(?:\/|$|[?#])|\/afrekenen(?:\/|$|[?#])|\/kassa(?:\/|$|[?#]))/i.test(href));
+    const checkoutHrefSignal = checkoutActionInHtml(html);
     const addToCartMarkupSignal = hasStrongCommerceAction || /(?:add[-_]?to[-_]?cart|add_to_cart|product-form|name\s*=\s*["']add-to-cart["'])/i.test(html);
     const shippingCostSignal = /(?:verzendkosten|shipping cost|delivery cost|bezorgkosten|versandkosten|frais de livraison|spese di spedizione|gastos de envío)\s*[:€£$]?\s*(?:gratis|free|\d)/i.test(text);
     const paymentMethodSignal = /\b(?:ideal|visa|mastercard|bancontact|klarna|paypal|apple pay|google pay|mollie)\b/i.test(text);
@@ -5138,7 +5138,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5587,6 +5587,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           itemListSchema: pageItemListSchema,
           storeSchema: pageStoreSchema,
           strongCommerceAction: pageStrongCommerceAction,
+          checkoutDestination: checkoutActionInHtml(pageHtml),
           repeatedProductLinks: new Set(pageProductLinks).size >= 3,
           priceSignals: pagePriceSignals,
           product: pageProductEvidence,
@@ -6217,7 +6218,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
-      technologyProfile.isCommerce = false;
+      technologyProfile.isCommerce = finalCommerceDecision.confirmed;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
@@ -6448,17 +6449,24 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // An add-to-cart action on a sampled product page with an offer is a cart too
       // (mini-carts are often injected by JavaScript on the entry page).
       cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high") || (finalCommerceDecision.confirmed && sampledAddToCart)),
-      checkout: Boolean(scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high"),
+      checkout: Boolean((scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
+        (verifiedRepresentativePurchase && auditedMultiPages.some(item => item.status === "audited" && item.type === "product" && item.commerceEvidence?.strongCommerceAction && item.commerceEvidence?.checkoutDestination && hasProductOffer(item.commerceEvidence)))),
       merchantFeed: false, // No merchant feed may be inferred from generic commerce signals.
       euMarket: Boolean(euMarketEligible),
       secondaryRetailDetail: verifiedRepresentativeProductDetail,
+      verifiedSecondaryStorefront: hardCommerceEvidence,
+    });
+    Object.assign(checkoutFunnelEvidence, {
+      sampledCheckoutDestinations: auditedMultiPages.filter(item => item.status === "audited" && item.type === "product" &&
+        item.commerceEvidence?.checkoutDestination && item.commerceEvidence?.strongCommerceAction && hasProductOffer(item.commerceEvidence))
+        .map(item => ({ url: item.url, evidenceSource: item.evidenceSource || "raw_html", interactiveFlowExecuted: false })),
     });
     const allowedCommerceModules = new Set(motorCommerceModules);
     // A transaction on a secondary page does not redefine the site's primary type.
     // Keep site type consistent with the central sector motor, for every service sector.
     if ((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && technologyProfile.siteType === "Webshop") {
       technologyProfile.siteType = "Website";
-      technologyProfile.isCommerce = false;
+      technologyProfile.isCommerce = finalCommerceDecision.confirmed;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
     }
     sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
@@ -7204,6 +7212,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // QA #203/#204: website type, shop platform and branch are three separate
     // dimensions with their own evidence (lib/website-profile.ts).
     const websiteProfile = buildWebsiteProfile({
+      primaryServiceIdentity: localTradeIdentity && ["home_services", "construction"].includes(sectorProfile.sector),
       commerceState: commerceApplicabilityReport.state,
       commerceReason: (commerceApplicabilityReport as { reason?: string }).reason || null,
       platformKind: platformIdentity && sectorProfile.key === "comparison_platform" ? "comparison_platform" : null,

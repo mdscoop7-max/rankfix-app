@@ -2,10 +2,10 @@
 // same sector and function must get the same sector, website type and module
 // gating through the REAL /api/scan route. Fixtures: tests/fixtures/sector-peers/*.json
 // (realistic homepages, no network). Every group also holds negative controls.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const DIR = `${ROOT}/tests/fixtures/sector-peers/`;
-const groups = readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
+const groups = process.env.FIXTURE_FILE ? [JSON.parse(readFileSync(process.env.FIXTURE_FILE, "utf8"))] : readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
 const SITES = Object.assign({}, ...groups.map((g) => g.sites));
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const page = (s) => `<!doctype html><html lang="${s.lang || "nl"}"><head><meta charset="utf-8"><title>${esc(s.title)}</title>${s.desc ? `<meta name="description" content="${esc(s.desc)}">` : ""}${s.head || ""}</head><body><header><nav>${(s.nav || []).map((n, i) => `<a href="${s.navLinks?.[i] || "/" + encodeURIComponent(n.toLowerCase())}">${esc(n)}</a>`).join("")}</nav></header><main>${s.h1 ? `<h1>${esc(s.h1)}</h1>` : ""}${(s.h2 || []).map((h) => `<h2>${esc(h)}</h2><p>${esc(s.desc)}</p>`).join("")}${s.body || ""}</main><footer>${s.footer || ""}<a href="/privacy">Privacy</a><a href="/contact">Contact</a></footer></body></html>`;
@@ -19,13 +19,24 @@ globalThis.fetch = async (i) => {
 };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
 const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
-const problems = []; const got = {};
+const problems = []; const got = {}; const reports = {};
 for (const [host, site] of Object.entries(SITES)) {
   const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }))).json();
+  reports[host] = j;
   const shop = [...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop/i.test(c.key || "")).map((c) => c.status);
   const r = { sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, type: j.websiteProfile?.websiteType?.value, platform: j.websiteProfile?.cms?.value || j.technologyProfile?.cms || null, coverage: j.coverage?.coveragePercent, shop: [...new Set(shop)], discount: j.seo?.checks?.find((c) => c.key === "eu_discount_reference_signal")?.status, schema: [...(j.seo?.checks || []), ...(j.geo?.checks || [])].find((c) => c.key === "schema")?.fix || "" };
   got[host] = r;
   const e = site.expect || {};
+  const modules = j.sectorProfile?.applicableModules || [];
+  for (const module of e.modules || []) if (!modules.includes(module)) problems.push(`${host}: missing module ${module}`);
+  for (const module of e.noModules || []) if (modules.includes(module)) problems.push(`${host}: unexpected module ${module}`);
+  if (e.noCheckout && (j.evidenceLayer?.evidence?.commerce?.checkout?.value || j.metrics?.checkoutFunnel?.checkoutLink)) problems.push(`${host}: lead form mistaken for checkout`);
+  if (e.sampleProduct) {
+    const product = j.metrics?.productOptimizer;
+    if (product?.product?.sku !== "MK-17" || product?.product?.price !== "49.95" || product?.product?.currency !== "EUR" || !product?.sampleUrl?.endsWith("/products/kraan")) problems.push(`${host}: sampled product evidence/provenance missing`);
+    if (j.metrics?.checkoutFunnel?.interactiveFlowExecuted !== false) problems.push(`${host}: static fixture claimed runtime checkout`);
+    if (!j.metrics?.checkoutFunnel?.sampledCheckoutDestinations?.some(x => x.url.endsWith("/products/kraan"))) problems.push(`${host}: sampled checkout destination provenance missing`);
+  }
   if (e.sector && r.sector !== e.sector) problems.push(`${host}: sector ${r.sector}/${r.key}, expected ${e.sector}`);
   if (e.key && r.key !== e.key) problems.push(`${host}: subtype ${r.key}, expected ${e.key}`);
   // A service that also sells a real product (Product schema + offer) keeps product checks possible.
@@ -44,4 +55,5 @@ for (const [host, site] of Object.entries(SITES)) {
 for (const p of problems) console.log(" - " + p);
 if (process.env.VERBOSE) for (const [h, r] of Object.entries(got)) console.log(h, JSON.stringify(r));
 console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: Object.keys(SITES).length, failed: problems.length }));
-process.exit(0);
+if (process.env.REPORT_FILE) writeFileSync(process.env.REPORT_FILE, JSON.stringify({ got, problems, reports }, null, 2));
+process.exit(problems.length ? 1 : 0);

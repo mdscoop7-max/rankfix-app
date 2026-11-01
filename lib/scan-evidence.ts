@@ -1,4 +1,4 @@
-import { purchaseActionInHtml, productCardLinks } from "./commerce-markup.ts";
+import { purchaseActionInHtml, productCardLinks, checkoutActionInHtml } from "./commerce-markup.ts";
 export type EvidenceConfidence = "high" | "medium" | "low";
 export type EvidenceSource = "raw_html" | "rendered_html" | "headers" | "url" | "structured_data" | "multi_page";
 
@@ -110,7 +110,7 @@ export function buildScanEvidence(input: {
   const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)[^"']*["']/i);
   // Visible text, or a purchase control in the markup (icon buttons named by aria-label/title, cart-add forms).
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i) || purchaseActionInHtml(html);
-  const checkout = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:checkout|afrekenen|kasse|paiement|pagamento|pago)[^"']*["']/i);
+  const checkout = checkoutActionInHtml(html);
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
   const productSchema = schemaHas("Product");
   const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
