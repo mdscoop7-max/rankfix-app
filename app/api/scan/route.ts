@@ -9,7 +9,7 @@ import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
+import { LOCAL_TRADE_KEYS, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -2731,7 +2731,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // software, a law firm within professional services). Homepage-only evidence
     // is "probable" (76); own pages corroborate it later.
     const DECLARED_REFINES: Record<string, string[]> = {
-      airports:["transport_travel"], maritime_ports:["transport_travel"], cybersecurity:["saas_b2b","telecom_technology"],
+      airports:["transport_travel"], maritime_ports:["transport_travel", ...(declaredPortOperations({title,description:identityDescription,identityHeadings:identityH1s}) ? ["government"] : [])], cybersecurity:["saas_b2b","telecom_technology"],
       professional_services:["professional_services"], events_culture:["events_culture"], health_wellness:["health_wellness"], nonprofit:["nonprofit"], automotive:["automotive"],
       // A local trade (hotel, restaurant, hair salon, optician...) refines a
       // generic keyword decision of the same broad sector.
