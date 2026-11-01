@@ -10,7 +10,7 @@ import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
 import { LOCAL_TRADE_KEYS, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
-import { decideCommerceModules } from "@/lib/sector-motor-decisions";
+import { decideCommerceModules, sectorConfidenceGuard } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
@@ -6636,6 +6636,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         sectorProfile.evidence = [...sectorProfile.evidence, `Subtype uit de eigen titel/omschrijving: ${refined.label}`].slice(0, 6);
       }
     }
+    Object.assign(sectorProfile, sectorConfidenceGuard(sectorProfile));
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,

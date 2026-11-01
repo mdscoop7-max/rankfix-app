@@ -41,3 +41,9 @@ export function reconcilePrimarySector(primary: {sector: string; confidence: num
   if (primary.sector !== "unknown" && candidate.confidence <= primary.confidence) return primary;
   return {sector: candidate.sector, confidence: candidate.confidence};
 }
+
+// A non-decision never carries a confirmed confidence, even after reconciliation.
+export function sectorConfidenceGuard(profile: {sector:string; confidence:string; confidenceScore:number}) {
+  if (profile.sector !== "unknown") return {confidence:profile.confidence, confidenceScore:profile.confidenceScore};
+  return {confidence:"low", confidenceScore:Number.isFinite(profile.confidenceScore) ? Math.max(0, Math.min(35, profile.confidenceScore)) : 0};
+}

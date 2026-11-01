@@ -2,12 +2,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
-const [reportPath, revision, outputPath] = process.argv.slice(2);
+const [reportPath, revision, outputPath, planDirectory = "tests/fixtures/quality-20261101", measurementKind = "frozen_synthetic"] = process.argv.slice(2);
+assert.ok(["development","frozen_synthetic"].includes(measurementKind));
 const root = new URL('../../', import.meta.url);
-const raw = readFileSync(new URL('tests/fixtures/quality-20261101/catalog-holdout.json',root));
-const plan = JSON.parse(readFileSync(new URL('tests/fixtures/quality-20261101/plan.json',root)));
+const raw = readFileSync(new URL(`${planDirectory}/catalog-holdout.json`,root));
+const plan = JSON.parse(readFileSync(new URL(`${planDirectory}/plan.json`,root)));
 assert.equal(createHash('sha256').update(raw).digest('hex'),plan.fixtureSha256,'frozen fixture changed');
-assert.ok([plan.baselineCommit,plan.candidateCommit].includes(revision),'unplanned engine revision');
+assert.ok(measurementKind === 'development' ? /^[a-f0-9]{40}$/.test(revision) : [plan.baselineCommit,plan.candidateCommit].includes(revision),'unplanned engine revision');
 const sites = JSON.parse(raw).sites, input = readFileSync(reportPath), reports = JSON.parse(input).reports;
 assert.deepEqual(Object.keys(reports).sort(),Object.keys(sites).sort(),'missing or extra reports');
 const retailKeys = new Set(['product_schema','merchant_product_readiness','checkout_funnel_static','checkout_trust','webshop_trust','commercial_terms_signal','merchant_feed_signal','product_stock','product_availability','product_price_consistency','variant_url']);
@@ -17,7 +18,7 @@ const rows = Object.entries(sites).map(([host,site]) => {
  const j=reports[host], expected=site.evaluation, findings=Object.fromEntries(dimensions.map(k=>[k,[]]));
  const checks=[...(j.seo?.checks||[]),...(j.geo?.checks||[])], modules=j.sectorProfile?.applicableModules||[];
  const actual=j.sectorProfile?.sector, fp=[],fn=[];
- if(actual!==expected.expectedSector){findings.sector.push(`sector ${actual}; expected ${expected.expectedSector}`);fn.push('sector');if(actual!=='unknown')fp.push('sector');}
+ if(actual!==expected.expectedSector){findings.sector.push(`sector ${actual}; expected ${expected.expectedSector}`);if(expected.expectedSector!=='unknown')fn.push('sector');if(actual!=='unknown')fp.push('sector');}
  if(expected.retail){for(const m of ['ecommerce','product','checkout'])if(!modules.includes(m)){findings.applicability.push(`missing ${m}`);fn.push(`module:${m}`);}}
  else {
   for(const m of moduleKeys)if(modules.includes(m)){findings.applicability.push(`unexpected ${m}`);fp.push(`module:${m}`);}
@@ -25,6 +26,7 @@ const rows = Object.entries(sites).map(([host,site]) => {
  }
  for(const [key,value] of Object.entries({title:site.title,description:site.desc,canonical:`https://${host}/`,jsonLdBlocks:expected.jsonLdBlocks}))if(j.metrics?.[key]!==value)findings.seoGeoEvidence.push(`${key}: ${j.metrics?.[key]} expected ${value}`);
  for(const c of checks.filter(c=>['warning','fail'].includes(c.status))){const e=c.evidence;if(!e?.url||!e?.source||!(e?.found||e?.details))findings.seoGeoEvidence.push(`incomplete evidence ${c.key}`);}
+ if(actual==='unknown' && (j.sectorProfile?.confidence !== 'low' || !(j.sectorProfile?.confidenceScore >= 0 && j.sectorProfile.confidenceScore <= 35)))findings.consistency.push('unknown sector with unsupported certainty');
  const mp=j.multiPage,counts=mp?.counts, outcomes=counts?.outcomes;
  if(j.scope?.mode!=='PAGE_SAMPLE')findings.coverage.push(`scope ${j.scope?.mode}`);
  if(!outcomes||Object.entries(outcomes).filter(([k])=>k!=='selected').reduce((n,[,v])=>n+v,0)!==counts.selected)findings.coverage.push('selected/outcome mismatch');
@@ -38,6 +40,6 @@ const rows = Object.entries(sites).map(([host,site]) => {
  return {host,catalogKey:expected.catalogKey,language:site.lang,expectedSector:expected.expectedSector,actualSector:actual,actualKey:j.sectorProfile?.key,abstained:actual==='unknown'&&expected.expectedSector!=='unknown',subtypeExact:j.sectorProfile?.key===expected.catalogKey,modules,commerce:j.commerceApplicability?.state,counts:{selected:counts?.selected,audited:counts?.audited,notConfirmed:counts?.unableToConfirm,outcomes},findings,falsePositives:fp,falseNegatives:fn};
 });
 const totals=Object.fromEntries(dimensions.map(k=>[k,{correct:rows.filter(r=>!r.findings[k].length).length,total:rows.length}]));
-const result={planSha256:createHash('sha256').update(JSON.stringify(plan)).digest('hex'),fixtureSha256:plan.fixtureSha256,rawReportSha256:createHash('sha256').update(input).digest('hex'),revision,sourceKind:'same_author_synthetic_offline',qualityScore:null,accepted:false,blockers:plan.certificationBlockers,totals,subtypeExact:rows.filter(r=>r.subtypeExact).length,abstentions:rows.filter(r=>r.abstained).length,falsePositives:rows.reduce((n,r)=>n+r.falsePositives.length,0),falseNegatives:rows.reduce((n,r)=>n+r.falseNegatives.length,0),rows};
+const result={planSha256:createHash('sha256').update(JSON.stringify(plan)).digest('hex'),fixtureSha256:plan.fixtureSha256,rawReportSha256:createHash('sha256').update(input).digest('hex'),revision,sourceKind:measurementKind==='development'?'development_regression_synthetic':'same_author_synthetic_offline',measurementKind,qualityScore:null,accepted:false,blockers:plan.certificationBlockers,totals,subtypeExact:rows.filter(r=>r.subtypeExact).length,abstentions:rows.filter(r=>r.abstained).length,falsePositives:rows.reduce((n,r)=>n+r.falsePositives.length,0),falseNegatives:rows.reduce((n,r)=>n+r.falseNegatives.length,0),rows};
 writeFileSync(outputPath,JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify({revision,qualityScore:null,totals,falsePositives:result.falsePositives,falseNegatives:result.falseNegatives,abstentions:result.abstentions}));
