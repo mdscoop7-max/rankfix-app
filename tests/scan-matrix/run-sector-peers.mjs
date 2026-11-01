@@ -53,6 +53,13 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.consistentType && classType && !/^(?:Website|Webshop)$/.test(classType) && classType !== profileLabel) problems.push(`${host}: classification "${classType}" vs websiteProfile "${profileLabel}"`);
   // Transport or other service sales are not a webshop: no retail checks left "unable to confirm".
   if (e.notShopUnconfirmed && r.shop.includes("unable_to_confirm")) problems.push(`${host}: retail checks unconfirmed (${[...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop|merchant/i.test(c.key || "") && c.status === "unable_to_confirm").map((c) => c.key).join(",")}); commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}`);
+  const geoCheck = (key) => (j.geo?.checks || []).find((c) => c.key === key);
+  if (e.schemaStatus && geoCheck("schema")?.status !== e.schemaStatus) problems.push(`${host}: schema check ${geoCheck("schema")?.status} ${geoCheck("schema")?.points}/${geoCheck("schema")?.maxPoints} "${String(geoCheck("schema")?.message).slice(0, 140)}", expected ${e.schemaStatus}`);
+  if (e.orgStatus && geoCheck("organization_website")?.status !== e.orgStatus) problems.push(`${host}: organization_website ${geoCheck("organization_website")?.status}, expected ${e.orgStatus}`);
+  if (e.microdataType && !(j.structuredDataEvidence?.microdata?.types || []).includes(e.microdataType)) problems.push(`${host}: microdata types ${JSON.stringify(j.structuredDataEvidence?.microdata)}`);
+  if (e.rdfaType && !(j.structuredDataEvidence?.rdfa?.types || []).includes(e.rdfaType)) problems.push(`${host}: rdfa types ${JSON.stringify(j.structuredDataEvidence?.rdfa)}`);
+  if (e.noAbsenceClaim && /Geen (?:geldige JSON-LD )?structured data gevonden/.test(geoCheck("schema")?.message || "")) problems.push(`${host}: claims missing structured data although ${JSON.stringify(j.structuredDataEvidence)}`);
+  if (e.orgDeductedOnce && geoCheck("organization_website")?.status === "warning" && !/telt één keer/.test(geoCheck("organization_website")?.message || "")) problems.push(`${host}: organization_website deduction not linked to the shared cause`);
   if (e.notClassType && classType === e.notClassType) problems.push(`${host}: classification ${classType}`);
   if (e.notSector && r.sector === e.notSector) problems.push(`${host}: must not be sector ${e.notSector}`);
   if (e.notKey && r.key === e.notKey) problems.push(`${host}: must not be ${e.notKey}`);

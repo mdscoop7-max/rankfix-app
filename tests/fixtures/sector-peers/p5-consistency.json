@@ -116,6 +116,72 @@
     "sector": "transport_travel",
     "notShopUnconfirmed": true
    }
+  },
+  "microdata-bureau.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Adviesbureau Veld – Advies voor gemeenten",
+   "desc": "Adviesbureau voor ruimtelijke ordening en omgevingsrecht voor gemeenten.",
+   "h1": "Adviesbureau Veld",
+   "body": "<div itemscope itemtype=\"https://schema.org/Organization\"><span itemprop=\"name\">Adviesbureau Veld</span><a itemprop=\"url\" href=\"https://microdata-bureau.test/\">site</a></div><p>Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. </p>",
+   "expect": {
+    "microdataType": "Organization",
+    "noAbsenceClaim": true,
+    "orgStatus": "warning"
+   }
+  },
+  "rdfa-stichting.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Stichting Groen – Natuur in de stad",
+   "desc": "Stichting voor meer natuur in de stad. Doneer of word vrijwilliger.",
+   "h1": "Stichting Groen",
+   "body": "<div vocab=\"https://schema.org/\" typeof=\"Organization\"><span property=\"name\">Stichting Groen</span></div><div typeof=\"WebSite\"><span property=\"name\">Stichting Groen</span></div><p>Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. </p>",
+   "expect": {
+    "rdfaType": "WebSite",
+    "noAbsenceClaim": true,
+    "orgStatus": "pass"
+   }
+  },
+  "zonder-schema.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Bureau Zonder – Vertaalbureau",
+   "desc": "Vertaalbureau voor juridische en technische vertalingen.",
+   "h1": "Vertaalbureau Zonder",
+   "body": "<p>Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. </p>",
+   "expect": {
+    "schemaStatus": "warning",
+    "orgStatus": "warning",
+    "orgDeductedOnce": true
+   }
   }
  }
 }

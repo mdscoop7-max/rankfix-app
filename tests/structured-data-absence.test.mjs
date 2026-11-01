@@ -78,3 +78,30 @@ test("1 Nov: one GTM detector — Google host, first-party server-side loader an
   assert.equal(detectGoogleTagManager(`<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"></script>`).present, false);
   assert.equal(detectGoogleTagManager(`<p>Onze GTM-ABCD consultant</p>`).present, false);
 });
+
+test("P5: Microdata and RDFa are separate structured-data forms, never JSON-LD blocks", async () => {
+  const sd = await import("../lib/structured-data-evidence.ts");
+  assert.deepEqual(sd.microdataTypes('<div itemscope itemtype="https://schema.org/Organization"><span itemprop="name">X</span></div><div itemtype="https://schema.org/Thing"></div>'), ["Organization"]);
+  assert.deepEqual(sd.rdfaTypes('<body vocab="https://schema.org/"><div typeof="Organization"></div><div typeof="schema:WebSite"></div></body>'), ["Organization", "WebSite"]);
+  assert.deepEqual(sd.rdfaTypes('<div typeof="foaf:Person"></div>'), []);
+  const absence = sd.structuredDataAbsence({ validJsonLd: 0, otherStructuredItems: 1, rendered: true, clientRenderedRisk: false, injectors: [] });
+  assert.equal(absence.observation, "present");
+});
+
+test("P5: a tag manager still loading at the end of the observation leaves absence unproven", async () => {
+  const sd = await import("../lib/structured-data-evidence.ts");
+  const busy = sd.structuredDataAbsence({ validJsonLd: 0, rendered: true, renderNetworkQuiet: false, clientRenderedRisk: false, injectors: ["Google Tag Manager"] });
+  assert.deepEqual([busy.proven, busy.basis, busy.observation], [false, "render_network_busy", "not_observed"]);
+  // Without an injector a completed observation still proves absence, quiet or not.
+  assert.equal(sd.structuredDataAbsence({ validJsonLd: 0, rendered: true, renderNetworkQuiet: false, clientRenderedRisk: false, injectors: [] }).proven, true);
+  assert.match(sd.structuredDataUnprovenMessage("render_network_busy", "homepage", ["Google Tag Manager"]), /geen netwerkrust/);
+});
+
+test("P5: no structured data at all is one root cause, deducted once", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const item = (key, points, maxPoints, rootCause) => ({ key, issue_status: "WARNING", points, maxPoints, rootCause, severity: "MEDIUM", confidence: "high" });
+  const other = { key: "x", issue_status: "PASS", points: 20, maxPoints: 20 };
+  const shared = scoreApplicableChecks([other, item("schema", 4, 12, "structured_data_context"), item("organization_website", 4, 8, "structured_data_context")]);
+  const double = scoreApplicableChecks([other, item("schema", 4, 12, "a"), item("organization_website", 4, 8, "b")]);
+  assert.ok(shared > double, `${shared} vs ${double}`);
+});

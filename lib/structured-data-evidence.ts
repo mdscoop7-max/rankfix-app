@@ -38,6 +38,7 @@ export function emptyJsonLdPlaceholders(html: string): number {
 
 export type StructuredDataBasis =
   | "present"
+  | "render_network_busy"
   | "rendered_dom"
   | "raw_html_no_injectors"
   | "static_html_no_scripts"
@@ -49,8 +50,12 @@ export type StructuredDataBasis =
 /** Three states, never mixed: seen, proven absent, or not observed (no claim). */
 export type StructuredDataObservation = "present" | "proven_absent" | "not_observed";
 
-export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; scriptsPresent?: boolean; renderedIncomplete?: boolean }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
-  if (input.validJsonLd > 0) return { proven: false, basis: "present", observation: "present" };
+export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; scriptsPresent?: boolean; renderedIncomplete?: boolean; otherStructuredItems?: number; renderNetworkQuiet?: boolean | null }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
+  // Microdata or RDFa is structured data too (a separate form): never "absent".
+  if (input.validJsonLd > 0 || (input.otherStructuredItems || 0) > 0) return { proven: false, basis: "present", observation: "present" };
+  // P5 (NU.nl): a tag manager was still loading when the observation window
+  // ended (no network quiet); it can still add JSON-LD, so absence is unproven.
+  if (input.rendered && input.renderNetworkQuiet === false && input.injectors.length) return { proven: false, basis: "render_network_busy", observation: "not_observed" };
   // A COMPLETE browser observation (full load + settle window) saw the final DOM:
   // absence there is real evidence.
   if (input.rendered) return { proven: true, basis: "rendered_dom", observation: "proven_absent" };
@@ -96,6 +101,9 @@ export function structuredDataUnprovenMessage(basis: StructuredDataBasis, contex
   if (basis === "render_not_complete") {
     return `Structured data is niet gevonden in de browserweergave van deze ${context}, maar die weergave was niet volledig (pagina niet volledig geladen of te kort waargenomen). Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
   }
+  if (basis === "render_network_busy") {
+    return `Structured data is niet gevonden in de browserweergave van deze ${context}, maar ${injectors.join(", ") || "een tagmanager"} was nog bezig met laden toen de waarneming eindigde (geen netwerkrust). Daarmee kan JSON-LD nog later worden toegevoegd. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
+  }
   if (basis === "scripts_unrendered") {
     return `Structured data is in de ruwe HTML van deze ${context} niet gevonden. De pagina laadt scripts die JSON-LD in de browser kunnen toevoegen, en er is geen browserwaarneming beschikbaar. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
   }
@@ -114,4 +122,38 @@ export function validJsonLdBlockTexts(html: string): string[] {
     try { JSON.parse(text); out.push(text.replace(/<\/script/gi, "<\\/script")); } catch { /* invalid JSON is not structured data */ }
   }
   return out;
+}
+
+/**
+ * Schema.org types declared as Microdata (itemscope + itemtype). A separate
+ * evidence form from JSON-LD: it is counted as structured data, never merged
+ * into the JSON-LD block count.
+ */
+export function microdataTypes(html: string): string[] {
+  const types: string[] = [];
+  for (const match of String(html || "").matchAll(/<[a-z][^>]*\bitemtype\s*=\s*(["'])([^"']+)\1[^>]*>/gi)) {
+    if (!/\bitemscope\b/i.test(match[0])) continue;
+    for (const url of match[2].split(/\s+/)) {
+      const type = /^https?:\/\/(?:www\.)?schema\.org\/([A-Za-z][A-Za-z0-9]*)\/?$/i.exec(url)?.[1];
+      if (type) types.push(type);
+    }
+  }
+  return types;
+}
+
+/** Schema.org types declared as RDFa (typeof with the schema.org vocabulary or prefix). */
+export function rdfaTypes(html: string): string[] {
+  const source = String(html || "");
+  const types: string[] = [];
+  const vocabSchema = /\bvocab\s*=\s*(["'])https?:\/\/(?:www\.)?schema\.org\/?\1/i.test(source);
+  for (const match of source.matchAll(/<[a-z][^>]*\btypeof\s*=\s*(["'])([^"']+)\1[^>]*>/gi)) {
+    for (const token of match[2].split(/\s+/)) {
+      const prefixed = /^schema:([A-Za-z][A-Za-z0-9]*)$/i.exec(token)?.[1];
+      const full = /^https?:\/\/(?:www\.)?schema\.org\/([A-Za-z][A-Za-z0-9]*)$/i.exec(token)?.[1];
+      const bare = vocabSchema && /^[A-Z][A-Za-z0-9]*$/.test(token) ? token : null;
+      const type = prefixed || full || bare;
+      if (type) types.push(type);
+    }
+  }
+  return types;
 }

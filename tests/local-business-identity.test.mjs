@@ -115,7 +115,7 @@ test("TestLab: a local retail trade meets the broad retail label, other health k
 test("P5: only a whole navigation label is a store finder; headlines about shops are editorial", async () => {
   const { isStoreFinderLabel, decideSalesChannel } = await import("../lib/sales-channel.ts");
   for (const label of ["Onze winkels", "Winkels", "Find a store", "Filialen finden", "Nos magasins »", "Vind een winkel bij jou in de buurt"]) assert.equal(isStoreFinderLabel(label), true, label);
-  for (const label of ["Winkels moeten eerder sluiten door energiecrisis", "Supermarktketen opent tien nieuwe filialen", "Locations where we deliver"]) assert.equal(isStoreFinderLabel(label), false, label);
+  for (const label of ["0:36 Dichtgetimmerde winkels in Den Haag", "Winkels moeten eerder sluiten door energiecrisis", "Supermarktketen opent tien nieuwe filialen", "Locations where we deliver"]) assert.equal(isStoreFinderLabel(label), false, label);
   const base = { sector: "news_media", key: "news_media", navLabels: ["Winkels moeten eerder sluiten door energiecrisis"], internalPaths: [], identityText: "NieuwsNu - Het laatste nieuws", schemaTypes: [], hasAddress: true, hasOpeningHours: false, onlineSalesConfirmed: false };
   assert.equal(decideSalesChannel(base).channel, "unknown");
 });

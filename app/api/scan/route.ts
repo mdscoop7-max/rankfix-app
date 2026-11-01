@@ -2,7 +2,7 @@ import { compareBrowserUrls, type BrowserDiagnostics } from "@/lib/browser-diagn
 import { TRADE_IDENTITY_PATTERN, TRADE_ACTIVITY_PATTERN, productSupplierOverridesTrade } from "@/lib/trade-identity";
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
-import { validJsonLdBlockTexts, hasExecutableScripts } from "@/lib/structured-data-evidence";
+import { validJsonLdBlockTexts, hasExecutableScripts, microdataTypes, rdfaTypes } from "@/lib/structured-data-evidence";
 import { detectGoogleTagManager } from "@/lib/tag-manager";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
@@ -1504,7 +1504,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // the report keeps the server HTML. Found blocks count with the browser as
     // source; a completed render without blocks is a proven absence; a failed
     // render stays "not observed".
-    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null; requestedUrl: string | null; finalUrl: string | null; diagnostics: BrowserDiagnostics | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null, requestedUrl: null, finalUrl: null, diagnostics: null };
+    const structuredDataProbe: { networkQuiet?: boolean | null; attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null; requestedUrl: string | null; finalUrl: string | null; diagnostics: BrowserDiagnostics | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null, requestedUrl: null, finalUrl: null, diagnostics: null };
     // Also after a primary JavaScript render: that view waited less long than this
     // observation requires; skipped only when the primary render already failed.
     if (!(javascriptCandidate && !javascriptExecuted) && isSiteHomepagePath(finalUrl.pathname) && !clock.expired && Date.now() - started < 60_000
@@ -1521,6 +1521,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const blocks = validJsonLdBlockTexts(probed.html);
         const observed = probed.observation;
         structuredDataProbe.window = observed?.window || null;
+        structuredDataProbe.networkQuiet = typeof observed?.networkQuiet === "boolean" ? observed.networkQuiet : null;
         structuredDataProbe.consent = observed?.consent || "none";
         const sameSite = (() => { try { return new URL(probed.finalUrl).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } })();
         const sameDocument = sameSite && compareBrowserUrls(finalUrl.toString(), probed.finalUrl).comparableDocument;
@@ -1581,6 +1582,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         else collectSchemaObjects(parsed);
       } catch {}
     }
+    // Microdata and RDFa are separate evidence forms (P5): their schema.org types
+    // count as declared structured data, their items never as JSON-LD blocks.
+    const microdataSchemaTypes = microdataTypes(html).map(normalizeSchemaType).filter((type): type is string => Boolean(type));
+    const rdfaSchemaTypes = rdfaTypes(html).map(normalizeSchemaType).filter((type): type is string => Boolean(type));
+    schemaTypes.push(...microdataSchemaTypes, ...rdfaSchemaTypes);
+    const otherStructuredItems = microdataSchemaTypes.length + rdfaSchemaTypes.length;
+    const structuredItems = validJsonLd + otherStructuredItems;
+    const browserJsonLdBlocks = (html.match(/data-rankfix-source="browser"/g) || []).length;
+    const structuredFormsLabel = () => [
+      validJsonLd ? `${validJsonLd} geldige JSON-LD block(s)${browserJsonLdBlocks ? ` (waarvan ${browserJsonLdBlocks} pas in de browser toegevoegd)` : ""}` : "",
+      microdataSchemaTypes.length ? `Microdata (${[...new Set(microdataSchemaTypes)].slice(0, 4).join(", ")})` : "",
+      rdfaSchemaTypes.length ? `RDFa (${[...new Set(rdfaSchemaTypes)].slice(0, 4).join(", ")})` : "",
+    ].filter(Boolean).join(" en ");
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = hasOrganizationSchema(schemaTypes) || ["person", "product", "article", "website"].some((t) => schemaSet.has(t));
     const organizationObjects = schemaObjects.filter((item) => {
@@ -3773,7 +3787,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // "No JSON-LD" is only a proven absence when a render saw the final DOM, or the raw
     // HTML is server-rendered and nothing (a tag manager) can add markup later.
     const jsonLdInjectors = jsonLdInjectorSignals(rawHtml);
-    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: structuredDataProbe.ok, clientRenderedRisk: metadataMayBeClientRendered && !structuredDataProbe.ok, injectors: jsonLdInjectors, scriptsPresent: hasExecutableScripts(rawHtml) || (javascriptExecuted && hasExecutableScripts(html)), renderedIncomplete: javascriptExecuted && !structuredDataProbe.ok });
+    const schemaAbsence = structuredDataAbsence({ validJsonLd, otherStructuredItems, renderNetworkQuiet: structuredDataProbe.attempted ? (structuredDataProbe.networkQuiet ?? null) : null, rendered: structuredDataProbe.ok, clientRenderedRisk: metadataMayBeClientRendered && !structuredDataProbe.ok, injectors: jsonLdInjectors, scriptsPresent: hasExecutableScripts(rawHtml) || (javascriptExecuted && hasExecutableScripts(html)), renderedIncomplete: javascriptExecuted && !structuredDataProbe.ok });
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
@@ -4110,21 +4124,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     geoChecks.push(
       effectiveLocalSchemaSignal
         ? hasRelevantLocalSchema
-          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
-          : validJsonLd > 0
-            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
+          ? check("pass", "schema", "geo", "Structured data", `${structuredFormsLabel()} met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
+          : structuredItems > 0
+            ? check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
             : !schemaAbsence.proven
             ? check("unable_to_confirm", "schema", "geo", "Structured data", structuredDataUnprovenMessage(schemaAbsence.basis, schemaContextLabel, jsonLdInjectors), `Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt. Ontbreekt het ook in de browser, dan is voor dit paginatype ${recommendedSchema} de belangrijkste richting.`, 0, 12)
-            : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
-        : validJsonLd > 0
+            : check("warning", "schema", "geo", "Structured data", `Geen structured data gevonden voor deze ${schemaContextLabel} (geen geldige JSON-LD, Microdata of RDFa${structuredDataProbe.ok ? "; ook niet na volledige browserwaarneming" : ""}). Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
+        : structuredItems > 0
           ? hasRelevantContextSchema
-            ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een voor deze ${schemaContextLabel} relevant schema-type gevonden.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+            ? check("pass", "schema", "geo", "Structured data", `${structuredFormsLabel()} met een voor deze ${schemaContextLabel} relevant schema-type gevonden.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
             : hasEntitySchema
-              ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
-              : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
+              ? check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
+              : check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
           : !schemaAbsence.proven
             ? check("unable_to_confirm", "schema", "geo", "Structured data", structuredDataUnprovenMessage(schemaAbsence.basis, schemaContextLabel, jsonLdInjectors), `Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt. Ontbreekt het ook in de browser, dan is voor dit paginatype ${recommendedSchema} de belangrijkste richting.`, 0, 12)
-            : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
+            : check("warning", "schema", "geo", "Structured data", `Geen structured data gevonden voor deze ${schemaContextLabel} (geen geldige JSON-LD, Microdata of RDFa${structuredDataProbe.ok ? "; ook niet na volledige browserwaarneming" : ""}). Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
     );
     const normalizedTwitterCard = twitterCard.toLowerCase();
     const validTwitterCards = new Set(["summary", "summary_large_image", "app", "player"]);
@@ -4418,9 +4432,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
-        : !schemaAbsence.proven && validJsonLd === 0
-          ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", (schemaAbsence.basis === "tag_manager_unrendered" || schemaAbsence.basis === "scripts_unrendered" || schemaAbsence.basis === "render_not_complete") ? structuredDataUnprovenMessage(schemaAbsence.basis, "homepage", jsonLdInjectors).replace("Structured data is", "Organization/WebSite structured data is") : "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
-          : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.", "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
+        : !schemaAbsence.proven && structuredItems === 0
+          ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", (schemaAbsence.basis === "tag_manager_unrendered" || schemaAbsence.basis === "scripts_unrendered" || schemaAbsence.basis === "render_not_complete" || schemaAbsence.basis === "render_network_busy") ? structuredDataUnprovenMessage(schemaAbsence.basis, "homepage", jsonLdInjectors).replace("Structured data is", "Organization/WebSite structured data is") : "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
+          : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : `De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.${structuredItems === 0 ? " Zelfde onderliggende oorzaak als 'Structured data' (geen structured data op de homepage): de aftrek telt één keer in de score." : ""}`, "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
@@ -7846,6 +7860,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       scope: scanScope,
       multiPage,
       classification,
+      // P5: each structured-data evidence form separately, plus the absence verdict.
+      structuredDataEvidence: {
+        jsonLd: { blocks: validJsonLd, fromBrowser: browserJsonLdBlocks, fromServerHtml: Math.max(0, validJsonLd - browserJsonLdBlocks) },
+        microdata: { items: microdataSchemaTypes.length, types: [...new Set(microdataSchemaTypes)].slice(0, 12) },
+        rdfa: { items: rdfaSchemaTypes.length, types: [...new Set(rdfaSchemaTypes)].slice(0, 12) },
+        browserObservation: { attempted: structuredDataProbe.attempted, complete: structuredDataProbe.ok, networkQuiet: structuredDataProbe.networkQuiet ?? null, window: structuredDataProbe.window, limitation: structuredDataProbe.limitation },
+        absence: { observation: schemaAbsence.observation, basis: schemaAbsence.basis, proven: schemaAbsence.proven },
+        injectors: jsonLdInjectors,
+      },
       pageTypeEvidence,
       pageTypeInvariant,
       technologyProfile,
