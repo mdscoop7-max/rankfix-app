@@ -5,6 +5,10 @@ export type ImageMetrics = {
   elementCount: number;
   uniqueImageReferences: number;
   missingAlt: number;
+  /** Images that are the only content of a link/button but have an empty alt: the link has no accessible name. */
+  unnamedLinkImages: number;
+  /** Images whose alt is a file name or a placeholder word ("IMG_1234.jpg", "image", "afbeelding"). */
+  genericAlt: number;
   detection: "html";
 };
 
@@ -46,12 +50,35 @@ function addSrcSet(set: Set<string>, value: string): void {
   }
 }
 
+// alt text that carries no information: file names, camera names and placeholder words.
+const GENERIC_ALT = /^(?:img[-_ ]?\d+|dsc[-_ ]?\d+|image(?: ?\d+)?|afbeelding(?: ?\d+)?|foto(?: ?\d+)?|photo(?: ?\d+)?|picture|bild(?: ?\d+)?|untitled|placeholder|banner|slide ?\d*|[\w-]+\.(?:jpe?g|png|webp|gif|svg|avif))$/i;
+
+/** Links/buttons whose only content is images with an empty alt and no aria-label/title/text. */
+function countUnnamedLinkImages(html: string): number {
+  let count = 0;
+  for (const match of html.matchAll(/<(a|button)\b([^>]*)>([\s\S]{0,1500}?)<\/\1>/gi)) {
+    const attrs = match[2];
+    const inner = match[3];
+    if (/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']|\btitle\s*=\s*["'][^"']+["']/i.test(attrs)) continue;
+    const imgs = inner.match(/<img\b[^>]*>/gi) ?? [];
+    if (!imgs.length) continue;
+    const text = inner.replace(/<img\b[^>]*>/gi, " ").replace(/<(?:script|style)[\s\S]*?<\/(?:script|style)>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;|\s+/g, " ").trim();
+    if (text) continue;
+    const named = imgs.some((tag) => attr(tag, "alt").trim().length > 0);
+    if (!named && !/\bhref\s*=\s*["']#?["']/i.test(attrs)) count++;
+  }
+  return count;
+}
+
 export function extractImageMetrics(html: string): ImageMetrics {
   const refs = new Set<string>();
   const images = html.match(/<img\b[^>]*>/gi) ?? [];
   let missingAlt = 0;
+  let genericAlt = 0;
 
   for (const tag of images) {
+    const altValue = attr(tag, "alt").trim();
+    if (altValue && GENERIC_ALT.test(altValue)) genericAlt++;
     // alt="" is valid for decorative images. Only a genuinely missing alt
     // attribute is an accessibility/SEO finding in a raw-HTML scan.
     if (!hasAttr(tag, "alt")) missingAlt++;
@@ -94,6 +121,8 @@ export function extractImageMetrics(html: string): ImageMetrics {
     elementCount: images.length,
     uniqueImageReferences: Math.max(images.length, refs.size),
     missingAlt,
+    unnamedLinkImages: countUnnamedLinkImages(html),
+    genericAlt,
     detection: "html",
   };
 };

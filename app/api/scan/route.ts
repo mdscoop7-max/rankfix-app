@@ -16,6 +16,7 @@ import { selectRepresentativePages } from "@/lib/representative-pages";
 import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
 import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
 import { detectOutdatedLibraries } from "@/lib/library-versions";
+import { findInertOrderButtons, findTestProducts, parseVisibleRating, parseVisibleReviewCount, reviewContradictions } from "@/lib/content-integrity";
 import { constructionGroupIdentity, missionOrganisationIdentity } from "@/lib/organisation-identity";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
@@ -906,7 +907,9 @@ async function runScan(request: Request) {
     const imageMetrics = extractImageMetrics(html);
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
-    const imagesMissingAlt = imageMetrics.missingAlt;
+    const imagesMissingAltAttribute = imageMetrics.missingAlt;
+    // An image that is the only content of a link has no accessible name with an empty alt; generic alts ("IMG_1234.jpg") carry no information.
+    const imagesMissingAlt = Math.min(imageMetrics.elementCount, imagesMissingAltAttribute + imageMetrics.unnamedLinkImages + imageMetrics.genericAlt);
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
@@ -3384,6 +3387,37 @@ async function runScan(request: Request) {
             : visiblePriceEvidenceStrength === "explicit_product_markup"
               ? check("warning","product_price_consistency","seo","Productprijs consistentie",`Expliciet gemarkeerde productprijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Synchroniseer de zichtbare productprijs met Product/Offer structured data.",2,6)
               : check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Er zijn eurobedragen en structured-data prijzen gevonden, maar de zichtbare bedragen zijn niet betrouwbaar aan de primaire productprijs te koppelen.","Gebruik expliciete productprijs-markup en houd die gelijk aan Product/Offer structured data.",0,6));
+    // Content integrity on shop pages: test products, order buttons that cannot work, contradicting review claims.
+    // Only on product pages or pages with hard shop evidence; weak or script-driven cases abstain.
+    let integrityEvidence: { testProducts: string[]; inertButtons: string[]; reviewConflicts: string[] } = { testProducts: [], inertButtons: [], reviewConflicts: [] };
+    if (isProductPage || hasEcommerceSignal) {
+      const typeOf = (item: any) => ([] as string[]).concat(item?.["@type"] || []).map((t) => String(t).toLowerCase());
+      const productObjects = schemaObjects.filter((item: any) => typeOf(item).includes("product"));
+      const productNames = [...productObjects.map((item: any) => String(item?.name || "")), ...(isProductPage ? h1s : [])].filter(Boolean);
+      const testProducts = findTestProducts({ productNames, visibleText: text });
+      integrityEvidence.testProducts = testProducts;
+      if (testProducts.length > 0) {
+        seoChecks.push(check("warning", "test_content", "seo", "Test- of voorbeeldcontent", `Er is mogelijk test- of voorbeeldcontent gevonden: ${testProducts.slice(0, 3).join("; ")}.`, "Verwijder testproducten en placeholdertekst uit de live winkel, of zet ze op noindex en haal ze uit sitemap en navigatie.", 2, 4));
+      }
+      const inertButtons = findInertOrderButtons(html);
+      integrityEvidence.inertButtons = inertButtons.map((b) => `${b.label}:${b.reason}`);
+      if (inertButtons.length > 0) {
+        seoChecks.push(check("warning", "order_button", "seo", "Bestelknop", `${inertButtons.length} bestelknop(pen) lijken in de HTML niet te kunnen werken (${inertButtons.slice(0, 3).map((b) => `"${b.label}": ${b.reason === "empty_href" ? "link naar # of lege bestemming" : b.reason === "disabled_always" ? "permanent uitgeschakeld zonder voorraadmelding of variantkeuze" : "verzendknop buiten een formulier"}`).join("; ")}). Dit is gemeten in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML.`, "Controleer de bestelknop handmatig in een echte browser; koppel hem aan een formulier of actie en test het toevoegen aan de winkelwagen.", 2, 4));
+      }
+      const ratingObject: any = schemaObjects.map((item: any) => item?.aggregateRating).find(Boolean);
+      const visibleRating = parseVisibleRating(text);
+      const reviewConflicts = ratingObject ? reviewContradictions({
+        schemaRating: Number.parseFloat(String(ratingObject.ratingValue ?? "").replace(",", ".")) || null,
+        schemaCount: Number.parseInt(String(ratingObject.reviewCount ?? ratingObject.ratingCount ?? ""), 10) || null,
+        visibleRating: visibleRating?.rating ?? null,
+        visibleScale: visibleRating?.scale ?? null,
+        visibleCount: parseVisibleReviewCount(text),
+      }) : [];
+      integrityEvidence.reviewConflicts = reviewConflicts;
+      if (reviewConflicts.length > 0) {
+        seoChecks.push(check("warning", "review_claims", "seo", "Reviewclaims", `Reviewgegevens spreken elkaar tegen: ${reviewConflicts.join("; ")}.`, "Laat structured data en zichtbare reviewcijfers uit dezelfde bron komen; gemarkeerde reviews moeten overeenkomen met wat bezoekers zien.", 2, 4));
+      }
+    }
     seoChecks.push(!isProductPage
       ? check("not_applicable","product_availability","seo","Productvoorraad","Geen duidelijke productpagina-signalen gevonden; voorraadcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
       : availabilityContradiction
@@ -3598,6 +3632,9 @@ async function runScan(request: Request) {
       html_escape: { rule_id: "HTML_ESCAPE_VISIBLE", severity: "LOW" },
       image_sources: { rule_id: "EXTERNAL_IMAGE_SOURCE", severity: "LOW" },
       business_placeholders: { rule_id: "BUSINESS_PLACEHOLDER", severity: "HIGH" },
+      test_content: { rule_id: "TEST_CONTENT_LIVE", severity: "MEDIUM" },
+      order_button: { rule_id: "ORDER_BUTTON_INERT", severity: "HIGH" },
+      review_claims: { rule_id: "REVIEW_CLAIMS_CONTRADICT", severity: "MEDIUM" },
       price_format: { rule_id: "PRICE_FORMAT", severity: "LOW" },
       webshop_trust: { rule_id: "WEBSHOP_TRUST_SIGNALS", severity: "HIGH" },
       variant_url: { rule_id: "PRODUCT_VARIANT_URL", severity: "MEDIUM" },
@@ -3651,6 +3688,9 @@ async function runScan(request: Request) {
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         product_copy_optimizer: isProductPage ? `verifiedSourceFields=${productOptimizerSourceCount}; product=${primaryProductEvidence?.name || "unknown"}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
+        test_content: integrityEvidence.testProducts.length ? `testProducts=${integrityEvidence.testProducts.join(" | ")}` : null,
+        order_button: integrityEvidence.inertButtons.length ? `inertButtons=${integrityEvidence.inertButtons.join(" | ")}` : null,
+        review_claims: integrityEvidence.reviewConflicts.length ? `conflicts=${integrityEvidence.reviewConflicts.join(" | ")}` : null,
         broken_links: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         internal_redirects: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         semantic_link_destination: uniqueInternalAnchors.length ? `links=${uniqueInternalAnchors.length}; semanticMismatches=${semanticLinkMismatches.length}; cardMismatches=${productCardMismatches.length}; featuredMismatches=${featuredProductMismatches.length}` : null,

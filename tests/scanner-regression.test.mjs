@@ -1729,3 +1729,12 @@ test("a sampled link that redirects to an account or personal page leaves the sa
   for (const u of ["https://x.it/recupero-credenziali/", "https://x.pl/plus/kontynuuj-odtwarzanie", "https://x.pl/plus/preferencje-tresci", "https://x.de/passwort-vergessen"]) assert.equal(isNonContentUrl(u), true, u);
   assert.equal(isNonContentUrl("https://x.it/servizi-online-area-personale"), false, "a content page about the personal area stays");
 });
+
+test("empty alt on a linked image and generic alt texts count as missing, decorative empty alt does not", () => {
+  const decorative = extractImageMetrics('<img src="/a.jpg" alt=""><a href="/x">Meer <img src="/b.jpg" alt=""></a>');
+  assert.equal(decorative.unnamedLinkImages, 0);
+  const linked = extractImageMetrics('<a href="/product"><img src="/a.jpg" alt=""></a><a href="/c" aria-label="Contact"><img src="/c.jpg" alt=""></a>');
+  assert.equal(linked.unnamedLinkImages, 1);
+  const generic = extractImageMetrics('<img src="/a.jpg" alt="IMG_1234.jpg"><img src="/b.jpg" alt="image"><img src="/c.jpg" alt="Hand wassen met zeep">');
+  assert.equal(generic.genericAlt, 2);
+});
