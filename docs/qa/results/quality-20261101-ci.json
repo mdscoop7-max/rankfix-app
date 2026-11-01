@@ -1,0 +1,66 @@
+{
+  "kind": "github_actions_verification",
+  "headSha": "4239ee13c94ed577f1707df9c12676728b552efc",
+  "runId": 41313061265,
+  "url": "https://github.com/mdscoop7-max/rankfix-app/actions/runs/41313061265",
+  "conclusion": "success",
+  "startedAt": "2026-11-01T13:48:44Z",
+  "finishedAt": "2026-11-01T13:52:13Z",
+  "tests": {
+    "total": 893,
+    "passed": 885,
+    "failed": 0,
+    "skipped": 8
+  },
+  "crawlerTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "autoFixPostgres": {
+    "scenarios": 34,
+    "failed": 0,
+    "problems": 0
+  },
+  "qualityGate": {
+    "noRegressionGatePassed": true,
+    "strictValidationCorrect": 12,
+    "strictValidationTotal": 13,
+    "independentQualityScore": null
+  },
+  "typecheck": "passed",
+  "nextBuild": "passed",
+  "artifactId": 13086591481,
+  "remaining": [
+    "Four PostgreSQL scan/storage tests skipped in this run; the following workflow update enables them.",
+    "One slow timeout suite and three full stored route replays remain opt-in.",
+    "No real browser/dashboard visual or independent real-website quality assessment is implied."
+  ],
+  "vercelStatus": {
+    "state": "failure",
+    "url": "https://vercel.com/knowledge/why-is-my-account-deployment-blocked",
+    "note": "External integration reports an account/deployment block. No deployment was initiated by an assistant tool; no deployment success is claimed."
+  },
+  "logExtract": [
+    "2026-11-01T13:49:16.8253685Z ℹ tests 10",
+    "2026-11-01T13:49:16.8255274Z ℹ pass 10",
+    "2026-11-01T13:49:16.8255839Z ℹ fail 0",
+    "2026-11-01T13:49:16.8256868Z ℹ skipped 0",
+    "2026-11-01T13:51:27.6337471Z ﹣ scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect (0.205152ms) # RF_PG_TEST_URL not set",
+    "2026-11-01T13:51:27.6339434Z ﹣ scan persistence on real PostgreSQL: emoji cut by text limits and NUL never fail the save (0.128219ms) # RF_PG_TEST_URL not set",
+    "2026-11-01T13:51:27.6343155Z ﹣ scan persistence on real PostgreSQL: schema init never blocks a running save; insert retry stores exactly one row (0.14464ms) # RF_PG_TEST_URL not set",
+    "2026-11-01T13:51:27.6534364Z ﹣ full chain on real PostgreSQL: free scan, dashboard scan → stored → history → full audit (0.238306ms) # set RF_PG_TEST_URL to run against PostgreSQL",
+    "2026-11-01T13:51:27.6978294Z ℹ tests 893",
+    "2026-11-01T13:51:27.6978976Z ℹ pass 885",
+    "2026-11-01T13:51:27.6979186Z ℹ fail 0",
+    "2026-11-01T13:51:27.6979598Z ℹ skipped 8",
+    "2026-11-01T13:51:30.8257702Z {\"noRegressionGatePassed\":true,\"referenceCases\":41,\"developmentCases\":39,\"strictValidationCorrect\":12,\"strictValidationTotal\":13,\"unresolved\":[\"unseen-payments.test\"],\"independentQualityScore\":null,\"out\":\"/home/runner/work/rankfix-app/rankfix-app/qa-results/engine-quality-regressions.json\"}",
+    "2026-11-01T13:51:55.6199701Z ✓ Compiled successfully in 6.9s",
+    "2026-11-01T13:51:55.6259897Z   Running TypeScript ...",
+    "2026-11-01T13:52:06.1964432Z   Finished TypeScript in 10.6s ...",
+    "2026-11-01T13:52:07.2378417Z   Generating static pages using 3 workers (0/113) ...",
+    "2026-11-01T13:52:07.3681338Z   Generating static pages using 3 workers (28/113) ",
+    "2026-11-01T13:52:07.4321671Z   Generating static pages using 3 workers (56/113) ",
+    "2026-11-01T13:52:07.4937254Z   Generating static pages using 3 workers (84/113) ",
+    "2026-11-01T13:52:07.9983537Z ✓ Generating static pages using 3 workers (113/113) in 761ms"
+  ]
+}

@@ -56,8 +56,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Crawler offline regression
         run: node --test tests/crawler-industrial-products-guard.test.mjs
-      - name: Existing regression suite
-        run: npm test
+      - name: Existing regression suite including real PostgreSQL scan/storage checks
+        run: RF_PG_TEST_URL="$DATABASE_URL" npm test
       - name: Fixed-input sector quality and no-regression gate
         run: RF_QA_COMMIT_SHA="$GITHUB_SHA" npm run qa:quality
       - name: Preserve quality evidence even on failure
