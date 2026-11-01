@@ -10,6 +10,25 @@ test("structured data: present / proven absent / not observed are three separate
   assert.deepEqual(structuredDataAbsence({ ...base, rendered: true }), { proven: true, basis: "rendered_dom", observation: "proven_absent" });
   assert.deepEqual(structuredDataAbsence({ ...base, validJsonLd: 1 }), { proven: false, basis: "present", observation: "present" });
   assert.deepEqual(structuredDataAbsence({ ...base, injectors: [] }), { proven: true, basis: "raw_html_no_injectors", observation: "proven_absent" });
+  // 1 Nov: without a tag manager an own script can still add JSON-LD; only a script-free page proves absence.
+  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: true }), { proven: false, basis: "scripts_unrendered", observation: "not_observed" });
+  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: false }), { proven: true, basis: "static_html_no_scripts", observation: "proven_absent" });
+  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: true, rendered: true }), { proven: true, basis: "rendered_dom", observation: "proven_absent" });
+});
+
+test("1 Nov: executable scripts — JSON-LD, JSON data and templates are not executable", async () => {
+  const { hasExecutableScripts } = await import("../lib/structured-data-evidence.ts");
+  assert.equal(hasExecutableScripts(`<script src="/a.js"></script>`), true);
+  assert.equal(hasExecutableScripts(`<script>window.App = { init() { document.querySelectorAll('.slider').forEach(initSlider); } }; App.init();</script>`), true);
+  assert.equal(hasExecutableScripts(`<script>var x=1</script>`), false, "a trivial statement cannot add markup");
+  assert.equal(hasExecutableScripts(`<script type="module" src="/m.js"></script>`), true);
+  assert.equal(hasExecutableScripts(`<script type="application/ld+json">{"@type":"Thing"}</script><script type="application/json">{}</script><script type="text/template"><p></p></script><script></script>`), false);
+  assert.equal(hasExecutableScripts(`<p>geen scripts</p>`), false);
+  // Measurement/consent only: cannot add JSON-LD (29 Oct calibration kept).
+  assert.equal(hasExecutableScripts(`<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-ABC123');</script><script src="https://consent.cookiebot.com/uc.js"></script>`), false);
+  // Own code next to measurement still counts.
+  assert.equal(hasExecutableScripts(`<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"></script><script src="/assets/app.min.js"></script>`), true);
+  assert.equal(hasExecutableScripts(`<script>document.head.appendChild(Object.assign(document.createElement('script'),{type:'application/ld+json',text:JSON.stringify(data)}))</script>`), true);
 });
 
 test("injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json placeholder; a filled block is not a placeholder", async () => {

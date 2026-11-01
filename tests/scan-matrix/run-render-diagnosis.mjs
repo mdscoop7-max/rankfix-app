@@ -21,7 +21,10 @@ const kort = await scan("kort.test");
 if (kort.rendering?.completeness !== "complete") problems.push(`kort: rendering ${kort.rendering?.completeness}, expected complete (server-rendered)`);
 for (const key of ["content", "trust_legal_signals", "image_sources", "headings"]) if (by(kort, key)?.status === "unable_to_confirm") problems.push(`kort: ${key} unable_to_confirm on a server-rendered page`);
 if (by(kort, "viewport")?.status !== "fail") problems.push(`kort: missing viewport should be a proven fail (${by(kort, "viewport")?.status})`);
-if (!(kort.coverage?.coveragePercent >= 80)) problems.push(`kort: coverage ${kort.coverage?.coveragePercent}%`);
+// 1 Nov: without a browser in this matrix, JSON-LD next to own scripts is "not
+// observed" (0 points). Coverage of the other checks must stay high.
+if (!(kort.coverage?.coveragePercent >= 75)) problems.push(`kort: coverage ${kort.coverage?.coveragePercent}%`);
+if (!/observation=(?:not_observed|proven_absent)/.test(String(by(kort, "schema")?.evidence?.found))) problems.push(`kort: schema evidence lacks an observation state (${by(kort, "schema")?.evidence?.found})`);
 const gtm = await scan("gtm.test");
 // 1 Nov (A/B on identical content): with a tag manager and no browser observation,
 // missing JSON-LD is "not observed" — never a proven absence and never a deduction.

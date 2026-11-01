@@ -10,7 +10,11 @@ const CASES = {
   "placeholder.test": [`<script type="application/ld+json"> </script>`, LD, { probe: 1, org: "pass", obs: /present_after_javascript/ }],
   "no-ld-rendered.test": [GTM, GTM, { probe: 1, schema: "warning", org: "warning", obs: /observation=proven_absent; basis=rendered_dom/ }],
   "render-fails.test": [GTM, null, { probe: 1, schema: "unable_to_confirm", org: "unable_to_confirm", obs: /observation=not_observed.*browserProbe=failed/ }],
-  "no-injector.test": ["", LD, { probe: 0, schema: "warning", org: "warning", obs: /observation=proven_absent; basis=raw_html_no_injectors/ }],
+  // No tag manager and no script at all: nothing can add JSON-LD → proven absent without a browser.
+  "no-injector.test": ["", LD, { probe: 0, schema: "warning", org: "warning", obs: /observation=proven_absent; basis=static_html_no_scripts/ }],
+  // No tag manager, but an own script: the browser decides (1 Nov).
+  "own-script-ld.test": [`<script src="/app.js"></script>`, `<script src="/app.js"></script>` + LD, { probe: 1, org: "pass", obs: /present_after_javascript/ }],
+  "own-script-fails.test": [`<script>window.App = { init() { document.querySelectorAll('.slider').forEach(initSlider); } }; App.init();</script>`, null, { probe: 1, schema: "unable_to_confirm", org: "unable_to_confirm", obs: /observation=not_observed; basis=scripts_unrendered/ }],
   "server-ld.test": [GTM + LD, GTM + LD, { probe: 0, org: "pass" }],
   // JSON-LD only on an own subpage: shown as context with URL, status/points unchanged.
   "subpage-ld.test": ["", null, { probe: 0, schema: "warning", org: "warning", points: [4, 4], context: /Context \(telt niet mee[^]*over-ons/, orgContext: /Organization\/WebSite-schema staat wel op [^ ]*over-ons/ }, { "/over-ons": LD }],

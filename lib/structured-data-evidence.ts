@@ -40,13 +40,15 @@ export type StructuredDataBasis =
   | "present"
   | "rendered_dom"
   | "raw_html_no_injectors"
+  | "static_html_no_scripts"
+  | "scripts_unrendered"
   | "tag_manager_unrendered"
   | "client_rendered_unrendered";
 
 /** Three states, never mixed: seen, proven absent, or not observed (no claim). */
 export type StructuredDataObservation = "present" | "proven_absent" | "not_observed";
 
-export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[] }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
+export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; scriptsPresent?: boolean }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
   if (input.validJsonLd > 0) return { proven: false, basis: "present", observation: "present" };
   // A completed browser render saw the final DOM: absence there is real evidence.
   if (input.rendered) return { proven: true, basis: "rendered_dom", observation: "proven_absent" };
@@ -56,10 +58,39 @@ export function structuredDataAbsence(input: { validJsonLd: number; rendered: bo
   // NOT proven, also on a substantive server-rendered page (the 31 Oct rule that
   // treated it as proven gave 10 sites an unproven GEO deduction; reverted).
   if (input.injectors.length) return { proven: false, basis: "tag_manager_unrendered", observation: "not_observed" };
+  // 1 Nov: without a tag manager, any own script can still add JSON-LD. Only a
+  // page WITHOUT executable scripts proves the absence from its HTML alone.
+  if (input.scriptsPresent === false) return { proven: true, basis: "static_html_no_scripts", observation: "proven_absent" };
+  if (input.scriptsPresent === true) return { proven: false, basis: "scripts_unrendered", observation: "not_observed" };
   return { proven: true, basis: "raw_html_no_injectors", observation: "proven_absent" };
 }
 
+// Measurement and consent libraries never add page markup such as JSON-LD (the
+// 29 Oct calibration: gtag.js alone keeps absence proven). Tag managers are NOT
+// listed here: they run custom HTML and are handled as injectors.
+const MEASUREMENT_ONLY_SRC = /(?:googletagmanager\.com\/gtag\/js|google-analytics\.com\/(?:analytics|ga)\.js|connect\.facebook\.net\/[^"']*fbevents|static\.hotjar\.com|clarity\.ms\/tag|plausible\.io\/js|cdn\.matomo\.cloud\/[^"']*matomo\.js|\/matomo\.js|consent\.cookiebot\.com|cdn\.cookielaw\.org|cookie-script\.com|snap\.licdn\.com\/li\.lms-analytics|bat\.bing\.com\/bat\.js|analytics\.tiktok\.com)/i;
+// Inline measurement statements: dataLayer/gtag/fbq/_paq/clarity/hj calls.
+const MEASUREMENT_STATEMENTS = /(?:window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\];?|function\s+gtag\s*\(\)\s*\{[^}]*\}|gtag\s*\([^;]*\);?|dataLayer\.push\s*\([^;]*\);?|fbq\s*\([^;]*\);?|_paq\.push\s*\([^;]*\);?|var\s+_paq\s*=\s*window\._paq[^;]*;?|clarity\s*\([^;]*\);?|hj\s*\([^;]*\);?)/g;
+
+/** Scripts that could add JSON-LD in the browser (own or unknown code). JSON-LD,
+ * JSON data, templates, measurement and consent libraries are excluded. */
+export function hasExecutableScripts(html: string): boolean {
+  for (const m of String(html || "").matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const attrs = m[1] || "";
+    const type = (attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i)?.[1] || "").toLowerCase();
+    if (type && !/^(?:text\/javascript|application\/javascript|module|text\/ecmascript|application\/ecmascript)$/.test(type)) continue;
+    const src = attrs.match(/\bsrc\s*=\s*["']?([^"'\s>]+)/i)?.[1];
+    if (src) { if (!MEASUREMENT_ONLY_SRC.test(src)) return true; continue; }
+    const code = m[2].replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "").replace(MEASUREMENT_STATEMENTS, "").replace(/[\s;]+/g, "");
+    if (code.length >= 40) return true;
+  }
+  return false;
+}
+
 export function structuredDataUnprovenMessage(basis: StructuredDataBasis, context: string, injectors: string[]): string {
+  if (basis === "scripts_unrendered") {
+    return `Structured data is in de ruwe HTML van deze ${context} niet gevonden. De pagina laadt scripts die JSON-LD in de browser kunnen toevoegen, en er is geen browserwaarneming beschikbaar. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
+  }
   if (basis === "tag_manager_unrendered") {
     return `Structured data is in de ruwe HTML van deze ${context} niet gevonden, maar de pagina bevat ${injectors.join(", ")}. Daarmee kan JSON-LD pas in de browser worden toegevoegd, en er is geen browserwaarneming beschikbaar. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
   }
