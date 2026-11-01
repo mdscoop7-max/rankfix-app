@@ -1,4 +1,4 @@
-import { CrawlPage, CrawlMode, crawlSite } from "@/lib/crawler";
+import { type CrawlPage, type CrawlMode, type CrawlOptions, type CrawlCoverage, type CrawlResult, crawlSite } from "@/lib/crawler";
 
 export const SITE_AUDIT_ENGINE_VERSION = "1.11.0";
 
@@ -38,6 +38,7 @@ export type SiteAudit = {
     complete: boolean;
     truncated: boolean;
     scope: "sitewide" | "sample";
+    inventory: CrawlCoverage;
   };
   scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; security: number; overall: number; grade: string };
   page_types: Record<string, number>;
@@ -219,7 +220,7 @@ const rules: RuleDef[] = [
     description: "Er is geen JSON-LD structured data aangetroffen op deze pagina.",
     recommendation: "Voeg alleen schema.org markup toe die de zichtbare en aantoonbare inhoud van de pagina beschrijft.",
     applicable: p => !p.noindex && ["homepage","product","product_category","category","blog_article","news","faq","local_business"].includes(p.pageType),
-    evaluate: p => p.jsonLdTypes.length === 0 ? {status:"WARNING",found:0,details:"Geen JSON-LD types gevonden."} : {status:"PASS",found:p.jsonLdTypes.join(", "),details:"JSON-LD structured data gevonden."},
+    evaluate: p => p.jsonLdTypes.length === 0 ? p.structuredDataAbsentProven === false ? {status:"UNABLE_TO_CONFIRM",found:null,details:"Geen JSON-LD waargenomen; scripts kunnen markup toevoegen. Afwezigheid is niet bewezen."} : {status:"WARNING",found:0,details:"Geen JSON-LD types gevonden in HTML zonder uitvoerbare scripts."} : {status:"PASS",found:p.jsonLdTypes.join(", "),details:"JSON-LD structured data gevonden."},
   },
   {
     id: "SITE_JSONLD_INVALID", category: "structured-data", title: "Ongeldige JSON-LD", severity: "HIGH",
@@ -232,7 +233,7 @@ const rules: RuleDef[] = [
     id: "SITE_PRODUCT_SCHEMA_CORE", category: "structured-data", title: "Product structured data onvolledig", severity: "HIGH",
     description: "Productpagina's hebben bruikbare product- en aanbodgegevens nodig om productinformatie machineleesbaar te maken.",
     recommendation: "Controleer Product markup en voeg aantoonbare kerngegevens toe, waaronder naam en waar van toepassing Offer met prijs en valuta.",
-    applicable: p => !p.noindex && p.pageType === "product",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product?.offers),
     evaluate: p => {
       if (!p.product) {
         return {status:"FAIL",found:"geen Product JSON-LD",expected:"Product structured data",details:"De crawler classificeert deze pagina als productpagina, maar heeft geen Product JSON-LD gevonden."};
@@ -255,7 +256,7 @@ const rules: RuleDef[] = [
     id: "SITE_PRODUCT_IDENTITY", category: "ecommerce", title: "Productidentiteit beperkt", severity: "LOW",
     description: "Merk- of productidentificatie helpt productgegevens eenduidig te koppelen.",
     recommendation: "Voeg alleen aantoonbare merk- of SKU/GTIN/MPN-gegevens toe; verzin nooit productidentifiers.",
-    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product?.offers),
     evaluate: p => p.product?.brandOrSku
       ? {status:"PASS",found:true,details:"Merk of productidentifier is gevonden in Product structured data."}
       : {status:"WARNING",found:false,expected:"brand of productidentifier",details:"Geen aantoonbaar merk of productidentifier gevonden in Product structured data."},
@@ -378,7 +379,7 @@ function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvalua
     issue_id: rule.id, rule_id: rule.id, category: rule.category, title: rule.title,
     description: rule.description, recommendation: rule.recommendation, severity: rule.severity,
     confidence, status, affected_urls: affected.filter(x => x.r.status === "FAIL" || x.r.status === "WARNING").map(x => x.p.url),
-    evidence: {total_pages: total, affected_pages: fail.length + warn.length, examples: affected.filter(x => x.r.status !== "PASS").slice(0,5).map(x => example(x.p,x.r))},
+    evidence: {total_pages: total, affected_pages: fail.length + warn.length, examples: (affected.some(x => x.r.status !== "PASS") ? affected.filter(x => x.r.status !== "PASS") : affected).slice(0,5).map(x => example(x.p,x.r))},
   };
 }
 
@@ -396,19 +397,28 @@ function scoreFor(issues: SiteIssue[], categories: string[]) {
 
 function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E"; }
 
-export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
-  const crawl = await crawlSite(url, mode);
+export async function auditSite(url: string, mode: CrawlMode = "STANDARD", options: CrawlOptions = {}): Promise<SiteAudit> {
+  return auditCrawlResult(await crawlSite(url, mode, options));
+}
+
+/** Same deterministic rules for a fresh or resumed inventory. */
+export function auditCrawlResult(crawl: CrawlResult): SiteAudit {
+  const mode = crawl.mode;
   const pages = crawl.pages;
   // Page-level evidence warnings (for example malformed canonical markup) do not
   // mean the crawl itself was incomplete. Only transport/fetch failures do.
   const crawlBlockingErrors = crawl.errors.filter((error) => error.code !== "CANONICAL_INVALID");
-  const crawlComplete = crawlBlockingErrors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
+  const crawlComplete = crawlBlockingErrors.length === 0 && crawl.coverage.complete;
   const evaluated = rules.map(rule => {
     const applicable = pages.filter(p => rule.applicable(p, pages));
     if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:(crawlComplete?"high":"medium") as "high" | "medium",status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
     return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
   });
-  const issues = evaluated.map(x=>x.issue);
+  const issues: SiteIssue[] = evaluated.map(x=>x.issue);
+  const missing=crawl.checkpoint.entries.filter(e=>e.status==="not_found");
+  if(missing.length) issues.push({issue_id:"SITE_LINK_TARGET_MISSING",rule_id:"SITE_LINK_TARGET_MISSING",category:"internal-linking",title:"Ontbrekende paginabestemmingen",description:"De website verwijst naar URL's die HTTP 404/410 antwoorden.",recommendation:"Herstel de verwijzende link of stel een passende redirect in; controleer eerst of verwijderen bewust was.",severity:"HIGH",confidence:"high",status:"FAIL",affected_urls:missing.map(e=>e.url),evidence:{total_pages:crawl.discovered,affected_pages:missing.length,examples:missing.slice(0,5).map(e=>({url:e.url,found:e.httpStatus||404,expected:"bereikbare bestemming",details:`Ontdekt op ${e.from||crawl.startUrl}; HTTP ${e.httpStatus}.`}))}});
+  const unconfirmed=crawl.checkpoint.entries.filter(e=>e.status==="unconfirmed");
+  if(unconfirmed.length) issues.push({issue_id:"SITE_PAGES_UNCONFIRMED",rule_id:"SITE_PAGES_UNCONFIRMED",category:"technical",title:"Pagina's niet te bevestigen",description:"Niet alle ontdekte pagina's leverden bruikbaar bewijs.",recommendation:"Controleer deze pagina's opnieuw wanneer ze bereikbaar zijn; omzeil geen toegangsbeveiliging.",severity:"INFO",confidence:"low",status:"UNABLE_TO_CONFIRM",affected_urls:[],evidence:{total_pages:crawl.discovered,affected_pages:0,examples:unconfirmed.slice(0,5).map(e=>({url:e.url,found:null,details:e.reason||"niet bevestigd"}))}});
   const categoryScore = (categories: string[]) => {
     const scorable = issues.some(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
     return { score: scoreFor(issues, categories), scorable };
@@ -435,7 +445,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
     startUrl:crawl.startUrl, finalUrl:crawl.finalUrl, mode,
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
-    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample"},
+    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample",inventory:crawl.coverage},
     scores:{technical,onPage,content,structuredData,internalLinks,accessibility,security,overall,grade:grade(overall)},
     page_types, issues,
   };

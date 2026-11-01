@@ -1,3 +1,4 @@
+import { sampleInventory } from "@/lib/sample-inventory";
 import { compareBrowserUrls, type BrowserDiagnostics } from "@/lib/browser-diagnostics";
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
@@ -7310,6 +7311,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       offerNavigation: identityNavLabels.filter((label) => /^(?:diensten|services?|producten|products?|oplossingen|solutions?|applications?|toepassingen|brands?|merken|aanbod|assortiment|behandelingen|treatments?|leistungen|produkte|lösungen|prestations|produits)$/i.test(label.trim())),
     });
     const multiPage = {
+      inventory: sampleInventory({candidateUrls:discoveredMultiPage.map(p=>p.url),selectedUrls:multiPageAudits.map(p=>p.url),checked:sampleOutcomes.scored+sampleOutcomes.unscored,scored:sampleOutcomes.scored,excluded:sampleOutcomes.noindex+sampleOutcomes.nonContent,notConfirmed:sampleOutcomes.thinContent+sampleOutcomes.notRetrieved,missing:sampleOutcomes.missing,duplicates:sampleOutcomes.duplicate,pageLimit:representativePageLimit}),
       sectionCoverage: sectionCoverageReport,
       sectionGapFill,
       siteAccess,

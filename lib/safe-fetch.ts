@@ -53,7 +53,7 @@ export function validatePublicHttpUrl(value: string) {
 // Without this, sites that redirect "set cookie → come back" loop until
 // REDIRECT_LIMIT. The jar lives only for one safePublicFetch call.
 
-export async function safePublicFetch(value: string | URL, options: { timeoutMs?: number; maxRedirects?: number; userAgent?: string; accept?: string; acceptLanguage?: string } = {}) {
+export async function safePublicFetch(value: string | URL, options: { timeoutMs?: number; maxRedirects?: number; userAgent?: string; accept?: string; acceptLanguage?: string; signal?: AbortSignal; onRequest?: (url: URL) => void } = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
   const maxRedirects = options.maxRedirects ?? 4;
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
@@ -70,13 +70,15 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
     const key = visitKey(current);
     if (visited.has(key)) throw new Error("REDIRECT_LOOP");
     visited.add(key);
+    options.signal?.throwIfAborted();
     await assertPublicDns(current.hostname);
+    options.onRequest?.(current);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
       response = await fetch(current.toString(), {
-        signal: controller.signal,
+        signal: options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
         redirect: "manual",
         cache: "no-store",
         headers: {

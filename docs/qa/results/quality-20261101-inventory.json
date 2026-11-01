@@ -1,0 +1,50 @@
+{
+  "baselineCommit": "1d7d753deabf4e31d49fb420b56243881fecc54c",
+  "kind": "offline_scripted_inventory",
+  "liveScans": 0,
+  "baseline": {
+    "checked": 1,
+    "discovered": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "legacy_discovered_graph",
+      "resumeSupported": false
+    }
+  },
+  "candidate": {
+    "checked": 3,
+    "discovered": 3,
+    "coverage": {
+      "mode": "bounded_inventory",
+      "scope": "discovered_inventory",
+      "discovered": 3,
+      "discoveredIsLowerBound": false,
+      "checked": 3,
+      "excluded": 0,
+      "notConfirmed": 0,
+      "notFound": 0,
+      "duplicates": 0,
+      "pending": 0,
+      "pageLimit": 25,
+      "complete": true,
+      "fullWebsiteConfirmed": false,
+      "canResume": false,
+      "stopReason": "inventory_exhausted",
+      "requestsThisBatch": 7,
+      "requestsTotal": 7,
+      "rendersTotal": 0,
+      "discoveryErrors": []
+    }
+  },
+  "tests": {
+    "unitAndRegression": {
+      "passed": 40,
+      "failed": 0
+    },
+    "existingP5RouteFixtures": {
+      "passed": 25,
+      "failed": 0,
+      "transport": "temporary Web Response adapter; Next package unavailable"
+    }
+  }
+}
