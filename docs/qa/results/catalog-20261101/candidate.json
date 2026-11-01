@@ -1,0 +1,3107 @@
+{
+  "planSha256": "f9a42b6fb1d6b6e851979e28c2cee94e525b168d41d97857ba42e4a50eb0983e",
+  "fixtureSha256": "cc79340997457ce5dfc95ee97c07b4892ffac4290f9631355688a56743c7163d",
+  "rawReportSha256": "8c37c94eb5e179f995f6631649241e67f255e6c8a2bdde9da8a4db4d35eccac6",
+  "revision": "73ddfb95301bd2a616e9f1ce5300ff7281f73591",
+  "sourceKind": "same_author_synthetic_offline",
+  "qualityScore": null,
+  "accepted": false,
+  "blockers": [
+    "same_author_synthetic_cases",
+    "no_independent_label_review",
+    "no_live_browser_or_database_report_flow",
+    "one_case_per_catalog_subtype_insufficient_external_generalisation"
+  ],
+  "totals": {
+    "sector": {
+      "correct": 48,
+      "total": 68
+    },
+    "applicability": {
+      "correct": 68,
+      "total": 68
+    },
+    "seoGeoEvidence": {
+      "correct": 68,
+      "total": 68
+    },
+    "coverage": {
+      "correct": 68,
+      "total": 68
+    },
+    "consistency": {
+      "correct": 68,
+      "total": 68
+    }
+  },
+  "subtypeExact": 27,
+  "abstentions": 19,
+  "falsePositives": 1,
+  "falseNegatives": 20,
+  "rows": [
+    {
+      "host": "holdout-001.test",
+      "catalogKey": "ecommerce",
+      "language": "en",
+      "expectedSector": "ecommerce",
+      "actualSector": "ecommerce",
+      "actualKey": "ecommerce",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "ecommerce",
+        "product",
+        "checkout",
+        "eu_consumer",
+        "business_identity"
+      ],
+      "commerce": "confirmed",
+      "counts": {
+        "selected": 5,
+        "audited": 5,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 5,
+          "scored": 5,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-002.test",
+      "catalogKey": "marketplace",
+      "language": "en",
+      "expectedSector": "service_marketplace",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected service_marketplace"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-003.test",
+      "catalogKey": "automotive",
+      "language": "nl",
+      "expectedSector": "automotive",
+      "actualSector": "automotive",
+      "actualKey": "car_repair",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "automotive",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-004.test",
+      "catalogKey": "real_estate",
+      "language": "fr",
+      "expectedSector": "real_estate",
+      "actualSector": "real_estate",
+      "actualKey": "real_estate",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "real_estate",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-005.test",
+      "catalogKey": "dentist",
+      "language": "en",
+      "expectedSector": "health_wellness",
+      "actualSector": "health_wellness",
+      "actualKey": "dentist",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "health_wellness",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-006.test",
+      "catalogKey": "healthcare",
+      "language": "de",
+      "expectedSector": "health_wellness",
+      "actualSector": "health_wellness",
+      "actualKey": "health_wellness",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "health_wellness",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-007.test",
+      "catalogKey": "restaurant",
+      "language": "it",
+      "expectedSector": "hospitality",
+      "actualSector": "hospitality",
+      "actualKey": "restaurant",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "hospitality",
+        "booking",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-008.test",
+      "catalogKey": "cafe_bar",
+      "language": "nl",
+      "expectedSector": "hospitality",
+      "actualSector": "hospitality",
+      "actualKey": "hospitality",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "hospitality"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-009.test",
+      "catalogKey": "hotel",
+      "language": "de",
+      "expectedSector": "hospitality",
+      "actualSector": "hospitality",
+      "actualKey": "hotel",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "accommodation",
+        "booking",
+        "business_identity",
+        "hospitality"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-010.test",
+      "catalogKey": "travel",
+      "language": "en",
+      "expectedSector": "transport_travel",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected transport_travel"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-011.test",
+      "catalogKey": "beauty_salon",
+      "language": "fr",
+      "expectedSector": "beauty",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected beauty"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-012.test",
+      "catalogKey": "hair_salon",
+      "language": "de",
+      "expectedSector": "beauty",
+      "actualSector": "beauty",
+      "actualKey": "hair_salon",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "beauty",
+        "booking",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-013.test",
+      "catalogKey": "fitness",
+      "language": "en",
+      "expectedSector": "fitness_sports",
+      "actualSector": "fitness_sports",
+      "actualKey": "fitness_sports",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "fitness_sports",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-014.test",
+      "catalogKey": "saas_b2b",
+      "language": "en",
+      "expectedSector": "saas_b2b",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity",
+        "subscription_pricing"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected saas_b2b"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-015.test",
+      "catalogKey": "professional_services",
+      "language": "en",
+      "expectedSector": "professional_services",
+      "actualSector": "professional_services",
+      "actualKey": "professional_services",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "professional_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-016.test",
+      "catalogKey": "home_services",
+      "language": "nl",
+      "expectedSector": "home_services",
+      "actualSector": "home_services",
+      "actualKey": "home_services",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "home_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-017.test",
+      "catalogKey": "construction",
+      "language": "de",
+      "expectedSector": "home_services",
+      "actualSector": "home_services",
+      "actualKey": "home_services",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "home_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-018.test",
+      "catalogKey": "legal",
+      "language": "en",
+      "expectedSector": "professional_services",
+      "actualSector": "professional_services",
+      "actualKey": "legal",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "professional_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-019.test",
+      "catalogKey": "accounting",
+      "language": "fr",
+      "expectedSector": "professional_services",
+      "actualSector": "professional_services",
+      "actualKey": "professional_services",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "professional_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-020.test",
+      "catalogKey": "payments",
+      "language": "en",
+      "expectedSector": "financial_services",
+      "actualSector": "financial_services",
+      "actualKey": "financial_payments",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-021.test",
+      "catalogKey": "finance",
+      "language": "nl",
+      "expectedSector": "financial_services",
+      "actualSector": "financial_services",
+      "actualKey": "financial_banking",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-022.test",
+      "catalogKey": "insurance",
+      "language": "de",
+      "expectedSector": "financial_services",
+      "actualSector": "financial_services",
+      "actualKey": "financial_insurance",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-023.test",
+      "catalogKey": "education",
+      "language": "nl",
+      "expectedSector": "education",
+      "actualSector": "education",
+      "actualKey": "education",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "education",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-024.test",
+      "catalogKey": "course_training",
+      "language": "en",
+      "expectedSector": "education",
+      "actualSector": "education",
+      "actualKey": "education",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "education",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-025.test",
+      "catalogKey": "recruitment",
+      "language": "en",
+      "expectedSector": "recruitment",
+      "actualSector": "recruitment",
+      "actualKey": "recruitment",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "recruitment",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-026.test",
+      "catalogKey": "news_media",
+      "language": "en",
+      "expectedSector": "news_media",
+      "actualSector": "news_media",
+      "actualKey": "news_media",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "news_media",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-027.test",
+      "catalogKey": "publisher_blog",
+      "language": "fr",
+      "expectedSector": "news_media",
+      "actualSector": "news_media",
+      "actualKey": "publisher_blog",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "news_media",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-028.test",
+      "catalogKey": "events",
+      "language": "en",
+      "expectedSector": "events_culture",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected events_culture"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-029.test",
+      "catalogKey": "nonprofit",
+      "language": "en",
+      "expectedSector": "nonprofit",
+      "actualSector": "nonprofit",
+      "actualKey": "charities_nonprofits",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "nonprofit",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-030.test",
+      "catalogKey": "government",
+      "language": "nl",
+      "expectedSector": "government",
+      "actualSector": "government",
+      "actualKey": "government",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "government",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-031.test",
+      "catalogKey": "association",
+      "language": "nl",
+      "expectedSector": "nonprofit",
+      "actualSector": "nonprofit",
+      "actualKey": "nonprofit",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "nonprofit",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-032.test",
+      "catalogKey": "manufacturer",
+      "language": "en",
+      "expectedSector": "manufacturing_industrial",
+      "actualSector": "manufacturing_industrial",
+      "actualKey": "manufacturing_industrial",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "manufacturing_industrial",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-033.test",
+      "catalogKey": "wholesale",
+      "language": "nl",
+      "expectedSector": "general_business",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected general_business"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-034.test",
+      "catalogKey": "logistics",
+      "language": "en",
+      "expectedSector": "transport_travel",
+      "actualSector": "transport_travel",
+      "actualKey": "transport_travel",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "transport_travel",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-035.test",
+      "catalogKey": "food_delivery",
+      "language": "nl",
+      "expectedSector": "hospitality",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected hospitality"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-036.test",
+      "catalogKey": "telecom",
+      "language": "en",
+      "expectedSector": "telecom_technology",
+      "actualSector": "telecom_technology",
+      "actualKey": "telecom_technology",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "telecom_technology",
+        "business_identity",
+        "local",
+        "subscription_pricing"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-037.test",
+      "catalogKey": "energy",
+      "language": "nl",
+      "expectedSector": "energy_utilities",
+      "actualSector": "energy_utilities",
+      "actualKey": "energy_utilities",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "energy_utilities",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-038.test",
+      "catalogKey": "software_app",
+      "language": "en",
+      "expectedSector": "saas_b2b",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity",
+        "subscription_pricing"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected saas_b2b"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-039.test",
+      "catalogKey": "agency",
+      "language": "en",
+      "expectedSector": "professional_services",
+      "actualSector": "professional_services",
+      "actualKey": "professional_services",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "professional_services",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-040.test",
+      "catalogKey": "photography",
+      "language": "nl",
+      "expectedSector": "professional_services",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected professional_services"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-041.test",
+      "catalogKey": "medical_clinic",
+      "language": "fr",
+      "expectedSector": "health_wellness",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected health_wellness"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-042.test",
+      "catalogKey": "pharmacy",
+      "language": "en",
+      "expectedSector": "health_wellness",
+      "actualSector": "health_wellness",
+      "actualKey": "pharmacy",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "health_wellness",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-043.test",
+      "catalogKey": "veterinary",
+      "language": "nl",
+      "expectedSector": "health_wellness",
+      "actualSector": "health_wellness",
+      "actualKey": "veterinary",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "health_wellness",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-044.test",
+      "catalogKey": "childcare",
+      "language": "nl",
+      "expectedSector": "education",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected education"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-045.test",
+      "catalogKey": "senior_care",
+      "language": "en",
+      "expectedSector": "health_wellness",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected health_wellness"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-046.test",
+      "catalogKey": "car_rental",
+      "language": "de",
+      "expectedSector": "automotive",
+      "actualSector": "automotive",
+      "actualKey": "car_rental",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "automotive",
+        "booking",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-047.test",
+      "catalogKey": "car_repair",
+      "language": "en",
+      "expectedSector": "automotive",
+      "actualSector": "automotive",
+      "actualKey": "car_repair",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "automotive",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-048.test",
+      "catalogKey": "parking",
+      "language": "nl",
+      "expectedSector": "transport_travel",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected transport_travel"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-049.test",
+      "catalogKey": "property_rental",
+      "language": "en",
+      "expectedSector": "real_estate",
+      "actualSector": "real_estate",
+      "actualKey": "real_estate",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "real_estate",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-050.test",
+      "catalogKey": "bed_breakfast",
+      "language": "en",
+      "expectedSector": "hospitality",
+      "actualSector": "hospitality",
+      "actualKey": "bed_breakfast",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "accommodation",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-051.test",
+      "catalogKey": "holiday_rental",
+      "language": "fr",
+      "expectedSector": "hospitality",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected hospitality"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-052.test",
+      "catalogKey": "holiday_park",
+      "language": "nl",
+      "expectedSector": "hospitality",
+      "actualSector": "hospitality",
+      "actualKey": "holiday_park",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "accommodation",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-053.test",
+      "catalogKey": "camping",
+      "language": "de",
+      "expectedSector": "hospitality",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "booking",
+        "lead_conversion",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected hospitality"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-054.test",
+      "catalogKey": "coworking",
+      "language": "en",
+      "expectedSector": "professional_services",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected professional_services"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-055.test",
+      "catalogKey": "entertainment",
+      "language": "nl",
+      "expectedSector": "events_culture",
+      "actualSector": "events_culture",
+      "actualKey": "events_culture",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "events_culture",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-056.test",
+      "catalogKey": "museum_culture",
+      "language": "en",
+      "expectedSector": "events_culture",
+      "actualSector": "events_culture",
+      "actualKey": "museum_culture",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "events_culture",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-057.test",
+      "catalogKey": "sports_club",
+      "language": "nl",
+      "expectedSector": "fitness_sports",
+      "actualSector": "fitness_sports",
+      "actualKey": "fitness_sports",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "local",
+        "lead_conversion",
+        "fitness_sports",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-058.test",
+      "catalogKey": "cybersecurity",
+      "language": "en",
+      "expectedSector": "cybersecurity",
+      "actualSector": "cybersecurity",
+      "actualKey": "cybersecurity",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-059.test",
+      "catalogKey": "waste_recycling",
+      "language": "nl",
+      "expectedSector": "waste_recycling",
+      "actualSector": "waste_recycling",
+      "actualKey": "waste_recycling",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-060.test",
+      "catalogKey": "sports_organizations",
+      "language": "en",
+      "expectedSector": "sports_organizations",
+      "actualSector": "sports_organizations",
+      "actualKey": "sports_organizations",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-061.test",
+      "catalogKey": "maritime_ports",
+      "language": "en",
+      "expectedSector": "maritime_ports",
+      "actualSector": "government",
+      "actualKey": "government",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "government",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector government; expected maritime_ports"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [
+        "sector"
+      ],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-062.test",
+      "catalogKey": "airports",
+      "language": "en",
+      "expectedSector": "airports",
+      "actualSector": "airports",
+      "actualKey": "airports",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-063.test",
+      "catalogKey": "agriculture_horticulture",
+      "language": "nl",
+      "expectedSector": "agriculture_horticulture",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected agriculture_horticulture"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-064.test",
+      "catalogKey": "architecture_design",
+      "language": "de",
+      "expectedSector": "professional_services",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected professional_services"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    },
+    {
+      "host": "holdout-065.test",
+      "catalogKey": "charities_nonprofits",
+      "language": "nl",
+      "expectedSector": "nonprofit",
+      "actualSector": "nonprofit",
+      "actualKey": "charities_nonprofits",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "lead_conversion",
+        "nonprofit",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-066.test",
+      "catalogKey": "general_business",
+      "language": "en",
+      "expectedSector": "unknown",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": false,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "absent",
+      "counts": {
+        "selected": 4,
+        "audited": 4,
+        "notConfirmed": 0,
+        "outcomes": {
+          "selected": 4,
+          "scored": 4,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 0,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-067.test",
+      "catalogKey": "saas_b2b",
+      "language": "nl",
+      "expectedSector": "saas_b2b",
+      "actualSector": "saas_b2b",
+      "actualKey": "saas_b2b",
+      "abstained": false,
+      "subtypeExact": true,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "security",
+        "structured_data",
+        "links",
+        "accessibility",
+        "lead_conversion",
+        "saas_b2b",
+        "business_identity"
+      ],
+      "commerce": "unconfirmed",
+      "counts": {
+        "selected": 3,
+        "audited": 1,
+        "notConfirmed": 2,
+        "outcomes": {
+          "selected": 3,
+          "scored": 1,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 2,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "host": "holdout-068.test",
+      "catalogKey": "manufacturer",
+      "language": "en",
+      "expectedSector": "manufacturing_industrial",
+      "actualSector": "unknown",
+      "actualKey": "unknown",
+      "abstained": true,
+      "subtypeExact": false,
+      "modules": [
+        "core_seo",
+        "geo",
+        "technical",
+        "business_identity"
+      ],
+      "commerce": "unconfirmed",
+      "counts": {
+        "selected": 3,
+        "audited": 1,
+        "notConfirmed": 2,
+        "outcomes": {
+          "selected": 3,
+          "scored": 1,
+          "unscored": 0,
+          "noindex": 0,
+          "nonContent": 0,
+          "thinContent": 0,
+          "missing": 2,
+          "notRetrieved": 0,
+          "duplicate": 0
+        }
+      },
+      "findings": {
+        "sector": [
+          "sector unknown; expected manufacturing_industrial"
+        ],
+        "applicability": [],
+        "seoGeoEvidence": [],
+        "coverage": [],
+        "consistency": []
+      },
+      "falsePositives": [],
+      "falseNegatives": [
+        "sector"
+      ]
+    }
+  ]
+}
