@@ -31,7 +31,7 @@ export async function load(url, ctx, next) {
   // thread): keep the REAL headless browser. Only the A/B observe measurement
   // uses this; every test keeps the controllable stub below.
   if (url === pathToFileURL(ROOT + "/lib/headless-render.ts").href && process.env.RF_REAL_RENDER !== "1") {
-    const src = readFileSync(new URL(url), "utf8").replace(/export async function renderPublicPage\(([^)]*)\)([^{]*)\{/, "export async function renderPublicPage($1)$2{ if (globalThis.__RF_RENDER) return globalThis.__RF_RENDER(arguments[0]); throw new Error('RENDER_UNAVAILABLE_IN_MATRIX');");
+    const src = readFileSync(new URL(url), "utf8").replace(/export async function renderPublicPage\(([^)]*)\)([^{]*)\{/, "export async function renderPublicPage($1)$2{ if (globalThis.__RF_RENDER) return globalThis.__RF_RENDER(...arguments); throw new Error('RENDER_UNAVAILABLE_IN_MATRIX');");
     return { format: "module-typescript", source: src, shortCircuit: true };
   }
   return next(url, ctx);

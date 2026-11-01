@@ -1478,22 +1478,43 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // the report keeps the server HTML. Found blocks count with the browser as
     // source; a completed render without blocks is a proven absence; a failed
     // render stays "not observed".
-    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null };
+    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null };
     if (!javascriptExecuted && !javascriptCandidate && isSiteHomepagePath(finalUrl.pathname) && !clock.expired && Date.now() - started < 60_000
       && validJsonLdBlockTexts(html).length === 0 && (jsonLdInjectorSignals(rawHtml).length > 0 || hasExecutableScripts(rawHtml))) {
       structuredDataProbe.attempted = true;
       const probeStarted = Date.now();
       try {
-        const probed = await renderPublicPage(finalUrl.toString(), 8000, renderBudget);
+        // 1 Nov (P5 priority 1): full "load" + at most 3 s to network quiet, 12 s in
+        // total, no consent (the crawler view), no accessibility scan.
+        const probed = await renderPublicPage(finalUrl.toString(), 12000, renderBudget, { mode: "structured_data", settleMs: 3000 });
         const blocks = validJsonLdBlockTexts(probed.html);
-        structuredDataProbe.ok = true;
-        structuredDataProbe.addedBlocks = blocks.length;
-        if (blocks.length) {
+        const observed = probed.observation;
+        structuredDataProbe.window = observed?.window || null;
+        structuredDataProbe.consent = observed?.consent || "none";
+        const sameSite = (() => { try { return new URL(probed.finalUrl).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } })();
+        const probedTitle = firstMatch(probed.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const probedText = stripHtml(probed.html).slice(0, 12000);
+        const blockedView = classifyNonContentPage({ title: probedTitle, text: probedText, words: probedText.split(/\s+/).filter(Boolean).length, html: probed.html });
+        // Found JSON-LD is evidence whatever the window; ABSENCE needs a complete observation.
+        structuredDataProbe.limitation = !observed ? "geen observatiegegevens"
+          : !observed.loadReached || probed.partialNavigation ? "pagina niet volledig geladen binnen de tijd"
+          : observed.requestCapHit ? `verzoeklimiet bereikt (${observed.abortedRequests} verzoek(en) niet geladen)`
+          : blockedView ? `browser kreeg een ${blockedView.kind === "challenge" ? "blokkade- of controlepagina" : blockedView.kind === "maintenance" ? "onderhoudspagina" : "foutpagina"}`
+          : !sameSite ? "browser eindigde op een andere site"
+          : null;
+        if (blocks.length && !blockedView && sameSite) {
+          structuredDataProbe.ok = true;
+          structuredDataProbe.addedBlocks = blocks.length;
           const tags = blocks.map((block) => `<script type="application/ld+json" data-rankfix-source="browser">${block}</script>`).join("");
           html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tags}</head>`) : tags + html;
+        } else if (!structuredDataProbe.limitation) {
+          structuredDataProbe.ok = true;
+        } else {
+          structuredDataProbe.error = structuredDataProbe.limitation;
         }
       } catch (probeError) {
         structuredDataProbe.error = String(probeError instanceof Error ? probeError.message : probeError).slice(0, 160);
+        structuredDataProbe.limitation = structuredDataProbe.error;
       }
       structuredDataProbe.elapsedMs = Date.now() - probeStarted;
     }
@@ -4576,7 +4597,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         viewport: viewportContent || (item.key === "viewport" && (rawServerRendered || javascriptExecuted) ? "viewportMetaPresent=false; head=server-rendered" : null),
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}${structuredDataProbe.addedBlocks ? `; observation=present_after_javascript; browserBlocks=${structuredDataProbe.addedBlocks}` : ""}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}${structuredDataProbe.attempted ? `; browserProbe=${structuredDataProbe.ok ? "completed" : `failed:${structuredDataProbe.error}`}` : ""}` : null),
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}${structuredDataProbe.addedBlocks ? `; observation=present_after_javascript; browserBlocks=${structuredDataProbe.addedBlocks}; source=browser-DOM; window=${structuredDataProbe.window || "n.v.t."}; consent=${structuredDataProbe.consent || "none"}` : ""}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}${structuredDataProbe.attempted ? `; browserProbe=${structuredDataProbe.ok ? "completed" : `incomplete:${structuredDataProbe.error}`}; window=${structuredDataProbe.window || "n.v.t."}; consent=${structuredDataProbe.consent || "none"}` : ""}` : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseMedian,
