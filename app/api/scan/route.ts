@@ -23,7 +23,7 @@ import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
-import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage, detectProtectionProvider } from "@/lib/access-diagnostics";
+import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage, detectProtectionProvider, isChallengeServerError } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
 import { buildWebsiteProfile } from "@/lib/website-profile";
@@ -1156,23 +1156,33 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         httpMessages.nl = rootText.nl; httpMessages.en = rootText.en;
       }
       let blockedBody = "";
-      // Bounded: a block page that trickles in must not hold the answer.
-      if (accessBlock) { try { blockedBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000))]); } catch {} }
+      // Bounded: a block page that trickles in must not hold the answer. 5xx bodies
+      // are read too: a 503 can be a bot challenge instead of a server error.
+      if (accessBlock || response.status >= 500) { try { blockedBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000))]); } catch {} }
       else { try { await response.body?.cancel(); } catch {} }
-      const diagnosis = accessBlock ? diagnoseBlockedResponse(response.status, response.headers, blockedBody) : null;
+      const challengeServerError = isChallengeServerError(response.status, blockedBody);
+      if (challengeServerError) {
+        httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}): de website toonde een beveiligings- of controlepagina, geen serverfout. RankFix lost zulke controles niet op; er is daarom geen score berekend.`;
+        httpMessages.en = `Scan not possible (HTTP ${response.status}): the website showed a security or challenge page, not a server error. RankFix does not solve such checks, so no score was calculated.`;
+      }
+      const rawDiagnosis = accessBlock || challengeServerError ? diagnoseBlockedResponse(response.status, response.headers, blockedBody) : null;
+      // A 5xx challenge without a named provider is still a challenge page, not a generic refusal.
+      const diagnosis = rawDiagnosis && challengeServerError && rawDiagnosis.kind === "access_denied"
+        ? { ...rawDiagnosis, kind: "bot_protection" as const, reason: "CHALLENGE_PAGE", advice: `De website toonde een beveiligings- of controlepagina (HTTP ${response.status}) in plaats van de inhoud. RankFix lost zulke controles niet op; de eigenaar kan RankFixBot toestaan.` }
+        : rawDiagnosis;
       // Customer-facing Dutch text names the actual cause (login, bot protection,
       // generic refusal) instead of one generic "blocked" sentence.
       if (diagnosis && scanLanguage === "nl") httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}). ${diagnosis.advice} Er is daarom geen score berekend.`;
       // A refused start page does not mean every page refuses: the customer may
       // start from a direct article/category page. RankFix never retries around
       // the refusal itself.
-      const alternativeStart = accessBlock ? {
+      const alternativeStart = accessBlock || challengeServerError ? {
         possible: true,
         advice: scanLanguage === "nl"
           ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
           : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
       } : null;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 && !challengeServerError ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser

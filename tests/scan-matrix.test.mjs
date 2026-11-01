@@ -208,6 +208,12 @@ test("P5 phase 2 (1 Nov): browser probe preserves JSON-LD evidence, records fail
   assert.equal(r.failed, 0, r.log);
 });
 
+test("1 Nov: a 5xx challenge page is a refusal (bot protection), a real 5xx a server error; a CDN header alone never decides", () => {
+  const r = run("run-5xx-challenge.mjs");
+  assert.equal(r.total, 6);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
   const r = run("run-local-business.mjs", { PROFILES: "qa144" });
   assert.ok(r.total >= 11, `profiles missing: ${r.total}`);
