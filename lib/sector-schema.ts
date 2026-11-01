@@ -27,9 +27,34 @@ const BY_WORDING: { keys: RegExp; type: string; pattern: RegExp }[] = [
   { keys: /^professional_services$/, type: "LegalService", pattern: /(advoca|notaris|law firm|lawyers?\b|rechtsanw|avocat|avvocat|abogad)/iu },
 ];
 
+// Construction and trade businesses (any language). The profession named FIRST
+// in the organisation's own title/description/H1 decides the subtype, so
+// "Heizung und Sanitär" is an HVAC business and "Plumbing & Heating" a plumber.
+// Without a recognisable profession the sector type HomeAndConstructionBusiness
+// is advised; never a product or store type.
+const TRADE_TYPES: { type: string; pattern: RegExp }[] = [
+  { type: "Electrician", pattern: /(elektricien|electricians?|electrical contractor|elektriker|elektroinstall|elektrotechn|électricien|electricista|elettricista)/iu },
+  { type: "Plumber", pattern: /(loodgieter|plumb|klempner|sanitär|plombier|plomberie|fontaner|idraulic)/iu },
+  { type: "HVACBusiness", pattern: /(cv-?(?:ketel|monteur|installateur)|warmtepomp|airco|heat pumps?|hvac|heating engineer|air conditioning|heizung|wärmepumpe|klimaanlage|chauffagiste|climatisation|pompe à chaleur|calefacción|climatizaci|caldai|termoidraulic|climatizzazion)/iu },
+  { type: "RoofingContractor", pattern: /(dakdekker|dakwerk|roofers?|roofing|dachdecker|couvreur|couverture|techador|tejados?|lattoniere)/iu },
+  { type: "HousePainter", pattern: /(schilders|schilderwerk|schildersbedrijf|painters?(?: and decorators?)?|painting contractor|malerbetrieb|malermeister|peintre|imbianchin|pintor(?:es)? de|empresa de pintura)/iu },
+  { type: "Locksmith", pattern: /(slotenmaker|locksmith|schlüsseldienst|serrurier|cerrajer)/iu },
+  { type: "GeneralContractor", pattern: /(aannemer|bouwbedrijf|general contractor|building contractor|bauunternehm|baufirma|entreprise de (?:bâtiment|construction)|constructora|impresa edile|impresa di costruzioni)/iu },
+];
+
+function tradeSchemaType(identityText: string): string {
+  let best: { type: string; index: number } | null = null;
+  for (const rule of TRADE_TYPES) {
+    const match = rule.pattern.exec(identityText);
+    if (match && (!best || match.index < best.index)) best = { type: rule.type, index: match.index };
+  }
+  return best?.type || "HomeAndConstructionBusiness";
+}
+
 export function sectorSchemaType(input: Input): string | null {
   const key = String(input.key || ""), sector = String(input.sector || "");
   if (BY_KEY[key]) return BY_KEY[key];
+  if (key === "home_services" || key === "construction" || sector === "home_services" || sector === "construction") return tradeSchemaType(input.identityText);
   for (const rule of BY_WORDING) if ((rule.keys.test(key) || rule.keys.test(sector)) && rule.pattern.test(input.identityText)) return rule.type;
   return null;
 }

@@ -1,0 +1,670 @@
+{
+ "group": "trades-construction",
+ "note": "Bouw, installatie en vakberoepen in 6 talen, hybride en negatieve controles (1 Nov)",
+ "sites": {
+  "bouwbedrijfdevries.test": {
+   "lang": "nl",
+   "title": "Bouwbedrijf De Vries | Aannemer voor nieuwbouw en verbouw in Zwolle",
+   "desc": "Aannemer voor nieuwbouw, verbouw en renovatie in Zwolle en omgeving. Vraag vrijblijvend een offerte aan.",
+   "h1": "Uw aannemer in Zwolle",
+   "nav": [
+    "Diensten",
+    "Projecten",
+    "Werkgebied",
+    "Offerte aanvragen",
+    "Contact"
+   ],
+   "body": "<p>Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "GeneralContractor"
+   }
+  },
+  "renovatiepro.test": {
+   "lang": "nl",
+   "title": "RenovatiePro – Renovatie en verbouwing van woningen",
+   "desc": "Complete renovatie van woningen, badkamers en keukens. Eigen vakmensen, vaste prijs en garantie.",
+   "h1": "Renovatie en verbouwing",
+   "nav": [
+    "Renovatie",
+    "Badkamers",
+    "Keukens",
+    "Werkwijze",
+    "Contact"
+   ],
+   "body": "<p>Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. Van sloopwerk tot oplevering: wij renoveren uw woning met eigen timmerlieden, stukadoors en tegelzetters. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "bauunternehmen-mueller.test": {
+   "lang": "de",
+   "title": "Bauunternehmen Müller – Hausbau, Umbau und Sanierung in Köln",
+   "desc": "Ihr Bauunternehmen in Köln für Neubau, Umbau und Sanierung. Jetzt unverbindlich ein Angebot anfordern.",
+   "h1": "Bauunternehmen in Köln",
+   "nav": [
+    "Leistungen",
+    "Referenzen",
+    "Einzugsgebiet",
+    "Angebot anfordern",
+    "Kontakt"
+   ],
+   "body": "<p>Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. Wir übernehmen Rohbau, Umbau und Sanierung von Einfamilienhäusern in Köln und Umgebung. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "entreprise-martin-batiment.test": {
+   "lang": "fr",
+   "title": "Martin Bâtiment – Entreprise de maçonnerie et rénovation à Lyon",
+   "desc": "Entreprise de bâtiment à Lyon : maçonnerie, rénovation et extension de maison. Devis gratuit.",
+   "h1": "Entreprise de bâtiment à Lyon",
+   "nav": [
+    "Nos services",
+    "Réalisations",
+    "Zone d'intervention",
+    "Devis gratuit",
+    "Contact"
+   ],
+   "body": "<p>Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. Nous réalisons vos travaux de maçonnerie, d'extension et de rénovation dans tout le Rhône. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "loodgieterjansen.test": {
+   "lang": "nl",
+   "title": "Loodgieter Jansen | Lekkage, ontstopping en cv-ketels in Utrecht",
+   "desc": "Loodgieter in Utrecht voor lekkages, ontstoppingen en cv-onderhoud. 24/7 bereikbaar.",
+   "h1": "Loodgieter in Utrecht",
+   "nav": [
+    "Lekkage",
+    "Ontstopping",
+    "Cv-ketel",
+    "Werkgebied",
+    "Contact"
+   ],
+   "body": "<p>Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "Plumber"
+   }
+  },
+  "warmtepompcentrum.test": {
+   "lang": "nl",
+   "title": "Warmtepompcentrum Oost – Installatie en onderhoud van warmtepompen",
+   "desc": "Advies, installatie en onderhoud van warmtepompen en hybride systemen in Gelderland.",
+   "h1": "Warmtepomp laten installeren",
+   "nav": [
+    "Warmtepompen",
+    "Onderhoud",
+    "Subsidie",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. Onze gecertificeerde monteurs installeren lucht-water warmtepompen en verzorgen jaarlijks onderhoud. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "heizung-schmidt.test": {
+   "lang": "de",
+   "title": "Heizung Schmidt – Heizungsbau, Wärmepumpen und Sanitär in München",
+   "desc": "Ihr Fachbetrieb für Heizung, Wärmepumpen und Sanitär in München. Wartung und Notdienst.",
+   "h1": "Heizung und Sanitär in München",
+   "nav": [
+    "Heizung",
+    "Wärmepumpe",
+    "Sanitär",
+    "Wartung",
+    "Kontakt"
+   ],
+   "body": "<p>Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "HVACBusiness"
+   }
+  },
+  "fontanero-garcia.test": {
+   "lang": "es",
+   "title": "Fontanería García – Fontanero y calefacción en Madrid",
+   "desc": "Fontanero en Madrid: reparación de fugas, calderas y calefacción. Presupuesto sin compromiso.",
+   "h1": "Fontanero en Madrid",
+   "nav": [
+    "Servicios",
+    "Calderas",
+    "Urgencias",
+    "Presupuesto",
+    "Contacto"
+   ],
+   "body": "<p>Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. Reparamos fugas, instalamos calderas y mantenemos sistemas de calefacción en toda Madrid. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "Plumber"
+   }
+  },
+  "aircoservice.test": {
+   "lang": "nl",
+   "title": "Aircoservice Brabant – Airco installatie en onderhoud",
+   "desc": "Airco laten plaatsen in Brabant? Wij installeren en onderhouden airco's en warmtepompen.",
+   "h1": "Airco installateur in Brabant",
+   "nav": [
+    "Airco's",
+    "Installatie",
+    "Onderhoud",
+    "Werkgebied",
+    "Offerte"
+   ],
+   "body": "<p>Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. Wij plaatsen split-airco's in woningen en bedrijven en verzorgen het jaarlijkse onderhoud. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "HVACBusiness"
+   }
+  },
+  "elektricienbakker.test": {
+   "lang": "nl",
+   "title": "Elektricien Bakker | Groepenkast, laadpaal en storingen",
+   "desc": "Erkend elektricien in Haarlem voor groepenkasten, laadpalen en storingen.",
+   "h1": "Elektricien in Haarlem",
+   "nav": [
+    "Groepenkast",
+    "Laadpaal",
+    "Storing",
+    "Werkgebied",
+    "Contact"
+   ],
+   "body": "<p>Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. Wij vervangen groepenkasten, installeren laadpalen en verhelpen elektrische storingen. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "Electrician"
+   }
+  },
+  "solarinstall.test": {
+   "lang": "nl",
+   "title": "SolarInstall – Zonnepanelen laten installeren",
+   "desc": "Zonnepanelen kopen en laten installeren door ervaren monteurs. Gratis dakscan en offerte.",
+   "h1": "Zonnepanelen installateur",
+   "nav": [
+    "Zonnepanelen",
+    "Thuisbatterij",
+    "Werkwijze",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. Onze monteurs installeren zonnepanelen en thuisbatterijen, inclusief omvormer en aanmelding. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "notSchemaType": "Plumber"
+   }
+  },
+  "electricien-dubois.test": {
+   "lang": "fr",
+   "title": "Électricien Dubois – Électricité générale à Bordeaux",
+   "desc": "Électricien à Bordeaux : mise aux normes, dépannage et bornes de recharge. Devis gratuit.",
+   "h1": "Électricien à Bordeaux",
+   "nav": [
+    "Nos services",
+    "Dépannage",
+    "Bornes de recharge",
+    "Devis",
+    "Contact"
+   ],
+   "body": "<p>Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. Nous réalisons vos installations électriques, mises aux normes et dépannages à Bordeaux. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "Electrician"
+   }
+  },
+  "secureinstall.test": {
+   "lang": "nl",
+   "title": "SecureInstall – Alarmsystemen en camerabeveiliging installeren",
+   "desc": "Installatie van alarmsystemen, camerabewaking en toegangscontrole voor woningen en bedrijven.",
+   "h1": "Beveiligingsinstallateur",
+   "nav": [
+    "Alarmsystemen",
+    "Camerabewaking",
+    "Onderhoud",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. Wij ontwerpen en installeren alarmsystemen en camera's en verzorgen onderhoud en storingsdienst. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "dakdekkerpieters.test": {
+   "lang": "nl",
+   "title": "Dakdekker Pieters | Daklekkage en dakrenovatie",
+   "desc": "Dakdekker voor platte en hellende daken: daklekkage, dakrenovatie en dakgoten.",
+   "h1": "Dakdekker in Den Bosch",
+   "nav": [
+    "Platte daken",
+    "Pannendaken",
+    "Daklekkage",
+    "Werkgebied",
+    "Contact"
+   ],
+   "body": "<p>Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. Wij verhelpen daklekkages, vervangen dakbedekking en renoveren pannendaken. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "schilderbedrijfvandam.test": {
+   "lang": "nl",
+   "title": "Schildersbedrijf Van Dam – Binnen- en buitenschilderwerk",
+   "desc": "Schildersbedrijf voor binnen- en buitenschilderwerk, behangen en houtrotherstel.",
+   "h1": "Schildersbedrijf",
+   "nav": [
+    "Buitenschilderwerk",
+    "Binnenschilderwerk",
+    "Houtrot",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. Onze schilders verzorgen buitenschilderwerk, binnenschilderwerk en houtrotherstel. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "HousePainter"
+   }
+  },
+  "stukadoorhendriks.test": {
+   "lang": "nl",
+   "title": "Stukadoor Hendriks | Stucwerk, spuitwerk en sierpleister",
+   "desc": "Stukadoor voor strak stucwerk, spuitwerk en sierpleister in Eindhoven en omgeving.",
+   "h1": "Stukadoor in Eindhoven",
+   "nav": [
+    "Stucwerk",
+    "Spuitwerk",
+    "Sierpleister",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. Wij stucen wanden en plafonds en brengen spuitwerk en sierpleister aan. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "tegelzetterbos.test": {
+   "lang": "nl",
+   "title": "Tegelzetter Bos – Tegelwerk voor badkamers en vloeren",
+   "desc": "Tegelzetter voor wand- en vloertegels in badkamers, keukens en woonkamers.",
+   "h1": "Tegelzetter",
+   "nav": [
+    "Badkamertegels",
+    "Vloertegels",
+    "Projecten",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. Wij zetten wand- en vloertegels in badkamers, toiletten en woonkamers. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "metselbedrijf.test": {
+   "lang": "nl",
+   "title": "Metselbedrijf Kok – Metselwerk en voegwerk",
+   "desc": "Metselaar voor nieuw metselwerk, gevelrenovatie en voegwerk.",
+   "h1": "Metselwerk en voegwerk",
+   "nav": [
+    "Metselwerk",
+    "Voegwerk",
+    "Gevelrenovatie",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. Onze metselaars bouwen muren, herstellen gevels en vernieuwen voegwerk. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "timmerbedrijfmeijer.test": {
+   "lang": "nl",
+   "title": "Timmerbedrijf Meijer | Kozijnen, dakkapellen en maatwerk",
+   "desc": "Timmerbedrijf voor kozijnen, dakkapellen, trappen en maatwerk in hout.",
+   "h1": "Timmerbedrijf",
+   "nav": [
+    "Kozijnen",
+    "Dakkapellen",
+    "Maatwerk",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. Wij maken en plaatsen houten kozijnen, dakkapellen en trappen op maat. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "imbianchino-rossi.test": {
+   "lang": "it",
+   "title": "Imbianchino Rossi – Tinteggiature e verniciature a Milano",
+   "desc": "Imbianchino a Milano per tinteggiature interne ed esterne, cartongesso e decorazioni. Preventivo gratuito.",
+   "h1": "Imbianchino a Milano",
+   "nav": [
+    "Servizi",
+    "Lavori",
+    "Zona",
+    "Preventivo",
+    "Contatti"
+   ],
+   "body": "<p>Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. Eseguiamo tinteggiature di interni ed esterni, lavori in cartongesso e decorazioni. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "glaszetter.test": {
+   "lang": "nl",
+   "title": "Glaszetter Noord – Glasschade en HR++ glas",
+   "desc": "Glaszetter voor glasschade, HR++ isolatieglas en spiegels. Spoedservice.",
+   "h1": "Glaszetter",
+   "nav": [
+    "Glasschade",
+    "HR++ glas",
+    "Spoedservice",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. Wij herstellen glasschade en plaatsen HR++ en triple glas in bestaande kozijnen. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "isolatiewerk.test": {
+   "lang": "nl",
+   "title": "IsolatieWerk – Spouwmuur-, vloer- en dakisolatie",
+   "desc": "Spouwmuurisolatie, vloerisolatie en dakisolatie door gecertificeerde isoleerders.",
+   "h1": "Woningisolatie",
+   "nav": [
+    "Spouwmuurisolatie",
+    "Vloerisolatie",
+    "Dakisolatie",
+    "Subsidie",
+    "Offerte"
+   ],
+   "body": "<p>Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. Onze isoleerders vullen spouwmuren en isoleren vloeren en daken van bestaande woningen. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "vloerenlegger.test": {
+   "lang": "nl",
+   "title": "Vloerenlegger Visser | PVC, laminaat en parket leggen",
+   "desc": "Wij leggen PVC-vloeren, laminaat en parket en egaliseren uw ondervloer.",
+   "h1": "Vloerenlegger",
+   "nav": [
+    "PVC-vloeren",
+    "Parket",
+    "Egaliseren",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. Onze vloerenleggers egaliseren de ondervloer en leggen PVC, laminaat en parket. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "badkamerrenovatie.test": {
+   "lang": "nl",
+   "title": "Badkamerspecialist Zuid – Complete badkamerrenovatie",
+   "desc": "Complete badkamerrenovatie van ontwerp tot oplevering door eigen installateurs en tegelzetters.",
+   "h1": "Badkamer laten renoveren",
+   "nav": [
+    "Badkamerrenovatie",
+    "Ontwerp",
+    "Projecten",
+    "Offerte",
+    "Contact"
+   ],
+   "body": "<p>Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. Wij verbouwen uw badkamer compleet: sloop, leidingwerk, tegelwerk en installatie. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "grondwerkbedrijf.test": {
+   "lang": "nl",
+   "title": "Grondverzet Hoekstra – Grondwerk, sloop en bestrating",
+   "desc": "Grondwerk, sloopwerk en bestrating voor particulieren en bedrijven in Friesland.",
+   "h1": "Grondwerk en sloopwerk",
+   "nav": [
+    "Grondverzet",
+    "Sloopwerk",
+    "Bestrating",
+    "Werkgebied",
+    "Contact"
+   ],
+   "body": "<p>Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. Wij verzorgen grondverzet, sloopwerk, rioleringswerk en bestrating in heel Friesland. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "wegenbouw.test": {
+   "lang": "nl",
+   "title": "Wegenbouw Noord – Infra, asfalt en riolering",
+   "desc": "Aannemer in infra en wegenbouw: asfalteren, riolering en civiele kunstwerken voor gemeenten.",
+   "h1": "Infra en wegenbouw",
+   "nav": [
+    "Wegenbouw",
+    "Riolering",
+    "Projecten",
+    "Werken bij",
+    "Contact"
+   ],
+   "body": "<p>Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. Wij voeren als aannemer wegenbouw-, rioleringsprojecten en civiele kunstwerken uit. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "hovenierdegroot.test": {
+   "lang": "nl",
+   "title": "Hovenier De Groot | Tuinaanleg en tuinonderhoud",
+   "desc": "Hoveniersbedrijf voor tuinontwerp, tuinaanleg en tuinonderhoud in Amersfoort.",
+   "h1": "Hovenier in Amersfoort",
+   "nav": [
+    "Tuinontwerp",
+    "Tuinaanleg",
+    "Tuinonderhoud",
+    "Projecten",
+    "Contact"
+   ],
+   "body": "<p>Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. Wij ontwerpen, leggen aan en onderhouden tuinen voor particulieren en bedrijven. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "HomeAndConstructionBusiness"
+   }
+  },
+  "landscaping-uk.test": {
+   "lang": "en",
+   "title": "GreenScape Landscaping – Garden design and landscaping in Leeds",
+   "desc": "Landscape gardeners in Leeds: garden design, patios, fencing and garden maintenance. Free quote.",
+   "h1": "Landscape gardeners in Leeds",
+   "nav": [
+    "Services",
+    "Projects",
+    "Areas we cover",
+    "Free quote",
+    "Contact"
+   ],
+   "body": "<p>We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. We design and build gardens, lay patios and fencing and offer regular garden maintenance. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "roofer-uk.test": {
+   "lang": "en",
+   "title": "Smith Roofing – Roofers in Bristol",
+   "desc": "Local roofers in Bristol for roof repairs, flat roofs and guttering. Fully insured, free quotes.",
+   "h1": "Roofers in Bristol",
+   "nav": [
+    "Roof repairs",
+    "Flat roofs",
+    "Guttering",
+    "Areas we cover",
+    "Contact"
+   ],
+   "body": "<p>We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. We repair and replace pitched and flat roofs and clean and repair gutters across Bristol. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services",
+    "schemaType": "RoofingContractor"
+   }
+  },
+  "installatie-hybride.test": {
+   "lang": "nl",
+   "title": "Installatiebedrijf Vos – Cv, sanitair en onderhoud",
+   "desc": "Installatiebedrijf voor cv-ketels, sanitair en onderhoudscontracten. Ook onderdelen bestellen.",
+   "h1": "Installatiebedrijf Vos",
+   "nav": [
+    "Cv-ketels",
+    "Sanitair",
+    "Onderhoudscontract",
+    "Onderdelen bestellen",
+    "Contact"
+   ],
+   "body": "<p>Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. Wij installeren cv-ketels en sanitair, verzorgen onderhoudscontracten en leveren losse onderdelen. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "sector": "home_services",
+    "type": "services"
+   }
+  },
+  "gereedschapshop.test": {
+   "lang": "nl",
+   "title": "Toolshop – Gereedschap online kopen",
+   "desc": "Elektrisch gereedschap, handgereedschap en accessoires online kopen. Voor 23:00 besteld, morgen in huis.",
+   "h1": "Gereedschap online kopen",
+   "nav": [
+    "Boormachines",
+    "Zagen",
+    "Handgereedschap",
+    "Aanbiedingen",
+    "Winkelwagen"
+   ],
+   "body": "<p>Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. Bestel boormachines en zaagmachines van topmerken. </p><div class=\"product\"><a href=\"/p/boormachine-x-12345\">Boormachine X</a><span class=\"price\">€ 129,00</span><button>In winkelwagen</button></div><div class=\"product\"><a href=\"/p/zaag-y-12346\">Zaag Y</a><span class=\"price\">€ 89,00</span><button>In winkelwagen</button></div>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "tegelgroothandel.test": {
+   "lang": "nl",
+   "title": "Tegelgroothandel Holland – Groothandel in wand- en vloertegels",
+   "desc": "Groothandel in wand- en vloertegels voor tegelzetters, aannemers en dealers. Alleen zakelijke levering.",
+   "h1": "Groothandel in tegels",
+   "nav": [
+    "Assortiment",
+    "Dealers",
+    "Zakelijk account",
+    "Contact"
+   ],
+   "body": "<p>Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "warmtepompfabrikant.test": {
+   "lang": "nl",
+   "title": "ThermoTech – Fabrikant van warmtepompen",
+   "desc": "ThermoTech ontwikkelt en produceert warmtepompen voor woningbouw en utiliteit. Vind een installateur bij u in de buurt.",
+   "h1": "Fabrikant van warmtepompen",
+   "nav": [
+    "Producten",
+    "Voor installateurs",
+    "Over ThermoTech",
+    "Vind een installateur",
+    "Contact"
+   ],
+   "body": "<p>Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "notSector": "home_services",
+    "notSchemaType": "Plumber"
+   }
+  },
+  "bouwmarkt.test": {
+   "lang": "nl",
+   "title": "Bouwmarkt Plus – Alles voor klussen in huis en tuin",
+   "desc": "Bouwmarkt met verf, gereedschap, bouwmaterialen en tuinartikelen. Online bestellen en afhalen in de winkel.",
+   "h1": "Alles voor je klus",
+   "nav": [
+    "Verf",
+    "Gereedschap",
+    "Bouwmaterialen",
+    "Tuin",
+    "Winkelwagen"
+   ],
+   "body": "<p>Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. Bestel verf en gereedschap online. </p><div class=\"product\"><a href=\"/p/muurverf-wit-10l-22334\">Muurverf wit 10 L</a><span class=\"price\">€ 49,99</span><button>In winkelwagen</button></div><div class=\"product\"><a href=\"/p/kwast-set-22335\">Kwastenset</a><span class=\"price\">€ 12,99</span><button>In winkelwagen</button></div>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "klusblog.test": {
+   "lang": "nl",
+   "title": "De Klusblog – Tips voor zelf verbouwen en klussen",
+   "desc": "Praktische klustips: zelf een badkamer betegelen, laminaat leggen en muren stucen. Nieuwe artikelen elke week.",
+   "h1": "Klustips voor thuis",
+   "nav": [
+    "Artikelen",
+    "Badkamer",
+    "Vloeren",
+    "Over de blog"
+   ],
+   "body": "<p>In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. In onze artikelen lees je hoe je zelf tegels zet, laminaat legt en een muur stuct. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  }
+ }
+}

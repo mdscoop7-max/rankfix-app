@@ -1,4 +1,5 @@
 import { compareBrowserUrls, type BrowserDiagnostics } from "@/lib/browser-diagnostics";
+import { TRADE_IDENTITY_PATTERN, TRADE_ACTIVITY_PATTERN, productSupplierOverridesTrade } from "@/lib/trade-identity";
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { validJsonLdBlockTexts, hasExecutableScripts } from "@/lib/structured-data-evidence";
@@ -80,6 +81,9 @@ import { sectionCoverage } from "@/lib/section-coverage";
 import { ALTERNATE_START_CODES, locValues, pickAlternateStartUrls, sitemapUrlsFromRobots } from "@/lib/alternate-start";
 import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
+
+// Either of two patterns (keeps an existing pattern and adds a shared lexicon).
+const unionPattern = (a: RegExp, b: RegExp) => new RegExp(`(?:${a.source})|(?:${b.source})`, "iu");
 
 export const maxDuration = 300;
 // Controlled stop before the platform limit (maxDuration). The scan answers with
@@ -1889,7 +1893,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     ];
     const localIdentityText = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].filter(Boolean).join(" ");
     const localClassificationText = [localIdentityText, text].filter(Boolean).join(" ");
-    const identityLocalSchema = localSchemaCandidates.find((candidate) => candidate.pattern.test(localIdentityText))?.type;
+    // A manufacturer/wholesaler/shop that mentions installers ("find an
+    // installer") is not itself a plumber, electrician or contractor.
+    const supplierNotTrade = productSupplierOverridesTrade({ title, h1: h1s.join(" "), description });
+    const tradeSchemaTypes = new Set(["Electrician", "Plumber", "GeneralContractor", "RoofingContractor"]);
+    const identityLocalSchema = localSchemaCandidates.find((candidate) => !(supplierNotTrade && tradeSchemaTypes.has(candidate.type)) && candidate.pattern.test(localIdentityText))?.type;
     // A specific LocalBusiness subtype must be supported by page-identity evidence.
     // Broad body/navigation text can mention unrelated categories (for example a retailer
     // linking to beauty products) and must never turn into BeautySalon/Dentist/etc advice.
@@ -2425,7 +2433,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(woning(?:en)?|huizen|te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"home_services",label:"Lokale vakdienst",patterns:[unionPattern(/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,TRADE_IDENTITY_PATTERN),unionPattern(/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i,TRADE_ACTIVITY_PATTERN)],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|bistrot|reserveren|reservation|restaurantmenu|menukaart|ristorante|ristoranti|pizzeria|pizzerie|trattoria|osteria|(?<!per la |forniture per |attrezzature per |fornitori per )ristorazione|restaurante|restaurantes|crêperie)\b/i,/\b(openingstijden|opening hours|tafel reserveren|orari di apertura|prenota(?:re)? (?:un |il )?tavolo|prenotazioni|il nostro menu|menu del giorno|horaires d'ouverture|réserver une table|notre carte|horario de apertura|reservar (?:una )?mesa|nuestra carta|nuestro menú)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|ziekenhuis|ziekenhuizen|hospital|krankenhaus|klinikum|hôpital|ospedale|medisch centrum|universitair medisch centrum|university medical cent(?:er|re)|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
@@ -2443,7 +2451,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // (see anchoredToBusinessIdentity), so passing body mentions never select these sectors.
       {sector:"education",label:"Onderwijs & Opleiding",patterns:[/\b(basisschool|middelbare school|hogeschool|universiteit|university|college|mbo|hbo|onderwijs|opleidingen|opleidingscentrum|cursussen|online cursus|courses|academy|academie|school voor|schule|universität|école|scuola|escuela)\b/i,/\b(studenten|students|leerlingen|aanmelden|inschrijven|enrol|enroll|open dag|open day|studiegids|opleiding|curriculum|docenten|lesrooster)\b/i],modules:["core_seo","geo","local","lead_conversion","education"]},
       {sector:"nonprofit",label:"Goede doelen & Non-profit",patterns:[/\b(stichting|goed doel|goede doelen|charity|non-?profit|ngo|fundraising|vereniging|foundation|hilfsorganisation|association caritative)\b/i,/\b(doneer|doneren|donate|donatie|donation|vrijwilliger|volunteer|steun ons|support us|lid worden|anbi|missie|mission)\b/i],modules:["core_seo","geo","lead_conversion","nonprofit"]},
-      {sector:"energy_utilities",label:"Energie & Nutsvoorzieningen",patterns:[/\b(energieleverancier|energiecontract|stroom en gas|gas en stroom|groene stroom|energy supplier|electricity supplier|netbeheerder|drinkwaterbedrijf|waterbedrijf|stromanbieter|zonnepanelen|warmtepomp|laadpaal|solar panels|heat pumps?)\b/i,/\b(tarieven|rates|contract|aanvragen|offerte|terugleveren|meterstand|kwh|installatie|besparen)\b/i],modules:["core_seo","geo","technical","lead_conversion","energy_utilities"]},
+      {sector:"energy_utilities",label:"Energie & Nutsvoorzieningen",patterns:[/\b(energieleverancier|energiecontract|stroom en gas|gas en stroom|groene stroom|energy supplier|electricity supplier|netbeheerder|drinkwaterbedrijf|waterbedrijf|stromanbieter)\b/i,/\b(zonnepanelen|warmtepomp|laadpaal|solar panels|heat pumps?|tarieven|rates|contract|aanvragen|offerte|terugleveren|meterstand|kwh|installatie|besparen)\b/i],modules:["core_seo","geo","technical","lead_conversion","energy_utilities"]},
       {sector:"events_culture",label:"Evenementen & Cultuur",patterns:[/\b(festival|concertzaal|concerten|theater|theatre|schouwburg|museum|musea|bioscoop|cinema|poppodium|evenementenlocatie|event venue|expo|tentoonstelling|exhibition|dierentuin|zoo|pretpark|attractiepark|theme park)\b/i,/\b(tickets?|kaarten|programma|programme|agenda|line-?up|voorstelling|openingstijden|opening hours|exposities?|events?)\b/i],modules:["core_seo","geo","local","lead_conversion","events_culture"]},
       {sector:"fitness_sports",label:"Sport & Fitness",patterns:[/\b(sportschool|fitness(?:club|centrum|studio)?|gym|crossfit|yoga ?studio|pilates|personal training|sportvereniging|voetbalclub|tennisclub|hockeyclub|golfclub|zwembad|sportclub|football club|sports club|sportverein)\b/i,/\b(lidmaatschap|membership|lid worden|proefles|trial class|rooster|schedule|lessen|classes|trainingen|abonnement|teams?|competitie|wedstrijden)\b/i],modules:["core_seo","geo","local","lead_conversion","fitness_sports"]},
     ];
@@ -2539,6 +2547,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
       ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes, hostname: finalUrl.hostname }) : null;
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
+    // A manufacturer, wholesaler or shop that refers customers to installers is
+    // not itself a local trade (general rule, any language).
+    const supplierOverridesTrade = productSupplierOverridesTrade({ title, h1: identityH1s.join(" "), description: identityDescription });
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
       const anchored = legacyAnchored(item.patterns);
@@ -2552,7 +2563,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // identity: news needs the same proof as the master news rule.
       const newsWithoutPublisherIdentity = item.sector === "news_media" && !schemaSet.has("newsmediaorganization") && !schemaSet.has("newsarticle")
         && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media");
-      const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || anchored))
+      const suppressedHits = !anchoredToBusinessIdentity || (item.sector === "home_services" && supplierOverridesTrade) || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || anchored))
         ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
@@ -2790,7 +2801,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // A local trade the homepage declares for itself (optician, pharmacy, salon,
     // hotel, restaurant, bakery) sells through shops, salons or venues; its own
     // webshop, online ordering or booking is a sales channel of that trade.
-    const localTradeIdentity = Boolean(masterIdentityOverride && LOCAL_TRADE_KEYS.has(masterIdentityOverride.key));
+    // A trade named in BOTH the organisation's own title and H1 is its primary
+    // identity: a parts webshop beside it is secondary commerce (hybrid), not a
+    // retail identity. Product suppliers (maker, wholesaler, shop) are excluded.
+    const tradeNamedInOwnHead = !supplierOverridesTrade && TRADE_IDENTITY_PATTERN.test(title) && TRADE_IDENTITY_PATTERN.test(identityH1s.join(" "));
+    const localTradeIdentity = Boolean((masterIdentityOverride && LOCAL_TRADE_KEYS.has(masterIdentityOverride.key))
+      || (tradeNamedInOwnHead && strongSectorCandidate && sectorCandidates[0].sector === "home_services"));
     const nonRetailIdentityKnown = Boolean((masterIdentityOverride && masterIdentityOverride.sector !== "ecommerce")
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"));
     const retailPrimaryIdentity = retailPurchaseEvidence
@@ -3969,7 +3985,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // page that already carries the sector type counts as relevant.
     {
       const sectorType = sectorSchemaType({ sector: sectorProfile.sector, key: sectorProfile.key, identityText: [title, description, h1s.join(" "), schemaTypes.join(" ")].join(" "), schemaTypes });
-      if (sectorType && (isGenericSchemaAdvice(recommendedSchema) || (recommendedSchema === "OnlineStore + WebSite" && sectorProfile.sector !== "ecommerce")) && !isProductPage && (isHomepage || !hasCategorySignal)) {
+      if (sectorType && (isGenericSchemaAdvice(recommendedSchema) || (recommendedSchema === "OnlineStore + WebSite" && sectorProfile.sector !== "ecommerce")
+        // Trade subtypes from the early Dutch-only keyword list ("installateur" →
+        // Plumber) yield to the multilingual trade mapping once the sector is known.
+        || (sectorProfile.sector === "home_services" && /^(?:Plumber|Electrician|GeneralContractor|RoofingContractor|HomeAndConstructionBusiness)$/.test(recommendedSchema))) && !isProductPage && (isHomepage || !hasCategorySignal)) {
           recommendedSchema = isHomepage ? `${sectorType} + WebSite` : `${sectorType} / WebPage`;
         if (schemaSet.has(sectorType.toLowerCase())) hasRelevantContextSchema = true;
       }
@@ -6274,7 +6293,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageOwnIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
-      const primaryIdentityHit = item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
+      const primaryIdentityHit = item.sector === "home_services" && supplierOverridesTrade ? 0 : item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
       const activityHit = item.patterns[1]?.test(reconciledIdentitySource) ? 1 : 0;
       const schemaBoost = schemaSectorBoost[item.sector] || 0;
       return { sector:item.sector, label:item.label, score:primaryIdentityHit + activityHit + schemaBoost, modules:item.modules };

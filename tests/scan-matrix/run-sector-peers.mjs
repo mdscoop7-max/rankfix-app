@@ -37,6 +37,7 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.platform && r.platform !== e.platform) problems.push(`${host}: platform ${r.platform}, expected ${e.platform}`);
   if (e.noPlatform && r.platform) problems.push(`${host}: platform ${r.platform} from text only`);
   if (e.discountCheck === "active" && r.discount === "not_applicable") problems.push(`${host}: visible discount but the EU discount check is N.v.t.`);
+  if (e.notSchemaType && new RegExp(`\\b${e.notSchemaType}\\b`).test(r.schema)) problems.push(`${host}: schema advice "${r.schema.slice(0, 120)}" must not name ${e.notSchemaType}`);
   if (e.schemaType && !new RegExp(`\\b${e.schemaType}\\b`).test(r.schema)) problems.push(`${host}: schema advice "${r.schema.slice(0, 120)}", expected ${e.schemaType}`);
   if (e.minCoverage && !(r.coverage >= e.minCoverage)) problems.push(`${host}: coverage ${r.coverage}%, expected ≥ ${e.minCoverage}%`);
 }
