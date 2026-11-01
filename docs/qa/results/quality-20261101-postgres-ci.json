@@ -1,0 +1,26 @@
+{
+  "kind": "github_actions_verification",
+  "headSha": "9f5ec75e0e7175769e36d98f5f56f8007427384c",
+  "runId": 41314219214,
+  "url": "https://github.com/mdscoop7-max/rankfix-app/actions/runs/41314219214",
+  "conclusion": "success",
+  "tests": {
+    "total": 893,
+    "passed": 889,
+    "failed": 0,
+    "skipped": 4
+  },
+  "realPostgresScanStorageTests": "passed, including the confirmed/unverified/deep-404 attempt fixtures and full scan-history-audit chain",
+  "autoFixPostgres": {
+    "scenarios": 34,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "nextBuild": "passed",
+  "remainingSkipped": [
+    "RF_SLOW_TESTS timeout suite",
+    "Three RF_ROUTE_REPLAY full stored replay suites"
+  ],
+  "independentQualityScore": null,
+  "note": "This run verifies the source before the following short-render/checkpoint guard; that guard still requires its own exact CI run."
+}

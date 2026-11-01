@@ -80,6 +80,7 @@ test("JavaScript navigation uses the existing renderer inside an explicitly rese
   globalThis.__RF_RENDER=async url=>({html:page('<a href="/service">Service</a>'),finalUrl:url});
   const r=await crawlSite(base,'STANDARD',{maxRequests:120});
   assert.equal(r.coverage.rendersTotal,1);assert.ok(r.coverage.requestsThisBatch>=90);assert.equal(r.coverage.checked,2);
+  assert.equal(r.pages.find(p=>p.url===base).structuredDataAbsentProven,false,'a short rendered DOM without script tags cannot erase original executable-script risk');
  });
 });
 test("checkpoint URL and mode are bound to one crawl",async()=>{
@@ -87,6 +88,8 @@ test("checkpoint URL and mode are bound to one crawl",async()=>{
   const r=await crawlSite(base,'STANDARD');
   await assert.rejects(crawlSite('https://other.test/','STANDARD',{checkpoint:r.checkpoint}),/CHECKPOINT_MISMATCH/);
   await assert.rejects(crawlSite(base,'QUICK',{checkpoint:r.checkpoint}),/CHECKPOINT_MISMATCH/);
+  const incompatible=structuredClone(r.checkpoint);incompatible.engineVersion='previous-engine';
+  await assert.rejects(crawlSite(base,'STANDARD',{checkpoint:incompatible}),/CHECKPOINT_MISMATCH/);
  });
 });
 test("robots matching and XML discovery are multilingual and domain independent",()=>{

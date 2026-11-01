@@ -8,7 +8,7 @@ import { offerPrice } from "@/lib/price";
 import { schemaTypesOf } from "@/lib/schema-type";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.7.0";
+export const CRAWLER_ENGINE_VERSION = "2.7.1";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -85,7 +85,7 @@ export type CrawlResult = {
 };
 export type CrawlEntry = { url: string; depth: number; from: string | null; status: "pending" | "audited" | "excluded" | "unconfirmed" | "not_found" | "duplicate"; reason?: string; finalUrl?: string; httpStatus?: number };
 export type CrawlCheckpoint = {
-  version: 1; startUrl: string; mode: CrawlMode; startedAt: string; finalUrl: string;
+  version: 1; engineVersion: string; startUrl: string; mode: CrawlMode; startedAt: string; finalUrl: string;
   entries: CrawlEntry[]; queue: string[]; pages: CrawlPage[]; errors: CrawlResult["errors"];
   robots: { status: "pending" | "known" | "unconfirmed"; text: string };
   sitemaps: { pending: string[]; visited: string[] }; discoveryLimited: boolean;
@@ -165,9 +165,9 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
   const batchLimit=bounded(options.batchPages,Math.min(25,limit),30);
   const requestLimit=bounded(options.maxRequests,120,300);
   const duration=bounded(options.maxDurationMs,30_000,120_000), deadline=Date.now()+duration;
-  if (options.checkpoint && (options.checkpoint.version !== 1 || options.checkpoint.startUrl !== start.href || options.checkpoint.mode !== mode || options.checkpoint.entries.length > 5000 || options.checkpoint.pages.length > LIMITS[mode])) throw new Error("CRAWL_CHECKPOINT_MISMATCH");
+  if (options.checkpoint && (options.checkpoint.version !== 1 || options.checkpoint.engineVersion !== CRAWLER_ENGINE_VERSION || options.checkpoint.startUrl !== start.href || options.checkpoint.mode !== mode || options.checkpoint.entries.length > 5000 || options.checkpoint.pages.length > LIMITS[mode])) throw new Error("CRAWL_CHECKPOINT_MISMATCH");
   const state: CrawlCheckpoint = options.checkpoint ? structuredClone(options.checkpoint) : {
-    version:1,startUrl:start.href,mode,startedAt:new Date().toISOString(),finalUrl:start.href,
+    version:1,engineVersion:CRAWLER_ENGINE_VERSION,startUrl:start.href,mode,startedAt:new Date().toISOString(),finalUrl:start.href,
     entries:[],queue:[],pages:[],errors:[],robots:{status:"pending",text:""},sitemaps:{pending:[],visited:[]},discoveryLimited:false,discoveryErrors:[],attempts:0,requests:0,renders:0,
   };
   const pages=state.pages, errors=state.errors;
@@ -247,7 +247,8 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const gate=classifyNonContentPage({title:first(html,/<title[^>]*>([\s\S]*?)<\/title>/i),text:stripHtml(html),html});
       if(gate) {item.status="unconfirmed";item.reason="non_content_"+gate.kind;continue;}
       if(pages.some(p=>p.url===resolved.href)) {item.status="duplicate";item.reason="redirect_duplicate";continue;}
-      const needsNavigationRender=crawlLinks(html,resolved).length<3 && hasExecutableScripts(html);
+      const sourceHasExecutableScripts=hasExecutableScripts(html);
+      const needsNavigationRender=crawlLinks(html,resolved).length<3 && sourceHasExecutableScripts;
       if(needsNavigationRender) {
         if(options.renderJavaScript!==false && batchRenders<2 && requestLimit-batchRequests>=90 && remaining()>4000) {
           // Reserve the default renderer's entire 90-request budget before launch.
@@ -309,7 +310,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
         try{ canonicalUrl=new URL(canonical,resolved).toString(); }
         catch{ errors.push({url:resolved.toString(),code:"CANONICAL_INVALID",message:"Malformed canonical URL in HTML."}); }
       }
-      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,security,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],structuredDataAbsentProven:!hasExecutableScripts(html),evidenceSource,localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,security,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],structuredDataAbsentProven:!sourceHasExecutableScripts && !hasExecutableScripts(html),evidenceSource,localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       item.status="audited";
       for(const next of uniqueLinks) remember(next,resolved,item.depth+1,item.url);
     } catch(error) {
