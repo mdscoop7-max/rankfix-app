@@ -1,5 +1,6 @@
 import { AXE_RUN_SCRIPT } from "./axe-script.ts";
-import type { Browser } from "puppeteer-core";
+import type { Browser, HTTPRequest } from "puppeteer-core";
+import { createBrowserDiagnostics, type BrowserAbortCause, type BrowserDiagnostics } from "./browser-diagnostics.ts";
 import { claimRender, launchSourceFor, hardenedServerlessArgs, type RenderBudget } from "@/lib/render-limits";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
@@ -22,6 +23,8 @@ export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; 
   axeError?: string | null;
   /** Structured-data observation mode only: how complete the observation was. */
   observation?: RenderObservation;
+  /** Diagnostic evidence only; never an automatic score deduction. */
+  diagnostics?: BrowserDiagnostics;
 };
 
 /**
@@ -99,6 +102,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
   const requestCap = structuredMode ? 150 : MAX_REQUESTS;
   let cappedRequests = 0;
   let failedRequests = 0;
+  const diagnostics = createBrowserDiagnostics(value);
+  const abortCauses = new WeakMap<HTTPRequest, BrowserAbortCause>();
+  const interceptionErrors = new WeakMap<HTTPRequest, string>();
+  let lastObservedUrl = value;
+  let navigationFailure: BrowserDiagnostics["navigationError"] = null;
   const target = validatePublicHttpUrl(value);
   await assertPublicDns(target.hostname);
   claimRender(budget);
@@ -177,29 +185,53 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       if (!pending) { pending = assertPublicDns(hostname); dnsChecks.set(hostname, pending); }
       return pending;
     };
+    page.on("requestfailed", (req) => {
+      // Images/fonts/media are intentionally never loaded, not network failures.
+      if (!ALLOWED.has(req.resourceType())) return;
+      failedRequests++;
+      diagnostics.failed({ url: req.url(), resourceType: req.resourceType(), errorText: req.failure()?.errorText, abortCause: abortCauses.get(req), interceptionError: interceptionErrors.get(req) });
+    });
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) lastObservedUrl = frame.url();
+    });
+    page.on("response", (response) => {
+      const req = response.request();
+      // Only HTTP redirects of the top-level document, not iframes or API calls.
+      if (!req.isNavigationRequest() || req.frame() !== page.mainFrame() || response.status() < 300 || response.status() >= 400) return;
+      const location = response.headers().location;
+      if (location) try { diagnostics.redirected(response.url(), new URL(location, response.url()).toString(), response.status()); } catch {}
+    });
     page.on("request", (req) => {
       void (async () => {
         try {
           if (!ALLOWED.has(req.resourceType())) {
+            diagnostics.filtered();
             await req.abort();
             return;
           }
           requests++;
           if (requests > requestCap) {
             cappedRequests++;
+            abortCauses.set(req, "request_cap");
             await req.abort();
             return;
           }
-          const requestUrl = validatePublicHttpUrl(req.url());
-          await checkHost(requestUrl.hostname);
+          try {
+            const requestUrl = validatePublicHttpUrl(req.url());
+            await checkHost(requestUrl.hostname);
+          } catch (error) {
+            abortCauses.set(req, "public_url_guard");
+            throw error;
+          }
           await req.continue();
-        } catch {
+        } catch (error) {
+          interceptionErrors.set(req, error instanceof Error ? error.message : String(error));
+          if (!abortCauses.has(req)) abortCauses.set(req, "interception_error");
           try { await req.abort(); } catch {}
         }
       })();
     });
 
-    if (structuredMode) page.on("requestfailed", (req) => { if (ALLOWED.has(req.resourceType())) failedRequests++; });
     page.setDefaultNavigationTimeout(remaining());
     // A heavy page can miss DOMContentLoaded within the budget while its content is
     // already in the DOM. Keep time for one snapshot instead of failing outright;
@@ -209,7 +241,9 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       await page.goto(target.toString(), { waitUntil: structuredMode ? "load" : "domcontentloaded", timeout: Math.max(1000, remaining() - SNAPSHOT_RESERVE_MS) });
     } catch (navigationError) {
       const message = navigationError instanceof Error ? navigationError.message : String(navigationError);
-      if (!/timeout|timed out|exceeded/i.test(message) || page.url() === "about:blank") throw navigationError;
+      const timedOut = /timeout|timed out|exceeded/i.test(message);
+      navigationFailure = { name: navigationError instanceof Error ? navigationError.name : "Error", message: message.slice(0, 300), category: timedOut ? "timeout" : "other" };
+      if (!timedOut || page.url() === "about:blank") throw navigationError;
       partialNavigation = true;
     }
     // Structured-data mode: after "load", wait at most settleMs for 750 ms of
@@ -315,7 +349,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       abortedRequests: cappedRequests, failedRequests, consent: "none",
       window: `load${partialNavigation ? " (niet bereikt)" : ""} + ${settledMs} ms${networkQuiet ? " tot netwerkrust" : " (geen netwerkrust)"}`,
     } : undefined;
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport, axeError, ...(observation ? { observation } : {}) };
+    return { html, finalUrl: finalUrl.toString(), diagnostics: diagnostics.snapshot(finalUrl.toString(), navigationFailure), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport, axeError, ...(observation ? { observation } : {}) };
+  } catch (error) {
+    // Preserve request evidence even when navigation fails before a DOM snapshot.
+    if (error instanceof Error) Object.assign(error, { browserDiagnostics: diagnostics.snapshot(lastObservedUrl, navigationFailure) });
+    throw error;
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }

@@ -1,3 +1,4 @@
+import { createBrowserDiagnostics } from "../../lib/browser-diagnostics.ts";
 // 1 Nov 2026 (P5 phase 2): targeted browser observation for structured data.
 // Neutral hosts, no site rules. Per case: does the probe run, and what follows?
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
@@ -33,6 +34,18 @@ const CASES = {
   // JSON-LD only on an own subpage: shown as context with URL, status/points unchanged.
   "subpage-ld.test": ["", null, { probe: 0, schema: "warning", org: "warning", points: [4, 4], context: /Context \(telt niet mee[^]*over-ons/, orgContext: /Organization\/WebSite-schema staat wel op [^ ]*over-ons/ }, { "/over-ons": LD }],
 };
+// Generic URL variants and external failures: identical content and scoring.
+Object.assign(CASES, {
+  "www-found.test": [GTM, GTM + LD, { probe: 1, org: "pass", obs: /present_after_javascript/ }, undefined, { www: true }],
+  "www-empty.test": [GTM, GTM, { probe: 1, schema: "warning", obs: /observation=proven_absent/ }, undefined, { www: true }],
+  "different-page.test": [GTM, GTM, { probe: 1, schema: "unable_to_confirm", obs: /not_observed.*andere pagina of query/ }, undefined, { path: true }],
+  "different-page-found.test": [GTM, GTM + LD, { probe: 1, schema: "unable_to_confirm", obs: /not_observed.*andere pagina of query/ }, undefined, { path: true }],
+  "different-query.test": [GTM, GTM, { probe: 1, schema: "unable_to_confirm", obs: /not_observed.*andere pagina of query/ }, undefined, { query: true }],
+  "external-failures-found.test": [GTM, GTM + LD, { probe: 1, org: "pass", obs: /present_after_javascript/ }, undefined, { failures: true }],
+  "external-failures-empty.test": [GTM, GTM, { probe: 1, schema: "warning", obs: /observation=proven_absent/ }, undefined, { failures: true }],
+  "five-short-zero-long.test": ["SPA", GTM + LD.repeat(5), { probe: 1, org: "pass", obs: /blocks=5/ }, undefined, { spa: true, shortOnly: true }],
+});
+CASES["render-fails.test"][4] = { diagnosticFailure: true };
 const renderCalls = {};
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
@@ -49,18 +62,37 @@ globalThis.__RF_RENDER = async (url, timeoutMs, budget, options = {}) => {
   renderCalls[u.host] = (renderCalls[u.host] || 0) + 1;
   calls.push({ host: u.host, timeoutMs, mode: options.mode, settleMs: options.settleMs });
   const c = CASES[u.host];
-  if (!c || c[1] === null) throw new Error("RENDER_TIMEOUT");
+  if (!c || c[1] === null) {
+    const error = new Error("RENDER_TIMEOUT");
+    if (c?.[4]?.diagnosticFailure) {
+      const d = createBrowserDiagnostics(url);
+      d.failed({ url: url + "app.js", resourceType: "script", errorText: "net::ERR_TIMED_OUT" });
+      error.browserDiagnostics = d.snapshot(url, { name: "TimeoutError", message: "RENDER_TIMEOUT", category: "timeout" });
+    }
+    throw error;
+  }
   const view = c[4] || {};
-  const html = view.block ? BLOCK_PAGE : page(c[1], u.pathname).replaceAll("HOST", u.host);
-  const observation = options.mode === "structured_data" ? { loadReached: !view.partial, settledMs: 800, networkQuiet: !view.partial, requestCapHit: Boolean(view.cap), abortedRequests: view.cap ? 12 : 0, failedRequests: 0, consent: "none", window: view.partial ? "load (niet bereikt) + 0 ms" : "load + 800 ms tot netwerkrust" } : undefined;
-  return { html, finalUrl: view.otherSite ? "https://elders.test/" : url, elapsedMs: 900, requests: 5, ...(view.partial ? { partialNavigation: true } : {}), titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null, ...(observation ? { observation } : {}) };
+  const html = view.block ? BLOCK_PAGE : page(view.shortOnly && options.mode ? GTM : c[1], u.pathname).replaceAll("HOST", u.host);
+  const finalUrl = view.otherSite ? "https://elders.test/" : view.www ? `https://www.${u.host}/` : view.path ? new URL("/login", url).href : view.query ? url + "?view=other" : url;
+  const diagnostic = createBrowserDiagnostics(url);
+  if (view.www) diagnostic.redirected(url, finalUrl, 301);
+  if (view.failures) for (let i = 0; i < 8; i++) diagnostic.failed({ url: `https://metrics.test/collect/${i}`, resourceType: "fetch", errorText: i % 2 ? "net::ERR_BLOCKED_BY_CLIENT" : "net::ERR_ABORTED" });
+  const diagnostics = diagnostic.snapshot(finalUrl);
+  const observation = options.mode === "structured_data" ? { loadReached: !view.partial, settledMs: 800, networkQuiet: !view.partial, requestCapHit: Boolean(view.cap), abortedRequests: view.cap ? 12 : 0, failedRequests: view.failures ? 8 : 0, consent: "none", window: view.partial ? "load (niet bereikt) + 0 ms" : "load + 800 ms tot netwerkrust" } : undefined;
+  return { html, finalUrl, diagnostics, elapsedMs: 900, requests: 5, ...(view.partial ? { partialNavigation: true } : {}), titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null, ...(observation ? { observation } : {}) };
 };
 const calls = [];
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
-const problems = []; const rows = [];
+const problems = []; const rows = []; const responses = new Map();
 for (const [host, [, , e]] of Object.entries(CASES)) {
   const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }))).json();
+  responses.set(host, j);
+  const probe = j.rendering?.structuredDataProbe;
+  if (CASES[host][4]?.diagnosticFailure && (probe?.diagnostics?.requestFailures?.[0]?.errorCode !== "ERR_TIMED_OUT" || probe?.finalUrl !== `https://${host}/`)) problems.push(`${host}: failed probe lost diagnostics`);
+  if (CASES[host][4]?.failures && probe?.diagnostics?.requestFailures?.length !== 8) problems.push(`${host}: missing failure details in probe`);
+  if (CASES[host][4]?.www && (!probe?.diagnostics?.urlComparison?.wwwChanged || probe?.diagnostics?.redirects?.[0]?.status !== 301)) problems.push(`${host}: missing www redirect evidence`);
+  if (probe?.attempted && probe.ok && (!probe.requestedUrl || !probe.finalUrl)) problems.push(`${host}: missing observation URLs`);
   const by = (k) => j.geo?.checks?.find((c) => c.key === k) || {};
   const schema = by("schema"), org = by("organization_website");
   rows.push({ host, renders: renderCalls[host] || 0, rendered: j.rendering?.javascriptExecuted, schema: `${schema.status} ${schema.points}/${schema.maxPoints}`, org: `${org.status} ${org.points}/${org.maxPoints}`, found: schema.evidence?.found });
@@ -73,6 +105,10 @@ for (const [host, [, , e]] of Object.entries(CASES)) {
   if (e.orgContext && !e.orgContext.test(String(org.message))) problems.push(`${host}: organization_website lacks subpage context: ${String(org.message).slice(-160)}`);
   if (j.rendering?.javascriptExecuted && !CASES[host][4]?.spa) problems.push(`${host}: the structured-data probe must not turn the whole report into a browser report`);
   if (CASES[host][4]?.spa && !j.rendering?.javascriptExecuted) problems.push(`${host}: the JavaScript shell was not rendered (test setup)`);
+}
+for (const [a, b] of [["ld-after-js.test", "external-failures-found.test"], ["no-ld-rendered.test", "external-failures-empty.test"]]) {
+  const snapshot = (host) => ["seo", "geo"].map(dim => ({ score: responses.get(host)?.[dim]?.score, checks: responses.get(host)?.[dim]?.checks?.map(c => [c.key, c.status, c.points, c.maxPoints]) }));
+  if (JSON.stringify(snapshot(a)) !== JSON.stringify(snapshot(b))) problems.push(`${b}: harmless external failures changed SEO/GEO checks or scores`);
 }
 // Only the structured-data mode with the 12 s budget and a 3 s settle window.
 for (const c of calls.filter((x) => !CASES[x.host]?.[4]?.spa || x.mode)) if (c.mode !== "structured_data" || c.timeoutMs !== 12000 || c.settleMs !== 3000) problems.push(`${c.host}: probe called with ${JSON.stringify(c)}`);

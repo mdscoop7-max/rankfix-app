@@ -1,3 +1,4 @@
+import { compareBrowserUrls, type BrowserDiagnostics } from "@/lib/browser-diagnostics";
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { validJsonLdBlockTexts, hasExecutableScripts } from "@/lib/structured-data-evidence";
@@ -1478,7 +1479,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // the report keeps the server HTML. Found blocks count with the browser as
     // source; a completed render without blocks is a proven absence; a failed
     // render stays "not observed".
-    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null };
+    const structuredDataProbe: { attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null; requestedUrl: string | null; finalUrl: string | null; diagnostics: BrowserDiagnostics | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null, requestedUrl: null, finalUrl: null, diagnostics: null };
     // Also after a primary JavaScript render: that view waited less long than this
     // observation requires; skipped only when the primary render already failed.
     if (!(javascriptCandidate && !javascriptExecuted) && isSiteHomepagePath(finalUrl.pathname) && !clock.expired && Date.now() - started < 60_000
@@ -1488,12 +1489,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       try {
         // 1 Nov (P5 priority 1): full "load" + at most 3 s to network quiet, 12 s in
         // total, no consent (the crawler view), no accessibility scan.
+        structuredDataProbe.requestedUrl = finalUrl.toString();
         const probed = await renderPublicPage(finalUrl.toString(), 12000, renderBudget, { mode: "structured_data", settleMs: 3000 });
+        structuredDataProbe.finalUrl = probed.finalUrl;
+        structuredDataProbe.diagnostics = probed.diagnostics || null;
         const blocks = validJsonLdBlockTexts(probed.html);
         const observed = probed.observation;
         structuredDataProbe.window = observed?.window || null;
         structuredDataProbe.consent = observed?.consent || "none";
         const sameSite = (() => { try { return new URL(probed.finalUrl).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } })();
+        const sameDocument = sameSite && compareBrowserUrls(finalUrl.toString(), probed.finalUrl).comparableDocument;
         const probedTitle = firstMatch(probed.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
         const probedText = stripHtml(probed.html).slice(0, 12000);
         const blockedView = classifyNonContentPage({ title: probedTitle, text: probedText, words: probedText.split(/\s+/).filter(Boolean).length, html: probed.html });
@@ -1503,8 +1508,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           : observed.requestCapHit ? `verzoeklimiet bereikt (${observed.abortedRequests} verzoek(en) niet geladen)`
           : blockedView ? `browser kreeg een ${blockedView.kind === "challenge" ? "blokkade- of controlepagina" : blockedView.kind === "maintenance" ? "onderhoudspagina" : "foutpagina"}`
           : !sameSite ? "browser eindigde op een andere site"
+          : !sameDocument ? "browser eindigde op een andere pagina of query"
           : null;
-        if (blocks.length && !blockedView && sameSite) {
+        if (blocks.length && !blockedView && sameDocument) {
           structuredDataProbe.ok = true;
           structuredDataProbe.addedBlocks = blocks.length;
           const tags = blocks.map((block) => `<script type="application/ld+json" data-rankfix-source="browser">${block}</script>`).join("");
@@ -1515,6 +1521,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           structuredDataProbe.error = structuredDataProbe.limitation;
         }
       } catch (probeError) {
+        structuredDataProbe.diagnostics = (probeError as { browserDiagnostics?: BrowserDiagnostics } | null)?.browserDiagnostics || null;
+        structuredDataProbe.finalUrl = structuredDataProbe.diagnostics?.finalUrl || null;
         structuredDataProbe.error = String(probeError instanceof Error ? probeError.message : probeError).slice(0, 160);
         structuredDataProbe.limitation = structuredDataProbe.error;
       }
@@ -5069,6 +5077,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       es:"RankFix renderizó este sitio JavaScript en un navegador limitado. No se ejecutaron los flujos de inicio de sesión, carrito ni pago."
     };
     const rendering = {
+      // Diagnostic evidence only: network failures do not create scored checks.
+      browserDiagnostics: renderedDocument?.diagnostics || null,
       // Targeted structured-data observation (not a full browser report).
       structuredDataProbe,
       mode: javascriptExecuted ? "javascript_rendered" as const : "raw_html" as const,

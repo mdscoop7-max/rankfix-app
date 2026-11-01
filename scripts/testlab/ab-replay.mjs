@@ -175,9 +175,9 @@ async function observe() {
         try {
           const page = await render(url, WINDOW[w].timeout, undefined, WINDOW[w].options);
           const o = page.observation || {};
-          const limitation = !page.observation ? "geen observatiegegevens" : !o.loadReached || page.partialNavigation ? "pagina niet volledig geladen" : o.requestCapHit ? `verzoeklimiet bereikt (${o.abortedRequests})` : null;
-          row.render[w] = { ok: true, complete: !limitation, limitation, elapsedMs: Date.now() - t, window: o.window || null, consent: o.consent || "none", failedRequests: o.failedRequests ?? null, finalUrl: page.finalUrl || null, view: jsonLd(page.html) };
-        } catch (e) { row.render[w] = { ok: false, elapsedMs: Date.now() - t, error: errorCause(e) }; }
+          const limitation = !page.observation ? "geen observatiegegevens" : !o.loadReached || page.partialNavigation ? "pagina niet volledig geladen" : o.requestCapHit ? `verzoeklimiet bereikt (${o.abortedRequests})` : page.diagnostics?.urlComparison?.comparableDocument === false ? "browser eindigde op een andere pagina, query of site" : null;
+          row.render[w] = { ok: true, complete: !limitation, limitation, elapsedMs: Date.now() - t, window: o.window || null, consent: o.consent || "none", failedRequests: o.failedRequests ?? null, diagnostics: page.diagnostics || null, finalUrl: page.finalUrl || null, view: jsonLd(page.html) };
+        } catch (e) { row.render[w] = { ok: false, elapsedMs: Date.now() - t, error: errorCause(e), diagnostics: e?.browserDiagnostics || null }; }
         row.render[w].verdict = verdictOf(row, w);
       }
       result.urls.push(row);

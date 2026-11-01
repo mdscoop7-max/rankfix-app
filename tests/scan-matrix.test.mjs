@@ -202,9 +202,9 @@ test("P7 (31 Oct): language/variant copies never re-enter the sample via the pro
   assert.equal(r.failed, 0, r.log);
 });
 
-test("P5 phase 2 (1 Nov): targeted structured-data browser probe — JSON-LD after JS counts, completed render without JSON-LD is proven absent, failed render is not observed, no probe without a tag manager", () => {
+test("P5 phase 2 (1 Nov): browser probe preserves JSON-LD evidence, records failures and distinguishes www redirects from different pages", () => {
   const r = run("run-structured-data-probe.mjs");
-  assert.equal(r.total, 17);
+  assert.equal(r.total, 25);
   assert.equal(r.failed, 0, r.log);
 });
 
