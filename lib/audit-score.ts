@@ -218,11 +218,44 @@ export function evidenceRange(score: number, coreRange: { low: number; high: num
 export type EvidenceLevel = "complete" | "provisional" | "insufficient";
 
 /**
+ * Below this share of confirmed weight a dimension's number describes only part
+ * of the site. Same boundary as the overall "insufficient" level (coverage < 60).
+ */
+export const MIN_DIMENSION_COVERAGE_PERCENT = 60;
+
+/**
+ * Evidence behind ONE dimension's number (SEO or GEO), judged on the stable core
+ * checks that actually produce the score. fresh144 (29 Oct 2026): a GEO score of
+ * 99 could rest on one confirmed 5-point check while overall coverage looked fine.
+ *
+ * This never changes a score. It only says whether the number may be read as a
+ * grade (`determinable`) or only as an indication. Sector confidence plays no
+ * part here: an unknown sector does not make SEO/GEO evidence weak, and thin
+ * SEO/GEO evidence is not a sector problem.
+ */
+export function dimensionEvidence(items: Array<ScorableAuditCheck & { key?: string }>, group: "seo" | "geo") {
+  const core = stableCoreChecks(items, group);
+  const coverage = weightedCoverage(core);
+  const level: EvidenceLevel = coverage.totalWeight === 0 || coverage.coveragePercent < MIN_DIMENSION_COVERAGE_PERCENT
+    ? "insufficient"
+    : coverage.unableToConfirm > 0 ? "provisional" : "complete";
+  return {
+    group,
+    level,
+    coveragePercent: coverage.coveragePercent,
+    confirmedWeight: coverage.assessedWeight,
+    applicableWeight: coverage.totalWeight,
+    unconfirmed: coverage.unableToConfirm,
+    determinable: level !== "insufficient",
+  };
+}
+
+/**
  * One qualifier for the headline score, from coverage, rendering and sector
  * certainty. "insufficient" means the number describes only part of the site
  * evidence and must be presented as an indication, never as a final grade.
  */
-export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[]; pageSample?: { selected: number; fetched: number } }): { level: EvidenceLevel; reasons: string[] } {
+export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[]; pageSample?: { selected: number; fetched: number }; dimensions?: Array<{ name: "SEO" | "GEO"; coveragePercent: number }> }): { level: EvidenceLevel; reasons: string[] } {
   const reasons: string[] = [];
   // Check coverage (weighted applicable checks) is not page coverage: a report
   // whose representative sample mostly failed to load (1 of 16 pages) cannot
@@ -239,7 +272,11 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   // Fewer than a quarter of a real sample (8+ pages) loaded: the report rests on
   // one or two pages, so it is an indication only (TestLab 23-10: 1 of 16 pages).
   const severelyThinSample = Boolean(sample && sample.selected >= 8 && sample.fetched / sample.selected < 0.25);
-  const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75) || severelyThinSample;
+  // One thin dimension is enough: the headline blends SEO and GEO, so a well
+  // evidenced SEO score must not carry a GEO score built on a few checks.
+  const thinDimensions = (input.dimensions || []).filter((dimension) => dimension.coveragePercent < MIN_DIMENSION_COVERAGE_PERCENT);
+  for (const dimension of thinDimensions) reasons.push(`${dimension.name}-bewijsdekking ${dimension.coveragePercent}% (onder ${MIN_DIMENSION_COVERAGE_PERCENT}%): de ${dimension.name}-score rust op te weinig bevestigde controles`);
+  const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75) || severelyThinSample || thinDimensions.length > 0;
   // An ambiguous primary sector changes which modules apply: never "definitief".
   const sectorAmbiguous = typeof input.sectorConfidence === "number" && input.sectorConfidence > 0 && input.sectorConfidence < 75;
   if (sectorAmbiguous) reasons.push(`Hoofdsector niet eenduidig (zekerheid ${input.sectorConfidence}%)`);
@@ -258,12 +295,14 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
 }
 
 /**
- * What the big headline number shows. With less than 70% of the applicable
- * evidence confirmed (or an "insufficient" evidence level), a single number
- * such as 99 claims more than the scan can support, so the headline becomes
- * the range ("64–99") and the point score moves to the detail line.
+ * What the big headline number shows. Whenever the evidence is not complete
+ * (provisional or insufficient) and the unconfirmed checks really leave room
+ * (low < high), the headline is the range ("82–99") and the point score moves to
+ * the detail line: a single number such as 99 claims more than the scan can
+ * support. Complete evidence, or a range of one value, shows the plain score.
+ * Only presentation changes; the score itself is never recalculated here.
  */
-export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, coveragePercent: number, level: EvidenceLevel) {
-  const asRange = Boolean(range) && (coveragePercent < 70 || level === "insufficient") && range!.low < range!.high;
+export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, _coveragePercent: number, level: EvidenceLevel) {
+  const asRange = Boolean(range) && level !== "complete" && range!.low < range!.high;
   return { numeric: score, kind: asRange ? "range" as const : "score" as const, display: asRange ? `${range!.low}–${range!.high}` : String(score) };
 }

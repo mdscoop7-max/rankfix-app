@@ -1,0 +1,144 @@
+{
+ "group": "restaurants-multilingual",
+ "note": "Horeca IT/FR/ES incl. merk-only homepage met steekproefbewijs; negatieve controles (31 Oct, five-site QA: Rossopomodoro)",
+ "sites": {
+  "pizzarossa.test": {
+   "lang": "it",
+   "title": "PIZZAROSSA",
+   "h1": "",
+   "nav": [
+    "Chi siamo",
+    "Il nostro menu",
+    "Prenota",
+    "Dove siamo",
+    "Ristorazione",
+    "Lavora con noi",
+    "Contatti"
+   ],
+   "navLinks": [
+    "/it/chi-siamo",
+    "/it/menu",
+    "/it/prenota",
+    "/it/dove-siamo",
+    "/it/molino",
+    "/it/lavora",
+    "/it/contatti"
+   ],
+   "body": "<p>Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. </p>",
+   "pages": {
+    "/it/menu": {
+     "title": "Il nostro menu | Pizzarossa",
+     "h1": "Il nostro menu",
+     "body": "<p>Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. </p>"
+    },
+    "/it/molino": {
+     "title": "Rosso Molino, quando la ristorazione diventa destinazione",
+     "h1": "Rosso Molino, quando la ristorazione diventa destinazione",
+     "body": "<p>Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. Pizza napoletana cotta nel forno a legna, ingredienti campani e impasto a lunga lievitazione. </p>"
+    },
+    "/it/chi-siamo": {
+     "title": "Chi siamo | Pizzarossa",
+     "h1": "Pizzeria napoletana dal 1998",
+     "body": "<p>Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. Siamo una catena di pizzerie napoletane con oltre 100 ristoranti in Italia e nel mondo. </p>"
+    },
+    "/it/dove-siamo": {
+     "title": "Dove siamo",
+     "h1": "Dove siamo",
+     "body": "<p>I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. I nostri ristoranti a Napoli, Roma, Milano e Torino. Prenota un tavolo online. </p>"
+    }
+   },
+   "expect": {
+    "sector": "hospitality",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "trattoriamario.test": {
+   "lang": "it",
+   "title": "Trattoria da Mario – Cucina romana a Roma",
+   "desc": "Trattoria tradizionale a Trastevere: cacio e pepe, carbonara e vino della casa. Prenota un tavolo online.",
+   "h1": "Trattoria da Mario",
+   "nav": [
+    "Menu",
+    "Prenota",
+    "Contatti"
+   ],
+   "expect": {
+    "sector": "hospitality",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "creperieduport.test": {
+   "lang": "fr",
+   "title": "Crêperie du Port – Crêpes et galettes à Saint-Malo",
+   "desc": "Crêperie traditionnelle sur le port de Saint-Malo. Galettes de sarrasin, cidre artisanal. Réserver une table en ligne.",
+   "h1": "Crêperie du Port",
+   "nav": [
+    "Notre carte",
+    "Réserver",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "hospitality",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "tabernaelpatio.test": {
+   "lang": "es",
+   "title": "Taberna El Patio | Restaurante de tapas en Sevilla",
+   "desc": "Restaurante de tapas en el centro de Sevilla. Consulta nuestra carta y reservar una mesa online.",
+   "h1": "Restaurante Taberna El Patio",
+   "nav": [
+    "Nuestra carta",
+    "Reservas",
+    "Contacto"
+   ],
+   "expect": {
+    "sector": "hospitality",
+    "shopChecks": "not_applicable"
+   }
+  },
+  "horecaforniture.test": {
+   "lang": "it",
+   "title": "Forniture per la ristorazione | HorecaPro",
+   "desc": "Attrezzature professionali e forniture per la ristorazione: forni, abbattitori e utensili. Consegna in 48 ore.",
+   "h1": "Forniture per la ristorazione",
+   "nav": [
+    "Forni",
+    "Abbattitori",
+    "Utensili",
+    "Carrello"
+   ],
+   "expect": {
+    "notSector": "hospitality"
+   }
+  },
+  "ricettepizza.test": {
+   "lang": "it",
+   "title": "Ricette di pizza fatta in casa | Blog di cucina",
+   "desc": "Le migliori ricette per la pizza fatta in casa: impasto, lievitazione e cottura nel forno di casa.",
+   "h1": "Ricette di pizza",
+   "nav": [
+    "Ricette",
+    "Impasti",
+    "Chi sono"
+   ],
+   "expect": {
+    "notSector": "hospitality"
+   }
+  },
+  "ateliermeubles.test": {
+   "lang": "fr",
+   "title": "Restauration de meubles anciens | Atelier Martin",
+   "desc": "Atelier de restauration et d'ébénisterie à Lyon : restauration de meubles anciens et vernis au tampon.",
+   "h1": "Restauration de meubles anciens",
+   "nav": [
+    "Services",
+    "Atelier",
+    "Contact"
+   ],
+   "expect": {
+    "notSector": "hospitality"
+   }
+  }
+ }
+}

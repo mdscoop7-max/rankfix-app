@@ -1,0 +1,58 @@
+{
+ "group": "airlines",
+ "note": "Luchtvaartmaatschappijen (Croatia Airlines e.a.)",
+ "sites": {
+  "croatiaairlines.test": {
+   "lang": "en",
+   "title": "Croatia Airlines | Book cheap flights",
+   "desc": "Book flights to and from Croatia with Croatia Airlines. Check in online, manage your booking and discover our destinations.",
+   "h1": "Fly with Croatia Airlines",
+   "nav": [
+    "Book",
+    "Manage booking",
+    "Check-in",
+    "Destinations",
+    "Help"
+   ],
+   "expect": {
+    "sector": "transport_travel",
+    "shopChecks": "not_applicable",
+    "schemaType": "Airline"
+   }
+  },
+  "klm.test": {
+   "title": "KLM | Boek goedkope vliegtickets",
+   "desc": "Boek je vlucht bij KLM Royal Dutch Airlines. Online inchecken, je boeking beheren en vliegen naar meer dan 160 bestemmingen.",
+   "h1": "Waar wil je naartoe?",
+   "nav": [
+    "Boeken",
+    "Mijn reis",
+    "Inchecken",
+    "Bestemmingen",
+    "Klantenservice"
+   ],
+   "expect": {
+    "sector": "transport_travel",
+    "shopChecks": "not_applicable",
+    "schemaType": "Airline"
+   }
+  },
+  "transavia.test": {
+   "title": "Transavia | Goedkope vliegtickets naar de zon",
+   "desc": "Vlieg voordelig met Transavia naar zonnige bestemmingen in Europa. Boek je vliegticket, stoel en bagage online.",
+   "h1": "Goedkope vliegtickets",
+   "nav": [
+    "Vluchten",
+    "Bestemmingen",
+    "Mijn boeking",
+    "Inchecken",
+    "Service"
+   ],
+   "expect": {
+    "sector": "transport_travel",
+    "shopChecks": "not_applicable",
+    "schemaType": "Airline"
+   }
+  }
+ }
+}

@@ -140,6 +140,13 @@ test("HTTP status matrix: homepage, sampled pages and internal links", { timeout
   assert.equal(r.failed, 0, r.log);
 });
 
+// fresh144: missing JSON-LD is only a warning when its absence is proven; a tag
+// manager without a render leaves it unconfirmed and costs no points.
+test("JSON-LD evidence: absence is proven only without a possible client-side injector", { timeout: 300000 }, () => {
+  const r = run("run-jsonld-evidence.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {
@@ -180,6 +187,24 @@ for (const [label, fixture, minimum, blocked, labelDisputes = []] of [
 test("QA 144: blocked homepage → incident + alternative start; accessible subpage → partial report with blocked homepage registered", () => {
   const r = run("run-blocked-homepage.mjs");
   assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("P1 (31 Oct): a refusal page received by the browser after HTTP 403 is never scored (NL/EN/DE/FR/IT/ES); a real recovered homepage still is", () => {
+  const r = run("run-refusal-recovery.mjs");
+  assert.equal(r.total, 7);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("P7 (31 Oct): language/variant copies never re-enter the sample via the product hunt; fee pages of a payment provider do not start it", () => {
+  const r = run("run-sample-locale-dedupe.mjs");
+  assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("P5 phase 2 (1 Nov): browser probe preserves JSON-LD evidence, records failures and distinguishes www redirects from different pages", () => {
+  const r = run("run-structured-data-probe.mjs");
+  assert.equal(r.total, 25);
   assert.equal(r.failed, 0, r.log);
 });
 

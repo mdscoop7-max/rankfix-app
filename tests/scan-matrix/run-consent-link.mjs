@@ -1,0 +1,9 @@
+const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
+const mk=(links)=>`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Nieuws Voorbeeld | Het laatste nieuws</title><meta name="description" content="Het laatste nieuws uit binnenland en buitenland, sport en economie."></head><body><h1>Nieuws</h1><p>${"Het laatste nieuws van vandaag. ".repeat(40)}</p><footer>${links}<a href="/redactie.html">Contact met de redactie</a></footer></body></html>`;
+const S={"a.test":mk(`<a href="/?modal=cookie-instellingen">Privacy-instellingen</a>`),"b.test":mk(`<a href="/privacy">Privacyverklaring</a><a href="/?modal=cookie-instellingen">Privacy-instellingen</a>`)};
+globalThis.fetch=async(i)=>{const u=new URL(typeof i==="string"?i:i.url);return S[u.host]&&u.pathname==="/"?new Response(S[u.host],{status:200,headers:{"content-type":"text/html"}}):new Response("nf",{status:404})};
+globalThis.__RF_RENDER=async()=>{throw new Error("no")};
+const {POST}=await import(ROOT+"/app/api/scan/route.ts"); console.info=()=>{};console.warn=()=>{};console.error=()=>{};
+const got={};for(const h of Object.keys(S)){const j=await(await POST(new Request("http://localhost/api/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({url:`https://${h}/`,mode:"both",language:"nl"})}))).json();const c=[...j.seo.checks].find(x=>x.key==="trust_legal_signals");got[h]=c;}
+const problems=[];if(/privacy: "Privacy-instellingen"/.test(got["a.test"].message)||got["a.test"].status==="pass")problems.push("consent settings link counted as privacy policy: "+got["a.test"].message);if(!/privacy: "Privacyverklaring"/.test(got["b.test"].message))problems.push("real privacy link not found: "+got["b.test"].message);for(const p of problems)console.log(" - "+p);console.log("SCAN_MATRIX_RESULT "+JSON.stringify({total:2,failed:problems.length}));
+process.exit(0);

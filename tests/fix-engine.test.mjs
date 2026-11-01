@@ -31,11 +31,13 @@ test("standing consent is bound to the repository and branch it was given for", 
 const base = () => ({
   pr: { state: "open", merged: false, mergeable: true, mergeable_state: "clean", head: { sha: "h1", ref: "rankfix/x" }, base: { ref: "main" } },
   files: [{ filename: "templates/index.html", additions: 1, deletions: 1, status: "modified" }],
-  checkRuns: [], combinedState: "pending", combinedCount: 0,
+  // P0 (31 Oct): CI evidence is mandatory. Before, an empty check list with
+  // "pending/0" was treated as SAFE (merge without any CI).
+  ci: { verdict: "ok", code: "CI_GREEN" },
   expected: { branch: "rankfix/x", baseBranch: "main", path: "templates/index.html", headSha: "h1", baseBlobSha: "b1" },
   baseFileSha: "b1",
 });
-test("merge safety: merges only a clean, single-file, small, unchanged PR with green checks", () => {
+test("merge safety: merges only a clean, single-file, small, unchanged PR with proven green CI", () => {
   assert.deepEqual(E.evaluateMergeSafety(base()), { decision: "merge", code: "SAFE" });
   const cases = [
     [(x) => { x.pr.merged = true; }, "merged", "MERGED"],
@@ -47,10 +49,16 @@ test("merge safety: merges only a clean, single-file, small, unchanged PR with g
     [(x) => { x.files[0].filename = "other.html"; }, "block", "UNEXPECTED_FILES"],
     [(x) => { x.files[0].additions = 40; }, "block", "DIFF_TOO_LARGE"],
     [(x) => { x.baseFileSha = "b2"; }, "block", "STALE_BASE"],
-    [(x) => { x.checkRuns = [{ status: "completed", conclusion: "failure" }]; }, "block", "CHECKS_FAILED"],
-    [(x) => { x.combinedState = "failure"; x.combinedCount = 1; }, "block", "CHECKS_FAILED"],
-    [(x) => { x.checkRuns = [{ status: "in_progress", conclusion: null }]; }, "wait", "CHECKS_PENDING"],
-    [(x) => { x.combinedCount = 2; }, "wait", "CHECKS_PENDING"],
+    [(x) => { x.ci = { verdict: "failed", code: "CHECKS_FAILED" }; }, "block", "CHECKS_FAILED"],
+    [(x) => { x.ci = { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL" }; }, "block", "REQUIRED_CHECK_NOT_SUCCESSFUL"],
+    [(x) => { x.ci = { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" }; }, "block", "REQUIRED_CHECKS_UNDEFINED"],
+    [(x) => { x.ci = { verdict: "pending", code: "CHECKS_PENDING" }; }, "wait", "CHECKS_PENDING"],
+    [(x) => { x.ci = { verdict: "unavailable", code: "CI_UNAVAILABLE" }; }, "wait", "CI_UNAVAILABLE"],
+    [(x) => { x.ci = undefined; }, "block", "CI_UNAVAILABLE"],
+    [(x) => { x.expected.headSha = null; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.expected.baseBlobSha = null; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.pr.head.sha = ""; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.baseFileSha = null; }, "wait", "BASE_UNAVAILABLE"],
     [(x) => { x.pr.mergeable = null; }, "wait", "MERGEABILITY_PENDING"],
     [(x) => { x.pr.mergeable = false; }, "block", "MERGE_CONFLICT"],
     [(x) => { x.pr.mergeable_state = "blocked"; }, "block", "BRANCH_PROTECTED"],
@@ -132,12 +140,21 @@ function memoryDb(row) {
 }
 
 test("advance: GitHub outage keeps the state and records a clear code (no crash, no transition)", async () => {
-  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, phase_started_at: new Date() };
+  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, head_sha: "h1", base_blob_sha: "b1", phase_started_at: new Date() };
   const db = memoryDb(row);
   const err = Object.assign(new Error("Service Unavailable"), { status: 503 });
   await E.advanceFix({ db, github: async () => { throw err; }, probe: async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" }) }, row);
   assert.equal(row.status, "AWAITING_MERGE");
   assert.equal(row.last_error_code, "GITHUB_UNAVAILABLE");
+});
+
+test("advance: a legacy fix without the approved SHA evidence is never merged", async () => {
+  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, phase_started_at: new Date() };
+  const calls = [];
+  await E.advanceFix({ db: memoryDb(row), github: async (path, init = {}) => { calls.push((init.method || "GET") + " " + path); return {}; }, probe: async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" }) }, row);
+  assert.equal(row.status, "NEEDS_ATTENTION");
+  assert.equal(row.last_error_code, "EVIDENCE_MISSING");
+  assert.equal(calls.some((c) => c.startsWith("PUT")), false);
 });
 
 test("advance: missing GitHub connection is reported, not merged", async () => {
@@ -342,3 +359,6 @@ test("QA public metadata preview routes missing evidence to secure Fix instead o
  assert.match(ui,/echte paginatekst in je gekoppelde bronbestand/);
  assert.match(ui,/createGithubFix\(item\)/);
 });
+
+// P0/P1 merge-safety tests (CI evidence, trusted policy, final re-check, SHA/content
+// binding) live in tests/autofix-merge-safety.test.mjs.
