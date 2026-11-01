@@ -48,7 +48,7 @@ import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isGenericBrandTitle, invisibleTitleCharacters, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, sampleIdentityKey, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, hasProductOffer, shopWordingApplies } from "@/lib/commerce-applicability";
+import { COMMERCE_APPLICABILITY_COPY, hasTransportRetailChain, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, hasProductOffer, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -94,6 +94,7 @@ const editorialLinkPath = (url: string) => {
   return /\/(?:nieuws|news|artikel(?:en)?|articles?|blog|blogs|magazine|verhalen|stories|story|cases?|klanten|clients|customers|referenties|sectoren|sector|industries|industry|branchen|nachrichten|actualites|actualit[eé]s|noticias|notizie)(?:\/|$)/iu.test(path)
     || /\/\d{5,}(?:[\/-]|$)/.test(path);
 };
+const PASSENGER_CARRIER_KEYS = /^(?:passenger_transport|airline|airports|public_transport)$/;
 const unionPattern = (a: RegExp, b: RegExp) => new RegExp(`(?:${a.source})|(?:${b.source})`, "iu");
 
 export const maxDuration = 300;
@@ -6222,7 +6223,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
     const pricedServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
-    const transportServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && (sectorProfile.sector === "transport_travel" || /^(?:passenger_transport|airline|airports|public_transport)$/.test(String(sectorProfile.key || "")));
+    // Passenger carriers only (rail, air, public transport); logistics and postal
+    // operators in the same broad sector keep the general retail rule.
+    const transportServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && PASSENGER_CARRIER_KEYS.test(String(sectorProfile.key || ""));
+    // P5 re-run (NS): an events list (ItemList + priced links) and a priced
+    // service page (OV-fiets, Product schema) both counted as "confirmed retail
+    // samples". For a passenger carrier only pages with an actual purchase chain
+    // (add-to-cart / buy action on a product with its own product data) prove a
+    // separate webshop (one such page suffices); listings and service prices never do.
+    const transportRetailChainPages = auditedMultiPages.filter((item)=>item.status==="audited" && hasTransportRetailChain(item.commerceEvidence)).length;
     const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
@@ -6240,7 +6249,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // shop. A secondary webshop then needs confirmed shop function (cart /
       // add-to-cart chain) on at least two sampled pages.
       verifiedSecondaryCommerce: transportServiceIdentity
-        ? sitewideCommerceEvidence.sampleCount >= 2 && pricedServiceRetailProof
+        ? transportRetailChainPages >= 1 && pricedServiceRetailProof
         : pricedServiceIdentity
         ? pricedServiceRetailProof
         : Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
@@ -6912,7 +6921,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // All fetched pages: the template-deduplicated set keeps one category page.
       const retailCategoryPages = reportedMultiPageAudits.filter((item) => item.status === "audited" && item.type === "category" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer
         && (item.commerceEvidence?.productSchema || item.commerceEvidence?.itemListSchema) && (item.commerceEvidence?.priceSignals || 0) >= 3);
-      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && (retailProductPages.length > 0 || retailCategoryPages.length >= 2)) {
+      // Same rule as the commerce gate: a carrier's priced service pages are the
+      // service itself; online retail needs a sampled page with a purchase chain.
+      const transportCarrier = PASSENGER_CARRIER_KEYS.test(String(sectorProfile.key || ""));
+      const retailEvidenceHolds = transportCarrier
+        ? retailProductPages.filter((item) => hasTransportRetailChain(item.commerceEvidence)).length >= 1
+        : (retailProductPages.length > 0 || retailCategoryPages.length >= 2);
+      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && retailEvidenceHolds) {
         const pages = [...retailProductPages, ...retailCategoryPages];
         addSecondary("ecommerce", "Online verkoop van producten", retailProductPages.length > 0
           ? `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`

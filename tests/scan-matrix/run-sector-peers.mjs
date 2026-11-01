@@ -60,6 +60,7 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.rdfaType && !(j.structuredDataEvidence?.rdfa?.types || []).includes(e.rdfaType)) problems.push(`${host}: rdfa types ${JSON.stringify(j.structuredDataEvidence?.rdfa)}`);
   if (e.noAbsenceClaim && /Geen (?:geldige JSON-LD )?structured data gevonden/.test(geoCheck("schema")?.message || "")) problems.push(`${host}: claims missing structured data although ${JSON.stringify(j.structuredDataEvidence)}`);
   if (e.orgDeductedOnce && geoCheck("organization_website")?.status === "warning" && !/telt één keer/.test(geoCheck("organization_website")?.message || "")) problems.push(`${host}: organization_website deduction not linked to the shared cause`);
+  if (e.commerceNot && j.commerceApplicability?.state === e.commerceNot) problems.push(`${host}: commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}; samples ${JSON.stringify(j.sitewideCommerceEvidence?.evidence || j.evidenceLayer?.sitewideCommerceEvidence?.evidence || null)?.slice(0, 300)}`);
   if (e.notClassType && classType === e.notClassType) problems.push(`${host}: classification ${classType}`);
   if (e.notSector && r.sector === e.notSector) problems.push(`${host}: must not be sector ${e.notSector}`);
   if (e.notKey && r.key === e.notKey) problems.push(`${host}: must not be ${e.notKey}`);

@@ -1,6 +1,6 @@
 {
  "group": "p5-consistency",
- "note": "P5 (1 Nov): eigen identiteit vs redactionele inhoud, boeking als secundaire functie, vervoersdienst vs webshop",
+ "note": "P5 (1 Nov): eigen identiteit vs redactionele inhoud, boeking als secundaire functie, vervoersdienst vs webshop | veerdienst-shop: sector wordt (al vóór deze wijziging) ecommerce door de webshop-zelfomschrijving; hier alleen gecontroleerd dat de webshop actief blijft",
  "sites": {
   "nieuwssite.test": {
    "lang": "nl",
@@ -90,21 +90,28 @@
     "Kaartjes",
     "Abonnementen",
     "OV-fiets",
+    "Dagje uit",
     "Klantenservice"
    ],
    "navLinks": [
     "/reisplanner",
     "/kaartjes",
     "/abonnementen",
-    "/ov-fiets",
+    "/producten/deur-tot-deur/ov-fiets",
+    "/dagje-uit/evenementen/lichtfestivals",
     "/klantenservice"
    ],
    "body": "<p>Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. </p>",
    "pages": {
-    "/ov-fiets": {
+    "/producten/deur-tot-deur/ov-fiets": {
      "title": "OV-fiets huren | Spoorwegen",
      "h1": "OV-fiets",
-     "body": "<p>Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"OV-fiets\",\"offers\":{\"@type\":\"Offer\",\"price\":\"4.75\",\"priceCurrency\":\"EUR\"}}</script><span class=\"price\">€ 4,75</span><a href=\"/ov-fiets/aanvragen\">Direct aanvragen</a>"
+     "body": "<p>Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. </p><script type=\"application/ld+json\">[{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\",\"mainEntity\":[{\"@type\":\"Question\",\"name\":\"Wat kost een OV-fiets?\",\"acceptedAnswer\":{\"@type\":\"Answer\",\"text\":\"4,75 euro per 24 uur.\"}}]},{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"OV-fiets\",\"offers\":{\"@type\":\"Offer\",\"price\":\"4.75\",\"priceCurrency\":\"EUR\"}}]</script><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/ov-fiets-dag\">ov-fiets-dag</a><span class=\"price\">€ 4,75</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/ov-e-bike\">ov-e-bike</a><span class=\"price\">€ 9,50</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/abonnement-fiets\">abonnement-fiets</a><span class=\"price\">€ 3,00</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/groepsfiets\">groepsfiets</a><span class=\"price\">€ 15,00</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/extra-dag\">extra-dag</a><span class=\"price\">€ 4,75</span></div>"
+    },
+    "/dagje-uit/evenementen/lichtfestivals": {
+     "title": "Lichtfestivals met de trein | Spoorwegen",
+     "h1": "Lichtfestivals",
+     "body": "<p>Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"ItemList\",\"itemListElement\":[{\"@type\":\"ListItem\",\"position\":1,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/a\"},{\"@type\":\"ListItem\",\"position\":2,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/b\"},{\"@type\":\"ListItem\",\"position\":3,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/c\"}]}</script><div class=\"product\"><a href=\"/producten/dagje-uit/glow-eindhoven\">glow-eindhoven</a><span class=\"price\">€ 12,50</span></div><div class=\"product\"><a href=\"/producten/dagje-uit/amsterdam-light\">amsterdam-light</a><span class=\"price\">€ 19,00</span></div><div class=\"product\"><a href=\"/producten/dagje-uit/lichtjesroute\">lichtjesroute</a><span class=\"price\">€ 9,00</span></div>"
     },
     "/kaartjes": {
      "title": "Kaartjes kopen | Spoorwegen",
@@ -114,7 +121,8 @@
    },
    "expect": {
     "sector": "transport_travel",
-    "notShopUnconfirmed": true
+    "notShopUnconfirmed": true,
+    "commerceNot": "unconfirmed"
    }
   },
   "microdata-bureau.test": {
@@ -181,6 +189,81 @@
     "schemaStatus": "warning",
     "orgStatus": "warning",
     "orgDeductedOnce": true
+   }
+  },
+  "spoorshop.test": {
+   "lang": "nl",
+   "title": "Spoorlijn Oost – Reisplanner, kaartjes en de Spoorshop",
+   "desc": "Plan je reis, koop treinkaartjes en bestel modeltreinen en merchandise in de Spoorshop.",
+   "h1": "Reizen met Spoorlijn Oost",
+   "nav": [
+    "Reisplanner",
+    "Kaartjes",
+    "Spoorshop",
+    "Modeltrein",
+    "Mok",
+    "Winkelwagen"
+   ],
+   "navLinks": [
+    "/reisplanner",
+    "/kaartjes",
+    "/shop",
+    "/shop/modeltrein",
+    "/shop/mok",
+    "/winkelwagen"
+   ],
+   "body": "<p>Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. </p>",
+   "pages": {
+    "/shop/modeltrein": {
+     "title": "Modeltrein Koploper | Spoorwegen Shop",
+     "h1": "Modeltrein Koploper",
+     "body": "<p>Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Modeltrein Koploper\",\"sku\":\"SKU-89.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"89.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 89.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "/shop/mok": {
+     "title": "Mok Spoorlijn Oost | Spoorwegen Shop",
+     "h1": "Mok Spoorlijn Oost",
+     "body": "<p>Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Mok Spoorlijn Oost\",\"sku\":\"SKU-12.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"12.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 12.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    }
+   },
+   "expect": {
+    "sector": "transport_travel",
+    "commerceNot": "absent"
+   }
+  },
+  "veerdienst-shop.test": {
+   "lang": "nl",
+   "title": "Veerdienst Wadden – Overtocht boeken en souvenirs",
+   "desc": "Boek je overtocht met de veerboot naar de Wadden. Souvenirs bestel je in onze webshop.",
+   "h1": "Veerdienst Wadden",
+   "nav": [
+    "Overtocht boeken",
+    "Dienstregeling",
+    "Souvenir 1",
+    "Souvenir 2",
+    "Klantenservice"
+   ],
+   "navLinks": [
+    "/boeken",
+    "/dienstregeling",
+    "/shop/modeltrein",
+    "/shop/mok",
+    "/klantenservice"
+   ],
+   "body": "<p>Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. </p>",
+   "pages": {
+    "/shop/modeltrein": {
+     "title": "Modeltrein Koploper | Spoorwegen Shop",
+     "h1": "Modeltrein Koploper",
+     "body": "<p>Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Modeltrein Koploper\",\"sku\":\"SKU-89.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"89.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 89.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "/shop/mok": {
+     "title": "Mok Spoorlijn Oost | Spoorwegen Shop",
+     "h1": "Mok Spoorlijn Oost",
+     "body": "<p>Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Mok Spoorlijn Oost\",\"sku\":\"SKU-12.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"12.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 12.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    }
+   },
+   "expect": {
+    "commerceNot": "absent"
    }
   }
  }

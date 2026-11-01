@@ -30,3 +30,16 @@ test('real checkout destinations and cart controls remain recognised across plat
   assert.equal(purchaseActionInHtml('<form action="/checkout/cart/add"><button>Add to cart</button></form>'), true);
   assert.equal(purchaseActionInHtml('<form action="/checkout/cart/add"><button>Offerte aanvragen</button></form>'), false);
 });
+
+test("P5 NS (real audit 7ee6ad5): carrier service pages are not a separate webshop; a purchase chain is", async () => {
+  const { hasTransportRetailChain, commerceApplicability } = await import("../lib/commerce-applicability.ts");
+  // The two 'confirmed retail samples' from the real ns.nl audit of 7ee6ad5.
+  const nsEvents = { type: "event", productSchema: false, itemListSchema: true, storeSchema: false, strongCommerceAction: false, repeatedProductLinks: true, priceSignals: 3 };
+  const nsOvFiets = { type: "product", productSchema: true, itemListSchema: false, storeSchema: false, strongCommerceAction: false, repeatedProductLinks: true, priceSignals: 5 };
+  assert.equal(hasTransportRetailChain(nsEvents), false);
+  assert.equal(hasTransportRetailChain(nsOvFiets), false);
+  assert.equal(hasTransportRetailChain({ productSchema: true, strongCommerceAction: true }), true);
+  const verifiedSecondaryCommerce = [nsEvents, nsOvFiets].filter(hasTransportRetailChain).length >= 1;
+  const state = commerceApplicability({ confirmed: false, primaryNonCommerceIdentity: true, commerceHints: true, thinShell: false, marketSelector: false, auditedRepresentativePages: 14, verifiedSecondaryCommerce });
+  assert.deepEqual(state, { state: "absent", reason: "service_identity" });
+});

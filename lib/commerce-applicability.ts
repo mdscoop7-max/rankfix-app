@@ -148,3 +148,15 @@ export function hasProductOffer(evidence: { product?: { price?: string | null; c
   const p = evidence.product;
   return Boolean((p?.price && p?.currency) || p?.availability || (evidence.priceSignals || 0) > 0 || evidence.strongCommerceAction);
 }
+
+/**
+ * P5 (NS): for a passenger carrier, a sampled page proves a separate webshop
+ * (one such page is enough)
+ * only with a retail purchase chain in its own markup: a purchase action (add to
+ * cart / buy) on a product with its own Product data. An events list (ItemList +
+ * priced links) or a priced service page (OV-fiets with Product schema but no
+ * purchase action) is the transport service itself.
+ */
+export function hasTransportRetailChain(evidence?: { strongCommerceAction?: boolean; productSchema?: boolean; financialOffer?: boolean } | null): boolean {
+  return Boolean(evidence?.strongCommerceAction && evidence?.productSchema && !evidence?.financialOffer);
+}
