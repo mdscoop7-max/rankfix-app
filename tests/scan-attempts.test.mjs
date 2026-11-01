@@ -12,6 +12,7 @@ test("failed scans get a stable cause category", () => {
   assert.equal(classifyScanOutcome(422, "HTTP_BLOCKED"), "site_blocked");
   assert.equal(classifyScanOutcome(422, "CHALLENGE_OR_INTERSTITIAL"), "site_blocked");
   assert.equal(classifyScanOutcome(422, "HTTP_NOT_FOUND"), "site_unavailable");
+  assert.equal(classifyScanOutcome(422, "UNVERIFIED_NOT_FOUND"), "site_blocked");
   assert.equal(classifyScanOutcome(502, "FETCH_TIMEOUT"), "network");
   assert.equal(classifyScanOutcome(502, "REDIRECT_LIMIT"), "network");
   assert.equal(classifyScanOutcome(500, "SCAN_HISTORY_SAVE_FAILED"), "save_failed");

@@ -33,7 +33,10 @@ globalThis.fetch = async (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const html = (b, st = 200, h = {}) => new Response(b, { status: st, headers: { "content-type": "text/html; charset=utf-8", ...h } });
   if (u.host === "ok.test") return u.pathname === "/" ? html(page("Adviesbureau Test")) : html(page("Contact"), u.pathname === "/robots.txt" ? 404 : 200);
-  if (u.host === "missing.test") return html("not found", 404);
+  // Confirmed root 404 needs the site's own explicit not-found template.
+  // Keep the old ambiguous body as a SEPARATE negative-control case below.
+  if (u.host === "missing.test") return html("<html><head><title>Pagina niet gevonden</title></head><body><h1>404 - Pagina niet gevonden</h1><p>Deze pagina bestaat niet meer.</p></body></html>", 404);
+  if (u.host === "unverified-missing.test") return html("not found", 404);
   if (u.host === "blocked.test") return html("<html><head><title>Access denied</title></head><body>Access denied</body></html>", 403);
   if (u.host === "slow.test") { const e = new Error("This operation was aborted"); e.name = "AbortError"; throw e; }
   // Consent redirect loop that only ends when the cookie is sent back.
@@ -52,6 +55,8 @@ const run = async (url) => { const restore = quiet(); try { const r = await POST
 const cases = [
   { url: "https://ok.test/", status: 200, outcome: "success", category: "success" },
   { url: "https://missing.test/", status: 422, outcome: "failed", category: "site_unavailable", code: "HTTP_NOT_FOUND" },
+  { url: "https://missing.test/deep/page", status: 422, outcome: "failed", category: "site_unavailable", code: "HTTP_NOT_FOUND" },
+  { url: "https://unverified-missing.test/", status: 422, outcome: "failed", category: "site_blocked", code: "UNVERIFIED_NOT_FOUND" },
   { url: "https://blocked.test/", status: 422, outcome: "failed", category: "site_blocked", code: "HTTP_BLOCKED" },
   { url: "https://slow.test/", status: 502, outcome: "failed", category: "network", code: "FETCH_TIMEOUT" },
   { url: "nonsense url with spaces", status: 400, outcome: "failed", category: "input" },
@@ -59,6 +64,9 @@ const cases = [
 for (const c of cases) {
   const r = await run(c.url);
   check(r.status === c.status, `${c.url}: HTTP ${r.status} (expected ${c.status}) ${JSON.stringify(r.body).slice(0, 200)}`);
+  if(c.code) check(r.body.code===c.code, `${c.url}: response code ${r.body.code} (expected ${c.code})`);
+  if(c.status!==200) check(r.body.overallScore==null && r.body.success!==true, `${c.url}: failed/unverified attempt must not receive a score`);
+  if(c.code==="HTTP_NOT_FOUND"||c.code==="UNVERIFIED_NOT_FOUND") check(r.body.charged===false, `${c.url}: missing/unverified attempt must not be charged`);
 }
 // The cookie redirect site: the engine must reach the page (cookie jar), whatever its score.
 const cookieRun = await run("https://cookie.test/");
