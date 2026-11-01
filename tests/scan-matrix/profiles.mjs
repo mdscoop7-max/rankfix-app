@@ -183,6 +183,9 @@ export const PROFILES = [
   { id: "shop-integrity-clean", host: "integriteit-ok.test", path: "/product/leren-tas/", expect: ["ecommerce"], page: "product", commerce: true,
     absentChecks: ["test_content", "order_button", "review_claims"],
     raw: productPage("Leren tas", 79) },
+  // Remedies must fit the sector: physiotherapy never gets hairdresser/beauty advice (QA 2 nov 2026).
+  { id: "physio-no-hair-advice", host: "fysio-praktijk.test", expect: ["health_wellness"], notExpect: ["beauty"], noMessage: { schema: /Hairdresser|BeautySalon|kapper|HairSalon/i },
+    home: { title: "Fysiotherapie Centrum | Manuele therapie en sportfysiotherapie", desc: "Fysiotherapeuten voor klachten aan rug, nek en schouder. Maak een afspraak voor behandeling.", h1: "Fysiotherapie in de buurt", body: "<p>Behandeling, manuele therapie, afspraak maken. Vergoed vanuit aanvullende verzekering.</p>", links: [["/afspraak", "Afspraak maken"], ["/behandelingen", "Behandelingen"]] } },
   { id: "charity-nl", host: "goeddoel.test", expect: ["nonprofit"], home: { title: "Stichting Help – goed doel voor kinderen", desc: "Doneer en steun ons werk. ANBI-erkend.", h1: "Stichting Help", body: "<p>Doneren, vrijwilliger worden, missie.</p>", lds: [org("Stichting Help", "NGO")] } },
   { id: "energy-nl", host: "energie.test", expect: ["energy_utilities"], home: { title: "Groene stroom en gas | Energieleverancier Zon", desc: "Energiecontract afsluiten met vaste tarieven. Bereken je kosten.", h1: "Energieleverancier Zon", body: "<p>Tarieven per kWh, terugleveren, meterstand.</p>" } },
   { id: "museum-nl", host: "museum.test", expect: ["events_culture"], home: { title: "Museum Kunst – tentoonstellingen en tickets", desc: "Bekijk de tentoonstellingen en koop tickets online.", h1: "Museum Kunst", body: "<p>Openingstijden, programma, tickets € 15.</p>", lds: [org("Museum", "Museum")] } },

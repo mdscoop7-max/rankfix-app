@@ -1280,6 +1280,12 @@ async function runScan(request: Request) {
 
     const localSchemaCandidates = [
       { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
+      // Healthcare first: a physiotherapy or clinic page must never get hairdresser/beauty advice.
+      { type: "Physiotherapy", pattern: /\b(fysio(?:therap\w*)?|physio(?:therap\w*)?|manuele therapie|kinesist|kine|osteopa\w*|chiropract\w*|fisioterap\w*|physiotherapie|kinésithérapeute)\b/i },
+      { type: "MedicalClinic", pattern: /\b(huisarts\w*|medisch centrum|gezondheidscentrum|kliniek|clinic|polikliniek|praktijk voor|psycholog\w*|diëtist\w*|logopedist\w*|podotherap\w*|ergotherap\w*)\b/i },
+      { type: "Pharmacy", pattern: /\b(apotheek|pharmacy|apotheke|pharmacie|farmacia)\b/i },
+      { type: "VeterinaryCare", pattern: /\b(dierenarts\w*|veterinar\w*|dierenkliniek|tierarzt)\b/i },
+      { type: "ExerciseGym", pattern: /\b(sportschool|fitnesscentrum|fitness club|gym|crossfit|personal trainer|yogastudio|pilates studio)\b/i },
       { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
       { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde|mondzorg|orthodontist)\b/i },
       { type: "Electrician", pattern: /\b(electrician|elektricien|elektro|elektrotechniek|installatietechniek)\b/i },
