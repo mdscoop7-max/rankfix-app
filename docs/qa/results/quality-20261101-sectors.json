@@ -1,0 +1,178 @@
+{
+  "baselineCommit": "1d7d753deabf4e31d49fb420b56243881fecc54c",
+  "kind": "offline_fixed_input_comparison",
+  "independentRealQualityScore": null,
+  "liveScans": 0,
+  "development": {
+    "baseline": {
+      "total": 39,
+      "correctCases": 36,
+      "failedAssertions": 5,
+      "problems": [
+        "portuguese-pay.test: sector saas_b2b/saas_b2b, expected financial_services",
+        "portuguese-pay.test: subtype saas_b2b, expected financial_payments",
+        "polish-pay.test: sector unknown/unknown, expected financial_services",
+        "polish-pay.test: subtype unknown, expected financial_payments",
+        "software-for-hotels.test: sector hospitality/hotel, expected saas_b2b"
+      ],
+      "fixtureSha256": "7b2bafbb4e2c40f98febe76fa6e40d87e970cb3acb058a31f348d0af8ff081b2"
+    },
+    "candidate": {
+      "total": 39,
+      "correctCases": 39,
+      "failedAssertions": 0,
+      "problems": [],
+      "fixtureSha256": "7b2bafbb4e2c40f98febe76fa6e40d87e970cb3acb058a31f348d0af8ff081b2"
+    }
+  },
+  "syntheticValidation": {
+    "baseline": {
+      "total": 13,
+      "correctCases": 11,
+      "failedAssertions": 3,
+      "problems": [
+        "unseen-payments.test: sector unknown/unknown, expected financial_services",
+        "unseen-payments.test: subtype unknown, expected financial_payments",
+        "unseen-negative-control.test: sector hospitality/restaurant, expected saas_b2b"
+      ],
+      "fixtureSha256": "bb518a88575428bc7c4c7bfa1eada6374851723ebf821999eb4f68b8948597bd"
+    },
+    "candidate": {
+      "total": 13,
+      "correctCases": 12,
+      "failedAssertions": 2,
+      "problems": [
+        "unseen-payments.test: sector unknown/unknown, expected financial_services",
+        "unseen-payments.test: subtype unknown, expected financial_payments"
+      ],
+      "fixtureSha256": "bb518a88575428bc7c4c7bfa1eada6374851723ebf821999eb4f68b8948597bd"
+    },
+    "independentRealEvidence": false,
+    "tunedAfterOpeningResults": false
+  },
+  "existingMatrices": {
+    "sectorPeers": {
+      "baseline": {
+        "cases": 41,
+        "failed": 0
+      },
+      "candidate": {
+        "cases": 41,
+        "failed": 0
+      }
+    },
+    "broadMatrix": {
+      "baseline": {
+        "cases": 142,
+        "failed": 0
+      },
+      "candidate": {
+        "cases": 142,
+        "failed": 0
+      }
+    }
+  },
+  "storedReferenceReplays": {
+    "baseline": [
+      {
+        "host": "mollie.com",
+        "expected": "payments",
+        "status": 200,
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "verdict": "compatible",
+        "liveOld": "financial_services",
+        "code": null,
+        "score": 96,
+        "confidence": 96,
+        "secondary": [
+          "ecommerce"
+        ]
+      },
+      {
+        "host": "philips.com",
+        "expected": "manufacturing_industrial",
+        "status": 200,
+        "sector": "manufacturing_industrial",
+        "key": "brand_manufacturer",
+        "verdict": "compatible",
+        "liveOld": "ecommerce",
+        "code": null,
+        "score": 83,
+        "confidence": 76,
+        "secondary": [
+          "ecommerce"
+        ]
+      },
+      {
+        "host": "all.accor.com",
+        "expected": "hospitality",
+        "status": 200,
+        "sector": "unknown",
+        "key": "unknown",
+        "verdict": "unknown",
+        "liveOld": "unknown",
+        "code": null,
+        "score": 72,
+        "confidence": 0,
+        "secondary": []
+      }
+    ],
+    "candidate": [
+      {
+        "host": "mollie.com",
+        "expected": "payments",
+        "status": 200,
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "verdict": "compatible",
+        "liveOld": "financial_services",
+        "code": null,
+        "score": 96,
+        "confidence": 96,
+        "secondary": [
+          "ecommerce"
+        ]
+      },
+      {
+        "host": "philips.com",
+        "expected": "manufacturing_industrial",
+        "status": 200,
+        "sector": "manufacturing_industrial",
+        "key": "brand_manufacturer",
+        "verdict": "compatible",
+        "liveOld": "ecommerce",
+        "code": null,
+        "score": 83,
+        "confidence": 76,
+        "secondary": [
+          "ecommerce"
+        ]
+      },
+      {
+        "host": "all.accor.com",
+        "expected": "hospitality",
+        "status": 200,
+        "sector": "unknown",
+        "key": "unknown",
+        "verdict": "unknown",
+        "liveOld": "unknown",
+        "code": null,
+        "score": 72,
+        "confidence": 0,
+        "secondary": []
+      }
+    ]
+  },
+  "referenceAuditsUnavailable": [
+    "adidas",
+    "rossopomodoro",
+    "12gobiking"
+  ],
+  "limitations": [
+    "Stored route replays reconstruct limited metadata/body evidence, without a live browser.",
+    "A temporary Web Response adapter was needed because Next.js is not installed.",
+    "Synthetic cases and repeated templates are not independent real websites or proof of 9/10.",
+    "Taxonomy aliases were corrected before rule tuning; the map is preserved in the frozen fixture manifest."
+  ]
+}

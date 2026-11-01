@@ -1,0 +1,210 @@
+{
+  "group": "synthetic-validation",
+  "provenance": "Same-author synthetic smoke set frozen before the generic rule edits; not an independently reviewed real website set. Do not tune after opening results.",
+  "sites": {
+    "unseen-payments.test": {
+      "family": "payments",
+      "lang": "pt",
+      "title": "Pagamentos digitais para o seu negócio",
+      "desc": "Um prestador de serviços de pagamento para comerciantes. Aceite pagamentos com cartão e pagamentos recorrentes.",
+      "h1": "Pagamentos digitais para o seu negócio",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "unseen-banking.test": {
+      "family": "banking",
+      "lang": "en",
+      "title": "A bank for current accounts and mortgages",
+      "desc": "Our bank offers current accounts, savings accounts and mortgages for families.",
+      "h1": "A bank for current accounts and mortgages",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "financial_services"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@type\": \"BankOrCreditUnion\", \"name\": \"Independent fixture\"}</script>"
+    },
+    "unseen-retail.test": {
+      "family": "retail",
+      "lang": "nl",
+      "title": "Webwinkel in wandelkleding | Online bestellen",
+      "desc": "Bestel wandelschoenen en jassen online. Gratis verzending en een nieuwe collectie.",
+      "h1": "Webwinkel in wandelkleding | Online bestellen",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "ecommerce"
+      },
+      "body": "<a href=\"/products/item\">Wandelschoen € 49,95</a><button>In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "unseen-lodging.test": {
+      "family": "lodging",
+      "lang": "fr",
+      "title": "Hôtel des Jardins | Chambres et hébergement",
+      "desc": "Notre hôtel propose des chambres et un hébergement pour votre séjour. Réservez votre chambre.",
+      "h1": "Hôtel des Jardins | Chambres et hébergement",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "hospitality"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@type\": \"Hotel\", \"name\": \"Independent fixture\"}</script>"
+    },
+    "unseen-restaurants.test": {
+      "family": "restaurants",
+      "lang": "es",
+      "title": "Restaurante del Mar | Cocina mediterránea",
+      "desc": "Nuestro restaurante ofrece cocina mediterránea. Consulta el menú y reserva una mesa.",
+      "h1": "Restaurante del Mar | Cocina mediterránea",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "hospitality"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@type\": \"Restaurant\", \"name\": \"Independent fixture\"}</script>"
+    },
+    "unseen-healthcare.test": {
+      "family": "healthcare",
+      "lang": "nl",
+      "title": "Ziekenhuis voor regionale patiëntenzorg",
+      "desc": "Ons ziekenhuis biedt medische behandelingen, spoedeisende hulp en zorg voor patiënten.",
+      "h1": "Ziekenhuis voor regionale patiëntenzorg",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "health_wellness"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@type\": \"Hospital\", \"name\": \"Independent fixture\"}</script>"
+    },
+    "unseen-beauty.test": {
+      "family": "beauty",
+      "lang": "fr",
+      "title": "Salon de coiffure | Coiffeur à Lyon",
+      "desc": "Notre salon de coiffure propose coupes et coloration. Prenez rendez-vous avec nos coiffeurs.",
+      "h1": "Salon de coiffure | Coiffeur à Lyon",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "beauty"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@type\": \"HairSalon\", \"name\": \"Independent fixture\"}</script>"
+    },
+    "unseen-industry.test": {
+      "family": "industry",
+      "lang": "nl",
+      "title": "Fabrikant van industriële pompen",
+      "desc": "Wij produceren pompen en industriële componenten voor de procesindustrie en waterbehandeling.",
+      "h1": "Fabrikant van industriële pompen",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "manufacturing_industrial"
+      }
+    },
+    "unseen-logistics.test": {
+      "family": "logistics",
+      "lang": "nl",
+      "title": "Logistiek en internationaal vrachtvervoer",
+      "desc": "Ons transportbedrijf verzorgt vrachtvervoer, warehousing, goederenvervoer en logistiek voor bedrijven.",
+      "h1": "Logistiek en internationaal vrachtvervoer",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "transport_travel"
+      }
+    },
+    "unseen-energy.test": {
+      "family": "energy",
+      "lang": "en",
+      "title": "Energy supplier | Gas and electricity",
+      "desc": "We are an energy supplier providing gas and electricity contracts for households.",
+      "h1": "Energy supplier | Gas and electricity",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "energy_utilities"
+      }
+    },
+    "unseen-professional.test": {
+      "family": "professional",
+      "lang": "nl",
+      "title": "Adviesbureau | Zakelijke consultancy",
+      "desc": "Ons adviesbureau biedt consultancy en zakelijke dienstverlening aan organisaties. Maak kennis met onze consultants.",
+      "h1": "Adviesbureau | Zakelijke consultancy",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "professional_services"
+      }
+    },
+    "unseen-hybrid.test": {
+      "family": "hybrid",
+      "lang": "nl",
+      "title": "Garage voor banden en auto onderhoud",
+      "desc": "Onze garage biedt auto onderhoud en verkoopt banden online. Bestel banden in onze webshop.",
+      "h1": "Garage voor banden en auto onderhoud",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "automotive"
+      },
+      "body": "<a href=\"/products/item\">Wandelschoen € 49,95</a><button>In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "unseen-negative-control.test": {
+      "family": "negative-control",
+      "lang": "en",
+      "title": "Software for restaurant reservations",
+      "desc": "Our software helps restaurants manage reservations. Request a software demo for your restaurant team.",
+      "h1": "Software for restaurant reservations",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "saas_b2b"
+      }
+    }
+  }
+}

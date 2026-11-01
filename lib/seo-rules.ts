@@ -1,5 +1,5 @@
-export const CRAWLER_VERSION = "2.6.0";
-export const RULES_VERSION = "1.4.0";
+export const CRAWLER_VERSION = "2.7.0";
+export const RULES_VERSION = "1.5.0";
 export const FIX_POLICY_VERSION = "1.2.0";
 export const AI_POLICY_VERSION = "1.0.0";
 

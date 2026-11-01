@@ -1,0 +1,310 @@
+{
+  "kind": "synthetic_offline",
+  "fixtureSha256": "bb518a88575428bc7c4c7bfa1eada6374851723ebf821999eb4f68b8948597bd",
+  "engineRevision": null,
+  "total": 13,
+  "failed": 3,
+  "problems": [
+    "unseen-payments.test: sector unknown/unknown, expected financial_services",
+    "unseen-payments.test: subtype unknown, expected financial_payments",
+    "unseen-negative-control.test: sector hospitality/restaurant, expected saas_b2b"
+  ],
+  "rows": [
+    {
+      "host": "unseen-payments.test",
+      "family": "payments",
+      "expected": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      },
+      "result": {
+        "sector": "unknown",
+        "sectorConfidence": 0,
+        "key": "unknown",
+        "type": "unknown",
+        "platform": null,
+        "coverage": 89,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+        "passed": false,
+        "failedAssertions": [
+          "unseen-payments.test: sector unknown/unknown, expected financial_services",
+          "unseen-payments.test: subtype unknown, expected financial_payments"
+        ]
+      }
+    },
+    {
+      "host": "unseen-banking.test",
+      "family": "banking",
+      "expected": {
+        "sector": "financial_services"
+      },
+      "result": {
+        "sector": "financial_services",
+        "sectorConfidence": 96,
+        "key": "financial_banking",
+        "type": "services",
+        "platform": null,
+        "coverage": 95,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: Organization + WebSite.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-retail.test",
+      "family": "retail",
+      "expected": {
+        "sector": "ecommerce"
+      },
+      "result": {
+        "sector": "ecommerce",
+        "sectorConfidence": 88,
+        "key": "ecommerce",
+        "type": "ecommerce_store",
+        "platform": null,
+        "coverage": 70,
+        "shop": [
+          "unable_to_confirm",
+          "warning",
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is OnlineStore + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-lodging.test",
+      "family": "lodging",
+      "expected": {
+        "sector": "hospitality"
+      },
+      "result": {
+        "sector": "hospitality",
+        "sectorConfidence": 76,
+        "key": "hotel",
+        "type": "services",
+        "platform": null,
+        "coverage": 91,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: Hotel + WebSite.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-restaurants.test",
+      "family": "restaurants",
+      "expected": {
+        "sector": "hospitality"
+      },
+      "result": {
+        "sector": "hospitality",
+        "sectorConfidence": 95,
+        "key": "restaurant",
+        "type": "services",
+        "platform": null,
+        "coverage": 91,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: Restaurant + WebSite.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-healthcare.test",
+      "family": "healthcare",
+      "expected": {
+        "sector": "health_wellness"
+      },
+      "result": {
+        "sector": "health_wellness",
+        "sectorConfidence": 94,
+        "key": "health_wellness",
+        "type": "services",
+        "platform": null,
+        "coverage": 90,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: Hospital + WebSite.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-beauty.test",
+      "family": "beauty",
+      "expected": {
+        "sector": "beauty"
+      },
+      "result": {
+        "sector": "beauty",
+        "sectorConfidence": 76,
+        "key": "hair_salon",
+        "type": "services",
+        "platform": null,
+        "coverage": 94,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: HairSalon + WebSite.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-industry.test",
+      "family": "industry",
+      "expected": {
+        "sector": "manufacturing_industrial"
+      },
+      "result": {
+        "sector": "manufacturing_industrial",
+        "sectorConfidence": 90,
+        "key": "manufacturing_industrial",
+        "type": "services",
+        "platform": null,
+        "coverage": 89,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-logistics.test",
+      "family": "logistics",
+      "expected": {
+        "sector": "transport_travel"
+      },
+      "result": {
+        "sector": "transport_travel",
+        "sectorConfidence": 92,
+        "key": "transport_travel",
+        "type": "services",
+        "platform": null,
+        "coverage": 89,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-energy.test",
+      "family": "energy",
+      "expected": {
+        "sector": "energy_utilities"
+      },
+      "result": {
+        "sector": "energy_utilities",
+        "sectorConfidence": 90,
+        "key": "energy_utilities",
+        "type": "services",
+        "platform": null,
+        "coverage": 89,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-professional.test",
+      "family": "professional",
+      "expected": {
+        "sector": "professional_services"
+      },
+      "result": {
+        "sector": "professional_services",
+        "sectorConfidence": 90,
+        "key": "professional_services",
+        "type": "services",
+        "platform": null,
+        "coverage": 87,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-hybrid.test",
+      "family": "hybrid",
+      "expected": {
+        "sector": "automotive"
+      },
+      "result": {
+        "sector": "automotive",
+        "sectorConfidence": 95,
+        "key": "car_repair",
+        "type": "ecommerce_store",
+        "platform": null,
+        "coverage": 69,
+        "shop": [
+          "unable_to_confirm",
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is AutoRepair + WebSite de belangrijkste richting.",
+        "passed": true,
+        "failedAssertions": []
+      }
+    },
+    {
+      "host": "unseen-negative-control.test",
+      "family": "negative-control",
+      "expected": {
+        "sector": "saas_b2b"
+      },
+      "result": {
+        "sector": "hospitality",
+        "sectorConfidence": 90,
+        "key": "restaurant",
+        "type": "services",
+        "platform": null,
+        "coverage": 91,
+        "shop": [
+          "not_applicable"
+        ],
+        "discount": "not_applicable",
+        "schema": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Restaurant + WebSite de belangrijkste richting.",
+        "passed": false,
+        "failedAssertions": [
+          "unseen-negative-control.test: sector hospitality/restaurant, expected saas_b2b"
+        ]
+      }
+    }
+  ]
+}

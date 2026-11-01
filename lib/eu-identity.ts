@@ -817,8 +817,14 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && COURIER.test(own) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: koerier- of pakketdienst"] };
   }
-  if (!retailer && !publication && softwareTitle && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
-    return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "medium", confidenceScore: 78, evidence: ["Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
+  const explicitSoftware = /(?<![\p{L}])(?:software|saas|logiciel|programvara|oprogramowanie)(?![\p{L}])/iu;
+  const declaredSoftware = explicitSoftware.test(title) && explicitSoftware.test(description);
+  if (!retailer && !publication && softwareTitle && (declaredSoftware || SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
+    // An explicit software product in BOTH title and description establishes the
+    // provider's activity. Its customers (hotels, clinics, shops, ...) do not.
+    // A generic "platform" alone stays probable; banks/payment processors above
+    // and typed operator identities keep their own primary activity.
+    return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: declaredSoftware ? "high" : "medium", confidenceScore: declaredSoftware ? 86 : 78, evidence: [declaredSoftware ? "Titel en bedrijfsomschrijving bevestigen een softwareproduct; klantsectoren zijn geen eigen activiteit" : "Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
   }
 
   // 7b. Museums, theatres, concert halls and festivals.

@@ -1,0 +1,18 @@
+{
+  "baselineCommit": "1d7d753deabf4e31d49fb420b56243881fecc54c",
+  "scope": "synthetic_regression_only",
+  "independentRealQualityAssessment": "not_performed",
+  "heldoutSha256": "ea811e814dba6a3e94d2e2969c7dda794596ff36206dd11803d2b39103633557",
+  "developmentSha256": "4de9be0e8187830362eb862ee71859e4fcdcafa2ef5cf2f40d09ff4908ca2bf9",
+  "labelTaxonomyCorrectionsBeforeRuleEdits": {
+    "logistics": "transport_travel",
+    "energy": "energy_utilities",
+    "telecom": "telecom_technology",
+    "software_app": "saas_b2b"
+  },
+  "candidateRuleSha256": {
+    "lib/primary-business-identity.ts": "576f23c6ca0826f0715a95d53ba49b12ab5264b4ea27cb2054820b03778ed74c",
+    "lib/eu-identity.ts": "ffd069cd7ad7187992b99095def5797b5fed5d75c12bfcdefbcdad4eaab202df"
+  },
+  "tuningFrozenBeforeHeldoutRun": true
+}

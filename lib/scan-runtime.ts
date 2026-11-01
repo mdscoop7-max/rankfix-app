@@ -2,7 +2,7 @@ import { CRAWLER_VERSION, RULES_VERSION } from "./seo-rules.ts";
 import { SCORE_MODEL_VERSION } from "./audit-score.ts";
 import { localQaEnabled } from "./local-qa-mode.ts";
 
-export const SECTOR_ENGINE_VERSION = "3.5.2-page-evidence-186";
+export const SECTOR_ENGINE_VERSION = "3.6.0-quality-gates";
 export function scanRuntime() {
   const sha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.RF_QA_COMMIT_SHA || "";
   return {commitSha:/^[a-f0-9]{40}$/i.test(sha) ? sha : null,

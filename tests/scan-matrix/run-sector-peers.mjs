@@ -2,11 +2,19 @@
 // same sector and function must get the same sector, website type and module
 // gating through the REAL /api/scan route. Fixtures: tests/fixtures/sector-peers/*.json
 // (realistic homepages, no network). Every group also holds negative controls.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+export async function runSectorPeers(options = {}) {
+const saved = {fetch:globalThis.fetch,render:globalThis.__RF_RENDER,info:console.info,warn:console.warn,error:console.error};
+try {
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const DIR = `${ROOT}/tests/fixtures/sector-peers/`;
-const groups = readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
+const DIR = resolve(ROOT, options.fixtureDir || process.env.SECTOR_FIXTURE_DIR || "tests/fixtures/sector-peers") + "/";
+const group = options.group || process.env.GROUP;
+const groups = readdirSync(DIR).sort().filter((f) => f.endsWith(".json")).filter((f) => !group || f.startsWith(group)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
 const SITES = Object.assign({}, ...groups.map((g) => g.sites));
+if (!Object.keys(SITES).length) throw new Error("SECTOR_FIXTURES_MISSING");
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const page = (s) => `<!doctype html><html lang="${s.lang || "nl"}"><head><meta charset="utf-8"><title>${esc(s.title)}</title>${s.desc ? `<meta name="description" content="${esc(s.desc)}">` : ""}${s.head || ""}</head><body><header><nav>${(s.nav || []).map((n, i) => `<a href="${s.navLinks?.[i] || "/" + encodeURIComponent(n.toLowerCase())}">${esc(n)}</a>`).join("")}</nav></header><main>${s.h1 ? `<h1>${esc(s.h1)}</h1>` : ""}${(s.h2 || []).map((h) => `<h2>${esc(h)}</h2><p>${esc(s.desc)}</p>`).join("")}${s.body || ""}</main><footer>${s.footer || ""}<a href="/privacy">Privacy</a><a href="/contact">Contact</a></footer></body></html>`;
 // Optional sampled pages per site: { "/path": { title, desc, h1, body } } (linked from the nav).
@@ -21,9 +29,11 @@ globalThis.__RF_RENDER = async () => { throw new Error("no"); };
 const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
 const problems = []; const got = {};
 for (const [host, site] of Object.entries(SITES)) {
+  const beforeProblems = problems.length;
   const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }))).json();
+  if (!j.success || !j.seo || !j.geo) problems.push(`${host}: audit missing or scan failed (${j.code || "no report"})`);
   const shop = [...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop/i.test(c.key || "")).map((c) => c.status);
-  const r = { sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, type: j.websiteProfile?.websiteType?.value, platform: j.websiteProfile?.cms?.value || j.technologyProfile?.cms || null, coverage: j.coverage?.coveragePercent, shop: [...new Set(shop)], discount: j.seo?.checks?.find((c) => c.key === "eu_discount_reference_signal")?.status, schema: [...(j.seo?.checks || []), ...(j.geo?.checks || [])].find((c) => c.key === "schema")?.fix || "" };
+  const r = { sector: j.sectorProfile?.sector, sectorConfidence: j.sectorProfile?.confidenceScore ?? null, key: j.sectorProfile?.key, type: j.websiteProfile?.websiteType?.value, platform: j.websiteProfile?.cms?.value || j.technologyProfile?.cms || null, coverage: j.coverage?.coveragePercent, shop: [...new Set(shop)], discount: j.seo?.checks?.find((c) => c.key === "eu_discount_reference_signal")?.status, schema: [...(j.seo?.checks || []), ...(j.geo?.checks || [])].find((c) => c.key === "schema")?.fix || "" };
   got[host] = r;
   const e = site.expect || {};
   if (e.sector && r.sector !== e.sector) problems.push(`${host}: sector ${r.sector}/${r.key}, expected ${e.sector}`);
@@ -39,8 +49,19 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.discountCheck === "active" && r.discount === "not_applicable") problems.push(`${host}: visible discount but the EU discount check is N.v.t.`);
   if (e.schemaType && !new RegExp(`\\b${e.schemaType}\\b`).test(r.schema)) problems.push(`${host}: schema advice "${r.schema.slice(0, 120)}", expected ${e.schemaType}`);
   if (e.minCoverage && !(r.coverage >= e.minCoverage)) problems.push(`${host}: coverage ${r.coverage}%, expected ≥ ${e.minCoverage}%`);
+  r.passed = problems.length === beforeProblems;
+  r.failedAssertions = problems.slice(beforeProblems);
 }
-for (const p of problems) console.log(" - " + p);
-if (process.env.VERBOSE) for (const [h, r] of Object.entries(got)) console.log(h, JSON.stringify(r));
-console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: Object.keys(SITES).length, failed: problems.length }));
-process.exit(0);
+const result = {kind:"synthetic_offline",fixtureSha256:createHash("sha256").update(JSON.stringify(groups)).digest("hex"),engineRevision:process.env.RF_ENGINE_REVISION||null,total:Object.keys(SITES).length,failed:problems.length,problems,rows:Object.entries(got).map(([host,result])=>({host,family:SITES[host].family||null,expected:SITES[host].expect,result}))};
+if (options.outFile || process.env.SECTOR_RESULTS_FILE) writeFileSync(options.outFile || process.env.SECTOR_RESULTS_FILE, JSON.stringify(result,null,2));
+if (!options.quiet) for (const p of problems) console.log(" - " + p);
+if (!options.quiet && process.env.VERBOSE) for (const [h, r] of Object.entries(got)) console.log(h, JSON.stringify(r));
+if (!options.quiet) console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: Object.keys(SITES).length, failed: problems.length }));
+return result;
+
+} finally {globalThis.fetch=saved.fetch;globalThis.__RF_RENDER=saved.render;console.info=saved.info;console.warn=saved.warn;console.error=saved.error;}
+}
+if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
+  const result = await runSectorPeers();
+  process.exitCode = result.failed ? 1 : 0;
+}

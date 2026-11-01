@@ -1,0 +1,684 @@
+{
+  "group": "quality-development",
+  "provenance": "Synthetic regression cases authored for development; not independent real-website quality evidence. Repeated translated templates test invariance, not independent support.",
+  "sites": {
+    "portuguese-pay.test": {
+      "family": "payments",
+      "lang": "pt",
+      "title": "Plataforma de pagamentos para empresas",
+      "desc": "Somos um prestador de serviços de pagamento. Aceite pagamentos online e presenciais, com uma única integração para comerciantes.",
+      "h1": "Plataforma de pagamentos para empresas",
+      "nav": [
+        "Payments",
+        "Developers",
+        "Pricing"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "polish-pay.test": {
+      "family": "payments",
+      "lang": "pl",
+      "title": "Operator płatności internetowych dla firm",
+      "desc": "Obsługujemy płatności online i terminale płatnicze dla przedsiębiorców. Przyjmuj płatności kartą i przelewy przez jedną integrację.",
+      "h1": "Operator płatności internetowych dla firm",
+      "nav": [
+        "Payments",
+        "Developers",
+        "Pricing"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "french-pay.test": {
+      "family": "payments",
+      "lang": "fr",
+      "title": "Solutions de paiement pour les entreprises",
+      "desc": "Notre plateforme permet aux commerçants d’accepter les paiements en ligne et en magasin avec une seule intégration.",
+      "h1": "Solutions de paiement pour les entreprises",
+      "nav": [
+        "Payments",
+        "Developers",
+        "Pricing"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "english-pay.test": {
+      "family": "payments",
+      "lang": "en",
+      "title": "Payment infrastructure for global merchants",
+      "desc": "Accept card payments and recurring payments for your business. One payment platform for online and in-person transactions.",
+      "h1": "Payment infrastructure for global merchants",
+      "nav": [
+        "Payments",
+        "Developers",
+        "Pricing"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "key": "financial_payments",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "bank-nl.test": {
+      "family": "banking",
+      "lang": "nl",
+      "title": "Bankieren voor particulieren en bedrijven",
+      "desc": "Open een betaalrekening of spaarrekening. Onze bank biedt hypotheken en zakelijke financiering.",
+      "h1": "Bankieren voor particulieren en bedrijven",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"BankOrCreditUnion\", \"name\": \"bank-nl\"}</script>"
+    },
+    "bank-de.test": {
+      "family": "banking",
+      "lang": "de",
+      "title": "Ihre Bank für Girokonto und Sparkonto",
+      "desc": "Entdecken Sie Girokonto, Sparkonto und Baufinanzierung für Privatkunden.",
+      "h1": "Ihre Bank für Girokonto und Sparkonto",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"BankOrCreditUnion\", \"name\": \"bank-de\"}</script>"
+    },
+    "bank-en.test": {
+      "family": "banking",
+      "lang": "en",
+      "title": "Current accounts and savings accounts",
+      "desc": "A full-service bank offering current accounts, mortgages and personal loans.",
+      "h1": "Current accounts and savings accounts",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "financial_services",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"BankOrCreditUnion\", \"name\": \"bank-en\"}</script>"
+    },
+    "retail-one.test": {
+      "family": "retail",
+      "lang": "en",
+      "title": "Independent online store | Buy outdoor equipment online",
+      "desc": "Buy outdoor equipment online. Free shipping on our shoes, bags and jackets. Discover our collection.",
+      "h1": "Independent online store",
+      "nav": [
+        "Shop",
+        "Shoes",
+        "Bags"
+      ],
+      "body": "<meta name=\"generator\" content=\"Shopify\"><div class=\"product\"><a href=\"/products/jacket\">Outdoor jacket</a><span class=\"price\">€ 89.95</span><button>Add to cart</button></div><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "ecommerce"
+      }
+    },
+    "retail-two.test": {
+      "family": "retail",
+      "lang": "en",
+      "title": "Independent online store | Buy outdoor equipment online",
+      "desc": "Buy outdoor equipment online. Free shipping on our shoes, bags and jackets. Discover our collection.",
+      "h1": "Independent online store",
+      "nav": [
+        "Shop",
+        "Shoes",
+        "Bags"
+      ],
+      "body": "<meta name=\"generator\" content=\"WooCommerce\"><div class=\"product\"><a href=\"/products/jacket\">Outdoor jacket</a><span class=\"price\">€ 89.95</span><button>Add to cart</button></div><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "ecommerce"
+      }
+    },
+    "retail-three.test": {
+      "family": "retail",
+      "lang": "en",
+      "title": "Independent online store | Buy outdoor equipment online",
+      "desc": "Buy outdoor equipment online. Free shipping on our shoes, bags and jackets. Discover our collection.",
+      "h1": "Independent online store",
+      "nav": [
+        "Shop",
+        "Shoes",
+        "Bags"
+      ],
+      "body": "<meta name=\"generator\" content=\"PrestaShop\"><div class=\"product\"><a href=\"/products/jacket\">Outdoor jacket</a><span class=\"price\">€ 89.95</span><button>Add to cart</button></div><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "ecommerce"
+      }
+    },
+    "hotel-de.test": {
+      "family": "lodging",
+      "lang": "de",
+      "title": "Stadthotel am Fluss | Zimmer buchen",
+      "desc": "Unser Stadthotel bietet Zimmer und Übernachtungen mit Frühstück. Buchen Sie Ihren Aufenthalt direkt im Hotel.",
+      "h1": "Stadthotel am Fluss",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Hotel\", \"name\": \"hotel-de\"}</script>"
+    },
+    "hotel-it.test": {
+      "family": "lodging",
+      "lang": "it",
+      "title": "Hotel del Lago | Camere e soggiorni",
+      "desc": "Il nostro hotel offre camere e alloggio per le vostre vacanze. Prenota il tuo soggiorno.",
+      "h1": "Hotel del Lago",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Hotel\", \"name\": \"hotel-it\"}</script>"
+    },
+    "hotel-en.test": {
+      "family": "lodging",
+      "lang": "en",
+      "title": "Harbour hotel | Book your stay",
+      "desc": "Our hotel offers comfortable accommodation and room reservations. Book a room for your overnight stay.",
+      "h1": "Harbour hotel",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Hotel\", \"name\": \"hotel-en\"}</script>"
+    },
+    "restaurant-it.test": {
+      "family": "restaurants",
+      "lang": "it",
+      "title": "Trattoria del Porto | Ristorante italiano",
+      "desc": "Il nostro ristorante prepara pizza e cucina italiana. Consulta il menu e prenota un tavolo.",
+      "h1": "Trattoria del Porto",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Restaurant\", \"name\": \"restaurant-it\"}</script>"
+    },
+    "restaurant-fr.test": {
+      "family": "restaurants",
+      "lang": "fr",
+      "title": "Restaurant du Parc | Cuisine française",
+      "desc": "Notre restaurant propose une cuisine française de saison. Découvrez notre menu et réservez votre table.",
+      "h1": "Restaurant du Parc",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Restaurant\", \"name\": \"restaurant-fr\"}</script>"
+    },
+    "restaurant-en.test": {
+      "family": "restaurants",
+      "lang": "en",
+      "title": "The Orchard Restaurant | Seasonal food",
+      "desc": "Our restaurant serves seasonal food. Read the menu, book a table and enjoy our dining room.",
+      "h1": "The Orchard Restaurant",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "hospitality",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Restaurant\", \"name\": \"restaurant-en\"}</script>"
+    },
+    "hospital-de.test": {
+      "family": "healthcare",
+      "lang": "de",
+      "title": "Universitätsklinikum | Medizin und Pflege",
+      "desc": "Unser Universitätsklinikum bietet Patientenversorgung, Forschung und Lehre. Informationen zu Kliniken, Fachabteilungen und Behandlungen.",
+      "h1": "Universitätsklinikum",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "health_wellness",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Hospital\", \"name\": \"hospital-de\"}</script>"
+    },
+    "clinic-nl.test": {
+      "family": "healthcare",
+      "lang": "nl",
+      "title": "Tandartspraktijk aan de Singel",
+      "desc": "Onze tandartspraktijk biedt controles, mondhygiëne en implantaten. Maak een afspraak bij de tandarts.",
+      "h1": "Tandartspraktijk aan de Singel",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "health_wellness",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Dentist\", \"name\": \"clinic-nl\"}</script>"
+    },
+    "hospital-en.test": {
+      "family": "healthcare",
+      "lang": "en",
+      "title": "Regional Hospital | Patient care",
+      "desc": "Our hospital provides medical care, surgery and emergency services. Information for patients and visitors.",
+      "h1": "Regional Hospital",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "health_wellness",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Hospital\", \"name\": \"hospital-en\"}</script>"
+    },
+    "beauty-nl.test": {
+      "family": "beauty",
+      "lang": "nl",
+      "title": "Kapsalon Stijl | Kapper in Utrecht",
+      "desc": "Onze kapsalon biedt knippen, kleuren en haarverzorging. Maak een afspraak bij de kapper.",
+      "h1": "Kapsalon Stijl",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "beauty",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"HairSalon\", \"name\": \"beauty-nl\"}</script>"
+    },
+    "beauty-en.test": {
+      "family": "beauty",
+      "lang": "en",
+      "title": "Hair salon | Haircuts and colouring",
+      "desc": "Our hair salon offers haircuts, colouring and hair care. Book an appointment with our hairdressers.",
+      "h1": "Hair salon",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "beauty",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"HairSalon\", \"name\": \"beauty-en\"}</script>"
+    },
+    "beauty-de.test": {
+      "family": "beauty",
+      "lang": "de",
+      "title": "Friseursalon | Haarschnitte und Haarfarbe",
+      "desc": "Unser Friseursalon bietet Haarschnitte, Haarfarbe und Haarpflege. Vereinbaren Sie Ihren Termin.",
+      "h1": "Friseursalon",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "beauty",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"HairSalon\", \"name\": \"beauty-de\"}</script>"
+    },
+    "industrial-0.test": {
+      "family": "industry",
+      "lang": "en",
+      "title": "Industrial pump manufacturer | Engineering systems",
+      "desc": "We manufacture industrial pumps and automation components for water treatment and process engineering. Request technical advice.",
+      "h1": "Industrial pump manufacturer",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "manufacturing_industrial",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "industrial-1.test": {
+      "family": "industry",
+      "lang": "en",
+      "title": "Industrial pump manufacturer | Engineering systems",
+      "desc": "We manufacture industrial pumps and automation components for water treatment and process engineering. Request technical advice.",
+      "h1": "Industrial pump manufacturer",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "manufacturing_industrial",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "industrial-2.test": {
+      "family": "industry",
+      "lang": "en",
+      "title": "Industrial pump manufacturer | Engineering systems",
+      "desc": "We manufacture industrial pumps and automation components for water treatment and process engineering. Request technical advice.",
+      "h1": "Industrial pump manufacturer",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "manufacturing_industrial",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "logistics-0.test": {
+      "family": "logistics",
+      "lang": "en",
+      "title": "Logistics and freight forwarding | Cargo transport",
+      "desc": "We provide international freight forwarding, road transport, warehousing and supply-chain logistics for businesses.",
+      "h1": "Logistics and freight forwarding",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "transport_travel",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "logistics-1.test": {
+      "family": "logistics",
+      "lang": "en",
+      "title": "Logistics and freight forwarding | Cargo transport",
+      "desc": "We provide international freight forwarding, road transport, warehousing and supply-chain logistics for businesses.",
+      "h1": "Logistics and freight forwarding",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "transport_travel",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "logistics-2.test": {
+      "family": "logistics",
+      "lang": "en",
+      "title": "Logistics and freight forwarding | Cargo transport",
+      "desc": "We provide international freight forwarding, road transport, warehousing and supply-chain logistics for businesses.",
+      "h1": "Logistics and freight forwarding",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "transport_travel",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "energy-0.test": {
+      "family": "energy",
+      "lang": "nl",
+      "title": "Energieleverancier | Gas en stroom",
+      "desc": "Wij zijn een energieleverancier voor gas en stroom. Vergelijk onze energiecontracten en ontdek onze tarieven voor elektriciteit.",
+      "h1": "Energieleverancier",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "energy_utilities",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "energy-1.test": {
+      "family": "energy",
+      "lang": "nl",
+      "title": "Energieleverancier | Gas en stroom",
+      "desc": "Wij zijn een energieleverancier voor gas en stroom. Vergelijk onze energiecontracten en ontdek onze tarieven voor elektriciteit.",
+      "h1": "Energieleverancier",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "energy_utilities",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "energy-2.test": {
+      "family": "energy",
+      "lang": "nl",
+      "title": "Energieleverancier | Gas en stroom",
+      "desc": "Wij zijn een energieleverancier voor gas en stroom. Vergelijk onze energiecontracten en ontdek onze tarieven voor elektriciteit.",
+      "h1": "Energieleverancier",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "energy_utilities",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "consultancy-0.test": {
+      "family": "professional",
+      "lang": "en",
+      "title": "Business consultancy | Professional services",
+      "desc": "Our consultancy provides business advice and professional services for organisations. Meet our expert consultants and request a consultation.",
+      "h1": "Business consultancy",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "professional_services",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "consultancy-1.test": {
+      "family": "professional",
+      "lang": "en",
+      "title": "Business consultancy | Professional services",
+      "desc": "Our consultancy provides business advice and professional services for organisations. Meet our expert consultants and request a consultation.",
+      "h1": "Business consultancy",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "professional_services",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "consultancy-2.test": {
+      "family": "professional",
+      "lang": "en",
+      "title": "Business consultancy | Professional services",
+      "desc": "Our consultancy provides business advice and professional services for organisations. Meet our expert consultants and request a consultation.",
+      "h1": "Business consultancy",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "professional_services",
+        "shopChecks": "not_applicable"
+      }
+    },
+    "merchant-payment-method.test": {
+      "family": "negative-control",
+      "lang": "en",
+      "title": "Online fashion store | Pay with your favourite payment method",
+      "desc": "Buy dresses and shoes online. Free shipping and pay later at checkout.",
+      "h1": "Online fashion store",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "<a href=\"/products/dress\">Dress € 49.95</a><button>Add to cart</button><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "ecommerce"
+      }
+    },
+    "software-for-hotels.test": {
+      "family": "negative-control",
+      "lang": "en",
+      "title": "Booking software for hotels | Software platform",
+      "desc": "Our software helps hotels manage reservations and room availability. Request a software demonstration.",
+      "h1": "Booking software for hotels",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "saas_b2b"
+      }
+    },
+    "payment-for-doctors.test": {
+      "family": "negative-control",
+      "lang": "nl",
+      "title": "Tandartspraktijk | Mondzorg en behandelingen",
+      "desc": "Onze tandartspraktijk biedt mondzorg en behandelingen. Patiënten kunnen betalen met creditcards en online betalingen.",
+      "h1": "Tandartspraktijk",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "",
+      "expect": {
+        "sector": "health_wellness",
+        "shopChecks": "not_applicable"
+      },
+      "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Dentist\", \"name\": \"payment-for-doctors\"}</script>"
+    },
+    "hybrid-tires.test": {
+      "family": "hybrid",
+      "lang": "nl",
+      "title": "Garage | Banden kopen en auto onderhoud",
+      "desc": "Onze garage biedt auto onderhoud en verkoopt banden online. Bestel nieuwe banden in onze webshop.",
+      "h1": "Garage",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"name\":\"Device\",\"offers\":{\"@type\":\"Offer\",\"price\":\"99\",\"priceCurrency\":\"EUR\"}}</script><button>Add to cart</button><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "automotive",
+        "notShopChecks": "not_applicable_only"
+      }
+    },
+    "hybrid-electronics.test": {
+      "family": "hybrid",
+      "lang": "en",
+      "title": "Telecom provider | Mobile plans and phones",
+      "desc": "We provide mobile phone subscriptions and sell smartphones with an online store. Choose a mobile plan or buy a phone.",
+      "h1": "Telecom provider",
+      "nav": [
+        "Services",
+        "About us",
+        "Contact"
+      ],
+      "body": "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"name\":\"Device\",\"offers\":{\"@type\":\"Offer\",\"price\":\"99\",\"priceCurrency\":\"EUR\"}}</script><button>Add to cart</button><a href=\"/cart\">Cart</a>",
+      "expect": {
+        "sector": "telecom_technology",
+        "notShopChecks": "not_applicable_only"
+      }
+    }
+  }
+}

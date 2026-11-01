@@ -1,6 +1,6 @@
 import { type CrawlPage, type CrawlMode, type CrawlOptions, type CrawlCoverage, type CrawlResult, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.11.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.12.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
