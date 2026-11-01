@@ -15,13 +15,18 @@ had homepage plus /about corroboration but was vetoed by a broader government
 identity. This is distinct from genuinely insufficient/contradictory evidence:
 those cases must still abstain, never acquire artificial confidence.
 
-Step 1 (04968a6): six repaired, 54 correct / 0 wrong / 14 unknown in development.
+Step 1 (04968a6): six repaired; 53 explicit activities correct, 0 wrong,
+15 unknown outputs (one correctly unknown) in development. 54/68 expected outcomes match.
 Language variants: French beauty/medical clinic, German architecture, Dutch
 horticulture compound; general manufacturer declaration with actual production
 context; a public port requires operating evidence to refine government.
 The original 48 correct cases and 114 sector peers remain correct.
 
-Step 2 (8c7fb7c): fourteen repaired, 68 correct / 0 wrong / 0 unknown in development.
+Step 2 (8c7fb7c): fourteen repaired; 67 explicit activities correct, 0 wrong,
+one correctly unknown output in development. All 68/68 expected outcomes match.
+The initial 48/68 matches included one correctly unknown control: in strict
+output categories the baseline was 47 explicit activities correct, 1 wrong,
+20 unknown outputs (19 missed identities plus one appropriate abstention).
 Shared declarations cover marketplace sellers, travel, SaaS/applications, events,
 wholesale, meal delivery, photography, childcare, elderly care, parking, holiday
 rentals, campsites and coworking. Title/H1 own identity and supporting description
@@ -135,3 +140,8 @@ The new frozen controls reveal broader false positives, so this is a measured
 partial improvement, not a completed international-quality certification. Another
 separate development round and a fresh unseen set are necessary. Live five-site
 or 144-site work is not started or certified ready; permission is still required.
+
+Final validation of the mandatory-regression/freeze commit (5440196): CI run
+41341472353 passed 871 tests / 0 failed / 8 explicitly skipped, plus 10 crawler
+checks and 34 PostgreSQL AutoFix scenarios. Next type generation, TypeScript and
+build without deployment all passed. Later commits contain only these reports.
