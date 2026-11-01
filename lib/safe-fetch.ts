@@ -1,3 +1,4 @@
+import { RedirectCookieJar } from "./redirect-cookies.ts";
 import { URL } from "node:url";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
@@ -48,24 +49,20 @@ export function validatePublicHttpUrl(value: string) {
 }
 
 // Cookies set during a redirect chain (consent or session redirects) are sent back
-// on the next hop to the same site, as any browser or standard HTTP client does.
-// Without this, sites that redirect "set cookie → come back" loop until
-// REDIRECT_LIMIT. The jar lives only for one safePublicFetch call.
-function registrableTail(hostname: string): string {
-  return hostname.toLowerCase().replace(/^www\./, "").split(".").slice(-2).join(".");
-}
-
+// on the next hop under the browser rules (lib/redirect-cookies.ts): host-only,
+// Domain, Path, Secure and expiry are respected; never to another site. Without
+// this, sites that redirect "set cookie → come back" loop until REDIRECT_LIMIT.
 export async function safePublicFetch(value: string | URL, options: { timeoutMs?: number; maxRedirects?: number; userAgent?: string; accept?: string; acceptLanguage?: string } = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
   const maxRedirects = options.maxRedirects ?? 4;
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
   const redirectChain: Array<{ from: string; to: string; status: number }> = [];
-  const cookieJar = new Map<string, string>();
+  const cookieJar = new RedirectCookieJar();
   // A consent/session redirect may return to the same URL once with a new cookie.
   // Returning to a URL with an unchanged cookie jar is a loop: stop immediately
   // instead of spending the remaining redirect budget (and scan time) on it.
   const visited = new Set<string>();
-  const visitKey = (url: URL) => `${url.protocol}//${url.host.toLowerCase()}${url.pathname}${url.search}|${[...cookieJar.entries()].map(([k, v]) => `${k}=${v}`).sort().join(";")}`;
+  const visitKey = (url: URL) => `${url.protocol}//${url.host.toLowerCase()}${url.pathname}${url.search}|${cookieJar.key(url)}`;
 
   for (let redirect = 0; redirect <= maxRedirects; redirect++) {
     validatePublicHttpUrl(current.toString());
@@ -87,7 +84,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
           // Standard request headers; a request without a language preference is
           // treated as suspicious by several European CDNs.
           "Accept-Language": options.acceptLanguage ?? "en;q=0.9,nl;q=0.8,de;q=0.7,fr;q=0.6,*;q=0.5",
-          ...(cookieJar.size && [...cookieJar.keys()].length ? { Cookie: [...cookieJar.entries()].map(([k, v]) => `${k}=${v}`).join("; ") } : {}),
+          ...(cookieJar.header(current) ? { Cookie: cookieJar.header(current) as string } : {}),
         },
       });
     } finally {
@@ -96,15 +93,10 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
     if (response.status >= 300 && response.status < 400) {
       const setCookies = typeof (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie === "function"
         ? (response.headers as Headers & { getSetCookie: () => string[] }).getSetCookie() : [];
-      for (const raw of setCookies.slice(0, 20)) {
-        const pair = raw.split(";")[0]; const eq = pair.indexOf("=");
-        if (eq > 0 && pair.length < 4096) cookieJar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
-      }
+      cookieJar.store(current, setCookies);
       const location = response.headers.get("location");
       if (!location) return { response, finalUrl: current, redirectChain };
       const next = validatePublicHttpUrl(new URL(location, current).toString());
-      // Never carry cookies to another site.
-      if (registrableTail(next.hostname) !== registrableTail(current.hostname)) cookieJar.clear();
       redirectChain.push({ from: current.toString(), to: next.toString(), status: response.status });
       current = next;
       continue;
