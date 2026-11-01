@@ -1,0 +1,121 @@
+{
+ "group": "p5-consistency",
+ "note": "P5 (1 Nov): eigen identiteit vs redactionele inhoud, boeking als secundaire functie, vervoersdienst vs webshop",
+ "sites": {
+  "nieuwssite.test": {
+   "lang": "nl",
+   "title": "NieuwsNu - Het laatste nieuws het eerst",
+   "desc": "Het laatste nieuws uit binnen- en buitenland, sport, economie en tech.",
+   "h1": "Winkels in de binnenstad bij jou in de buurt sluiten eerder",
+   "nav": [
+    "Algemeen",
+    "Economie",
+    "Sport",
+    "Tech",
+    "Video"
+   ],
+   "navLinks": [
+    "/algemeen",
+    "/economie",
+    "/sport",
+    "/tech",
+    "/video"
+   ],
+   "body": "<p>Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. </p><article><a href=\"/economie/630451/winkels-moeten-eerder-sluiten.html\">Winkels moeten eerder sluiten door energiecrisis</a></article><article><a href=\"/economie/631451/supermarkt-opent-filialen.html\">Supermarktketen opent tien nieuwe filialen</a></article><article><a href=\"/economie/632451/kapper-in-de-salon.html\">Kappers: klanten komen vaker in de salon</a></article><article><a href=\"/economie/633451/stores.html\">Stores</a></article><article><a href=\"/economie/634451/onze-winkels.html\">Onze winkels</a></article><p>DPG Media, Jacob Bontiusplaats 9, 1018 LL Amsterdam</p>",
+   "head": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"NewsMediaOrganization\",\"name\":\"NieuwsNu\",\"url\":\"https://nieuwssite.test/\"}</script>",
+   "expect": {
+    "sector": "news_media",
+    "notChannel": "service_location",
+    "consistentType": true
+   }
+  },
+  "umc-berlin.test": {
+   "lang": "de",
+   "title": "Universitätsklinikum Berlin – Universitätsmedizin",
+   "desc": "Universitätsklinikum mit Krankenversorgung, Forschung und Lehre. Termin vereinbaren in unseren Kliniken und Ambulanzen.",
+   "h1": "Universitätsmedizin Berlin",
+   "nav": [
+    "Patienten",
+    "Kliniken",
+    "Termin vereinbaren",
+    "Forschung",
+    "Lehre",
+    "Karriere"
+   ],
+   "navLinks": [
+    "/patienten",
+    "/kliniken",
+    "/termin",
+    "/forschung",
+    "/lehre",
+    "/karriere"
+   ],
+   "body": "<p>Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. </p><a href=\"/termin\">Termin online buchen</a><p>Charitéplatz 1, 10117 Berlin · Tel 030 4505 0</p>",
+   "expect": {
+    "notClassType": "Boekings-/afsprakenwebsite",
+    "consistentType": true
+   }
+  },
+  "hotel-zee.test": {
+   "lang": "nl",
+   "title": "Hotel Aan Zee – Hotel in Scheveningen",
+   "desc": "Hotel aan zee in Scheveningen met 40 kamers. Boek direct uw kamer.",
+   "h1": "Hotel Aan Zee",
+   "nav": [
+    "Kamers",
+    "Reserveren",
+    "Restaurant",
+    "Arrangementen",
+    "Contact"
+   ],
+   "navLinks": [
+    "/kamers",
+    "/reserveren",
+    "/restaurant",
+    "/arrangementen",
+    "/contact"
+   ],
+   "body": "<p>Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. </p><a href=\"/reserveren\">Kamer reserveren</a><p>Strandweg 1, Den Haag · Tel 070 123 4567 · Receptie 24 uur geopend</p>",
+   "expect": {
+    "consistentType": true
+   }
+  },
+  "spoorvervoer.test": {
+   "lang": "nl",
+   "title": "Spoorwegen Nederland – Reisplanner, kaartjes en OV-fiets",
+   "desc": "Plan je reis met de trein, koop kaartjes en abonnementen en huur een OV-fiets op het station.",
+   "h1": "Reizen met de trein",
+   "nav": [
+    "Reisplanner",
+    "Kaartjes",
+    "Abonnementen",
+    "OV-fiets",
+    "Klantenservice"
+   ],
+   "navLinks": [
+    "/reisplanner",
+    "/kaartjes",
+    "/abonnementen",
+    "/ov-fiets",
+    "/klantenservice"
+   ],
+   "body": "<p>Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. </p>",
+   "pages": {
+    "/ov-fiets": {
+     "title": "OV-fiets huren | Spoorwegen",
+     "h1": "OV-fiets",
+     "body": "<p>Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"OV-fiets\",\"offers\":{\"@type\":\"Offer\",\"price\":\"4.75\",\"priceCurrency\":\"EUR\"}}</script><span class=\"price\">€ 4,75</span><a href=\"/ov-fiets/aanvragen\">Direct aanvragen</a>"
+    },
+    "/kaartjes": {
+     "title": "Kaartjes kopen | Spoorwegen",
+     "h1": "Treinkaartjes kopen",
+     "body": "<p>Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. </p><span class=\"price\">€ 12,40</span><a href=\"/kaartjes/kopen\">Kaartje kopen</a>"
+    }
+   },
+   "expect": {
+    "sector": "transport_travel",
+    "notShopUnconfirmed": true
+   }
+  }
+ }
+}

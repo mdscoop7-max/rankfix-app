@@ -83,6 +83,17 @@ import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
 // Either of two patterns (keeps an existing pattern and adds a shared lexicon).
+// Activities whose primary website purpose is booking (stay, table, salon
+// appointment, rental, event ticket). Elsewhere booking is a secondary capability.
+const BOOKING_PRIMARY_KEYS = new Set(["hotel", "bed_breakfast", "holiday_rental", "holiday_park", "camping", "travel", "car_rental", "restaurant", "cafe_bar", "beauty_salon", "hair_salon", "fitness", "events", "parking", "coworking"]);
+// Paths of editorial or reference content: articles, news, blogs, client cases
+// and sector/industry pages. Their link texts name other businesses.
+const editorialLinkPath = (url: string) => {
+  let path = "";
+  try { path = new URL(url).pathname; } catch { return false; }
+  return /\/(?:nieuws|news|artikel(?:en)?|articles?|blog|blogs|magazine|verhalen|stories|story|cases?|klanten|clients|customers|referenties|sectoren|sector|industries|industry|branchen|nachrichten|actualites|actualit[eé]s|noticias|notizie)(?:\/|$)/iu.test(path)
+    || /\/\d{5,}(?:[\/-]|$)/.test(path);
+};
 const unionPattern = (a: RegExp, b: RegExp) => new RegExp(`(?:${a.source})|(?:${b.source})`, "iu");
 
 export const maxDuration = 300;
@@ -6197,6 +6208,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
     const pricedServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const transportServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && (sectorProfile.sector === "transport_travel" || /^(?:passenger_transport|airline|airports|public_transport)$/.test(String(sectorProfile.key || "")));
     const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
@@ -6209,7 +6221,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // service, transaction fees, /products/ URLs and its own pay/checkout demo
       // buttons describe the service itself. Secondary product sales then need
       // hard retail proof: a sampled page with Product schema and an offer.
-      verifiedSecondaryCommerce: pricedServiceIdentity
+      // P5 (NS): a passenger carrier sells its own transport (tickets, bike
+      // rental, subscriptions); a priced service page is that service, not a
+      // shop. A secondary webshop then needs confirmed shop function (cart /
+      // add-to-cart chain) on at least two sampled pages.
+      verifiedSecondaryCommerce: transportServiceIdentity
+        ? sitewideCommerceEvidence.sampleCount >= 2 && pricedServiceRetailProof
+        : pricedServiceIdentity
         ? pricedServiceRetailProof
         : Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
       referralPlatform,
@@ -6662,12 +6680,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";
     }
+    const bookingPrimaryIdentity = BOOKING_PRIMARY_KEYS.has(sectorProfile.key) && sectorProfile.key !== "ecommerce";
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         // Reserving or collecting in-store is a secondary retail capability, not a booking site.
-        : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+        // Booking is the website identity only when booking IS the primary activity
+        // (stay, table, appointment at a salon, rental). A hospital or university
+        // medical centre with an appointment form stays an organisation; the
+        // appointment function is a secondary capability (P5: Charité).
+        : bookingPrimaryIdentity && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
           ? "Boekings-/afsprakenwebsite"
           : technologyProfile.siteType === "Landingpage"
             ? "Website"
@@ -6915,11 +6938,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // How the primary activity reaches customers: physical shop, service on
       // location, webshop, or both. Descriptive; never changes sector or score.
       const onlineSalesConfirmed = Boolean(finalCommerceDecision.confirmed || secondary.some((item) => item.sector === "ecommerce"));
+      const publisherIdentity = sectorProfile.sector === "news_media" || sectorProfile.key === "publisher_blog";
       const salesChannel = sectorProfile.sector === "unknown" ? null : decideSalesChannel({
         sector: sectorProfile.sector, key: sectorProfile.key,
-        navLabels: [...identityNavLabels, ...allUniqueInternalAnchors.map((item) => item.context || "")].filter(Boolean).slice(0, 240),
-        internalPaths: [...allUniqueInternalAnchors.map((item) => item.url), ...reportedMultiPageAudits.map((item) => item.url)].flatMap((url) => { try { return [new URL(url).pathname]; } catch { return []; } }).slice(0, 300),
-        identityText: [title, description, identityH1s.join(" ")].join(" | "),
+        // Editorial links (articles, news, blog, client/sector pages) describe
+        // other organisations, not the site's own premises (P5: NU.nl).
+        navLabels: [...identityNavLabels, ...allUniqueInternalAnchors.filter((item) => !editorialLinkPath(item.url)).map((item) => item.context || "")].filter(Boolean).slice(0, 240),
+        internalPaths: [...allUniqueInternalAnchors.map((item) => item.url).filter((url) => !editorialLinkPath(url)), ...reportedMultiPageAudits.map((item) => item.url)].flatMap((url) => { try { return [new URL(url).pathname]; } catch { return []; } }).slice(0, 300),
+        // A publisher's H1 is a headline about someone else; only its own title
+        // and description describe the publisher.
+        identityText: (publisherIdentity ? [title, description] : [title, description, identityH1s.join(" ")]).join(" | "),
         schemaTypes,
         hasAddress: Boolean(scanEvidence.organization.address.value && scanEvidence.organization.address.confidence !== "low"),
         hasOpeningHours: Boolean(scanEvidence.organization.openingHours.value && scanEvidence.organization.openingHours.confidence !== "low"),
@@ -7213,6 +7241,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // QA #203/#204: website type, shop platform and branch are three separate
     // dimensions with their own evidence (lib/website-profile.ts).
     const websiteProfile = buildWebsiteProfile({
+      bookingPrimary: bookingPrimaryIdentity && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings"),
       primaryServiceIdentity: localTradeIdentity && ["home_services", "construction"].includes(sectorProfile.sector),
       commerceState: commerceApplicabilityReport.state,
       commerceReason: (commerceApplicabilityReport as { reason?: string }).reason || null,

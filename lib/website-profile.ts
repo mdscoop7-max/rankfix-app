@@ -69,6 +69,8 @@ export type WebsiteProfileInput = {
   platformKind?: "comparison_platform" | null;
   commerceEvidence?: string[];
   primaryServiceIdentity?: boolean;
+  /** Booking is the primary activity (hotel, salon, rental): label the site as a booking website. */
+  bookingPrimary?: boolean;
   sector: string;
   sectorLabel: string;
   sectorConfidence: number;
@@ -140,7 +142,7 @@ export function buildWebsiteProfile(input: WebsiteProfileInput): WebsiteProfile 
         // never a "service provider" (QA commerce 72/72: Screwfix, Bergfreunde, Juwelo).
         : input.sector === "ecommerce"
           ? { value: "ecommerce_store", label: input.commerceReason === "sample_refused" ? "Webshop / retail (niet te bevestigen: shoppagina's weigerden RankFix)" : "Webshop / retail (webshopfuncties niet bevestigd)", status: "probable", confidence: Math.min(79, input.sectorConfidence), evidence: [`Hoofdactiviteit: ${input.sectorLabel}`, input.commerceReason === "sample_refused" ? "Product- en categoriepagina's weigerden RankFix; winkelwagen en checkout zijn niet te bevestigen" : "Product-, winkelwagen- of afrekenketen niet volledig bevestigd in de opgehaalde HTML"] }
-          : { value: "services", label: "Dienstverlener / organisatie", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}; ${shop ? "secundaire webshopfuncties bevestigd" : "geen bevestigde webshop"}`] };
+          : { value: "services", label: input.bookingPrimary ? "Boekings-/afsprakenwebsite" : "Dienstverlener / organisatie", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}; ${shop ? "secundaire webshopfuncties bevestigd" : "geen bevestigde webshop"}`] };
 
   const platformName = platformTech?.name || (input.commercePlatform && input.commercePlatform !== "Custom / niet bevestigd" && !/bevestigd/.test(input.commercePlatform) ? input.commercePlatform : null);
   const commercePlatform: Dimension = platformName

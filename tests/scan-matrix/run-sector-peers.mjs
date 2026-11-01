@@ -44,6 +44,16 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.key && r.key !== e.key) problems.push(`${host}: subtype ${r.key}, expected ${e.key}`);
   // A service that also sells a real product (Product schema + offer) keeps product checks possible.
   if (e.notShopChecks === "not_applicable_only" && r.shop.length && r.shop.every((x) => x === "not_applicable")) problems.push(`${host}: verified product sale but all shop checks N.v.t.`);
+  const channel = j.sectorProfile?.salesChannel?.channel ?? null;
+  const classType = j.classification?.websiteType ?? null;
+  const profileLabel = j.websiteProfile?.websiteType?.label ?? null;
+  if (e.channel && channel !== e.channel) problems.push(`${host}: sales channel ${channel}, expected ${e.channel}`);
+  if (e.notChannel && channel === e.notChannel) problems.push(`${host}: sales channel ${channel} (${(j.sectorProfile?.salesChannel?.physicalPresence?.evidence || []).join("; ")})`);
+  // One website identity: a specific classification label must match the website profile.
+  if (e.consistentType && classType && !/^(?:Website|Webshop)$/.test(classType) && classType !== profileLabel) problems.push(`${host}: classification "${classType}" vs websiteProfile "${profileLabel}"`);
+  // Transport or other service sales are not a webshop: no retail checks left "unable to confirm".
+  if (e.notShopUnconfirmed && r.shop.includes("unable_to_confirm")) problems.push(`${host}: retail checks unconfirmed (${[...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop|merchant/i.test(c.key || "") && c.status === "unable_to_confirm").map((c) => c.key).join(",")}); commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}`);
+  if (e.notClassType && classType === e.notClassType) problems.push(`${host}: classification ${classType}`);
   if (e.notSector && r.sector === e.notSector) problems.push(`${host}: must not be sector ${e.notSector}`);
   if (e.notKey && r.key === e.notKey) problems.push(`${host}: must not be ${e.notKey}`);
   if (e.type && r.type !== e.type) problems.push(`${host}: website type ${r.type}, expected ${e.type}`);
