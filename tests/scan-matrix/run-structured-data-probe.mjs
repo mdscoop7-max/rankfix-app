@@ -23,6 +23,13 @@ const CASES = {
   "other-site.test": [GTM, GTM + LD, { probe: 1, schema: "unable_to_confirm", obs: /not_observed.*incomplete:browser eindigde op een andere site/ }, undefined, { otherSite: true }],
   // But JSON-LD that IS found counts even if the page kept loading.
   "partial-but-found.test": [GTM, GTM + LD, { probe: 1, org: "pass", obs: /present_after_javascript.*source=browser-DOM.*consent=none/ }, undefined, { partial: true }],
+  // JavaScript sites (raw HTML is an empty app shell; the primary render shows the page).
+  // JSON-LD in the primary render counts; no extra render.
+  "spa-ld.test": ["SPA", GTM + LD, { probe: 1, org: "pass" }, undefined, { spa: true }],
+  // Primary render without JSON-LD: the complete structured-data observation decides.
+  "spa-absent.test": ["SPA", GTM, { probe: 2, schema: "warning", obs: /observation=proven_absent; basis=rendered_dom.*browserProbe=completed/ }, undefined, { spa: true }],
+  // A primary render that never fully loaded: never proof of absence.
+  "spa-partial.test": ["SPA", GTM, { probe: 2, schema: "unable_to_confirm", obs: /observation=not_observed; basis=render_not_complete/ }, undefined, { spa: true, partial: true }],
   // JSON-LD only on an own subpage: shown as context with URL, status/points unchanged.
   "subpage-ld.test": ["", null, { probe: 0, schema: "warning", org: "warning", points: [4, 4], context: /Context \(telt niet mee[^]*over-ons/, orgContext: /Organization\/WebSite-schema staat wel op [^ ]*over-ons/ }, { "/over-ons": LD }],
 };
@@ -33,6 +40,7 @@ globalThis.fetch = async (input) => {
   if (!c) return new Response("nf", { status: 404 });
   if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } });
   if (u.pathname !== "/" && !(c[3] && c[3][u.pathname] !== undefined)) return new Response("nf", { status: 404 });
+  if (c[0] === "SPA" && u.pathname === "/") return new Response(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>App</title><script src="/a.js"></script><script src="/b.js"></script><script src="/c.js"></script><script src="/d.js"></script></head><body><div id="__next"></div></body></html>`, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
   return new Response(page(u.pathname === "/" ? c[0] : c[3][u.pathname], u.pathname).replaceAll("HOST", u.host), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 const BLOCK_PAGE = `<!doctype html><html><head><title>Just a moment...</title></head><body><p>Checking your browser before accessing the site.</p></body></html>`;
@@ -63,10 +71,11 @@ for (const [host, [, , e]] of Object.entries(CASES)) {
   if (e.points && (schema.points !== e.points[0] || org.points !== e.points[1])) problems.push(`${host}: subpage context changed points (${schema.points}, ${org.points})`);
   if (e.context && !e.context.test(String(schema.message))) problems.push(`${host}: schema message lacks subpage context: ${String(schema.message).slice(-160)}`);
   if (e.orgContext && !e.orgContext.test(String(org.message))) problems.push(`${host}: organization_website lacks subpage context: ${String(org.message).slice(-160)}`);
-  if (j.rendering?.javascriptExecuted) problems.push(`${host}: the structured-data probe must not turn the whole report into a browser report`);
+  if (j.rendering?.javascriptExecuted && !CASES[host][4]?.spa) problems.push(`${host}: the structured-data probe must not turn the whole report into a browser report`);
+  if (CASES[host][4]?.spa && !j.rendering?.javascriptExecuted) problems.push(`${host}: the JavaScript shell was not rendered (test setup)`);
 }
 // Only the structured-data mode with the 12 s budget and a 3 s settle window.
-for (const c of calls) if (c.mode !== "structured_data" || c.timeoutMs !== 12000 || c.settleMs !== 3000) problems.push(`${c.host}: probe called with ${JSON.stringify(c)}`);
+for (const c of calls.filter((x) => !CASES[x.host]?.[4]?.spa || x.mode)) if (c.mode !== "structured_data" || c.timeoutMs !== 12000 || c.settleMs !== 3000) problems.push(`${c.host}: probe called with ${JSON.stringify(c)}`);
 for (const r of rows) console.log(JSON.stringify(r));
 for (const p of problems) console.log(" - " + p);
 console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: rows.length, failed: problems.length, rows }));

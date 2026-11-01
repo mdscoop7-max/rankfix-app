@@ -41,6 +41,7 @@ export type StructuredDataBasis =
   | "rendered_dom"
   | "raw_html_no_injectors"
   | "static_html_no_scripts"
+  | "render_not_complete"
   | "scripts_unrendered"
   | "tag_manager_unrendered"
   | "client_rendered_unrendered";
@@ -48,10 +49,14 @@ export type StructuredDataBasis =
 /** Three states, never mixed: seen, proven absent, or not observed (no claim). */
 export type StructuredDataObservation = "present" | "proven_absent" | "not_observed";
 
-export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; scriptsPresent?: boolean }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
+export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; scriptsPresent?: boolean; renderedIncomplete?: boolean }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
   if (input.validJsonLd > 0) return { proven: false, basis: "present", observation: "present" };
-  // A completed browser render saw the final DOM: absence there is real evidence.
+  // A COMPLETE browser observation (full load + settle window) saw the final DOM:
+  // absence there is real evidence.
   if (input.rendered) return { proven: true, basis: "rendered_dom", observation: "proven_absent" };
+  // 1 Nov: a browser view that did not reach full load (partial navigation) or a
+  // short default render window never proves absence.
+  if (input.renderedIncomplete) return { proven: false, basis: "render_not_complete", observation: "not_observed" };
   if (input.clientRenderedRisk) return { proven: false, basis: "client_rendered_unrendered", observation: "not_observed" };
   // 1 Nov (A/B on identical content): a tag manager or an empty JSON-LD placeholder
   // can add JSON-LD in the browser. Without a browser observation the absence is
@@ -88,6 +93,9 @@ export function hasExecutableScripts(html: string): boolean {
 }
 
 export function structuredDataUnprovenMessage(basis: StructuredDataBasis, context: string, injectors: string[]): string {
+  if (basis === "render_not_complete") {
+    return `Structured data is niet gevonden in de browserweergave van deze ${context}, maar die weergave was niet volledig (pagina niet volledig geladen of te kort waargenomen). Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
+  }
   if (basis === "scripts_unrendered") {
     return `Structured data is in de ruwe HTML van deze ${context} niet gevonden. De pagina laadt scripts die JSON-LD in de browser kunnen toevoegen, en er is geen browserwaarneming beschikbaar. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
   }

@@ -14,6 +14,9 @@ test("structured data: present / proven absent / not observed are three separate
   assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: true }), { proven: false, basis: "scripts_unrendered", observation: "not_observed" });
   assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: false }), { proven: true, basis: "static_html_no_scripts", observation: "proven_absent" });
   assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: true, rendered: true }), { proven: true, basis: "rendered_dom", observation: "proven_absent" });
+  // 1 Nov: an incomplete or too short browser view never proves absence.
+  assert.deepEqual(structuredDataAbsence({ ...base, renderedIncomplete: true }), { proven: false, basis: "render_not_complete", observation: "not_observed" });
+  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [], scriptsPresent: false, renderedIncomplete: true }), { proven: false, basis: "render_not_complete", observation: "not_observed" });
 });
 
 test("1 Nov: executable scripts — JSON-LD, JSON data and templates are not executable", async () => {
