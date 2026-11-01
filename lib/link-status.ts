@@ -23,6 +23,8 @@ export function isErrorPageUrl(url: string | null | undefined): boolean {
 }
 
 export function linkOutcome(link: LinkCheck): LinkOutcome {
+  // A challenge describes scanner access, including 503 responses, not a proven server failure.
+  if (link.challenged) return "unconfirmed";
   if (isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))) return "missing";
   if (link.error || link.status === null) return "unconfirmed";
   if (link.status === 404 || link.status === 410) return "missing";
@@ -31,7 +33,6 @@ export function linkOutcome(link: LinkCheck): LinkOutcome {
   if (link.status === 429) return "unconfirmed";
   // HTTP 200 is not automatically healthy: a bot-check/challenge page proves
   // nothing about the destination (QA 144), a "not found" template is missing.
-  if (link.challenged) return "unconfirmed";
   if (link.softNotFound) return "missing";
   return "ok";
 }

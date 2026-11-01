@@ -1,0 +1,11 @@
+{
+  "baseline": "1d7d753deabf4e31d49fb420b56243881fecc54c",
+  "kind": "offline_scripted_http_and_unit_tests",
+  "liveScans": 0,
+  "comparison": [
+    {"case":"redirect_cookie_host_isolation","baseline":{"cookieForwardedToOtherHost":true},"candidate":{"cookieForwardedToOtherHost":false}},
+    {"case":"http_503_challenge","baseline":{"linkOutcome":"server_error"},"candidate":{"linkOutcome":"unconfirmed"}}
+  ],
+  "tests": {"security_and_existing_report_tests":{"passed":26,"failed":0},"existing_autofix_merge_safety":{"passed":24,"failed":0}},
+  "limitations": ["No real browser, database integration or Next.js build verified.","Domain cookies are conservatively restricted to their originating hostname; cross-host consent redirects can remain unconfirmed."]
+}
