@@ -255,3 +255,10 @@ test("hybrid trades: service identity and verified shop capabilities remain inde
   assert.ok(r.total >= 13);
   assert.equal(r.failed, 0, r.log);
 });
+
+// The previous 68-case holdout is development material after sector tuning.
+test("catalog development regressions retain all previously corrected primary identities", () => {
+  const r = run("run-sector-peers.mjs", { FIXTURE_FILE: "tests/fixtures/quality-20261101/catalog-holdout.json", ASSERT_CATALOG_EXPECTATIONS: "1" });
+  assert.equal(r.total, 68);
+  assert.equal(r.failed, 0, r.log);
+});

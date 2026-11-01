@@ -26,7 +26,11 @@ for (const [host, site] of Object.entries(SITES)) {
   const shop = [...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop/i.test(c.key || "")).map((c) => c.status);
   const r = { sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, type: j.websiteProfile?.websiteType?.value, platform: j.websiteProfile?.cms?.value || j.technologyProfile?.cms || null, coverage: j.coverage?.coveragePercent, shop: [...new Set(shop)], discount: j.seo?.checks?.find((c) => c.key === "eu_discount_reference_signal")?.status, schema: [...(j.seo?.checks || []), ...(j.geo?.checks || [])].find((c) => c.key === "schema")?.fix || "" };
   got[host] = r;
-  const e = site.expect || {};
+  const e = site.expect || (process.env.ASSERT_CATALOG_EXPECTATIONS && site.evaluation ? { sector: site.evaluation.expectedSector,
+    modules: site.evaluation.retail ? ["ecommerce","product","checkout"] : [],
+    noModules: site.evaluation.retail ? [] : ["ecommerce","product","checkout","merchant"],
+  } : {});
+  if (r.sector === "unknown" && (j.sectorProfile?.confidence !== "low" || !(j.sectorProfile?.confidenceScore >= 0 && j.sectorProfile.confidenceScore <= 35))) problems.push(`${host}: unknown sector with unsupported certainty`);
   const modules = j.sectorProfile?.applicableModules || [];
   for (const module of e.modules || []) if (!modules.includes(module)) problems.push(`${host}: missing module ${module}`);
   for (const module of e.noModules || []) if (modules.includes(module)) problems.push(`${host}: unexpected module ${module}`);

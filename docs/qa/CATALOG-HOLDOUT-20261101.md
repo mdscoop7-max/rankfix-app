@@ -1,4 +1,8 @@
-# Frozen catalog-wide evaluation plan
+# Original catalog-wide evaluation plan — now development material
+
+Since the second development round this 68-case set has been used to tune the
+engine. It is development/regression evidence, not an independent or unseen
+evaluation set. The historical frozen plan and original results below are retained.
 
 Frozen before the first evaluation run. Engine candidate 73ddfb9; PR baseline
 1907e2f. Inputs and exact criteria: tests/fixtures/quality-20261101/plan.json.
