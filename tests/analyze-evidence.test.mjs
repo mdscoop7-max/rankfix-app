@@ -19,3 +19,32 @@ test("evidence analysis: counts, before/after with regressions, failures and sam
   assert.deepEqual(a.sampleH1, { pass: 0, warning: 0, unconfirmed: 1 });
   assert.match(toMarkdown(a), /REGRESSIE\*\* b\.test/);
 });
+
+test("1 Nov (security 4): a missing baseline, run or audit is listed and never counts as passed", () => {
+  const evidence = { commitSha: "abc123", rows: [
+    { host: "ok.test", expected: "ecommerce", evidenceState: "available", verdict: "exact", run: { status: "success" }, evidence: { sectorProfile: { sector: "ecommerce", key: "ecommerce" }, score: { evidenceLevel: "complete" } } },
+    { host: "new.test", expected: "ecommerce", evidenceState: "available", verdict: "exact", run: { status: "success" }, evidence: { sectorProfile: { sector: "ecommerce", key: "ecommerce" }, score: { evidenceLevel: "complete" } } },
+    { host: "noaudit.test", expected: "ecommerce", evidenceState: "no_audit", run: { status: "success" } },
+    { host: "untested.test", expected: "ecommerce", evidenceState: "not_tested", run: null },
+  ] };
+  const baseline = { sites: [
+    { host: "ok.test", result: { status: "succes", sector: "ecommerce", sectorKey: "ecommerce" } },
+    { host: "noaudit.test", result: { status: "succes", sector: "ecommerce", sectorKey: "ecommerce" } },
+    { host: "gone.test", result: { status: "succes", sector: "ecommerce", sectorKey: "ecommerce" } },
+  ] };
+  const a = analyzeRun({ evidence, audits: [], baseline });
+  assert.equal(a.success, 2, "only available audits are successes");
+  assert.deepEqual(a.noBaseline, ["new.test"]);
+  assert.deepEqual(a.notTested, ["untested.test"]);
+  assert.deepEqual(a.baselineOnly, ["gone.test"]);
+  assert.deepEqual(a.noAudit, ["noaudit.test"]);
+  assert.equal(a.comparisonComplete, false);
+  // The missing audit is a change (regression), not a pass.
+  assert.ok(a.worse.some((c) => c.host === "noaudit.test"));
+  const md = toMarkdown(a);
+  assert.match(md, /vergelijking ONVOLLEDIG/);
+  assert.match(md, /zonder nulmeting \(niet vergeleken\)\*\*: 1 — new\.test/);
+  assert.match(md, /geen bruikbare audit \(telt niet als geslaagd\)\*\*: 1 — noaudit\.test/);
+  // Without any baseline the report says so instead of "0 regressions".
+  assert.match(toMarkdown(analyzeRun({ evidence, audits: [], baseline: null })), /GEEN nulmeting opgegeven/);
+});

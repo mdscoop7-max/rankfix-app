@@ -33,13 +33,25 @@ export function analyzeRun({ evidence, audits, baseline }) {
   for (const r of ok) for (const p of r.evidence?.sample?.pages || []) for (const c of p.checks || []) if (c.key === "h1") sampleH1[c.status === "PASS" ? "pass" : c.status === "WARNING" ? "warning" : "unconfirmed"]++;
   const review = ok.filter((r) => r.verdict === "mismatch" || r.verdict === "unconfirmed").map((r) => ({ host: r.host, expected: r.expected, verdict: r.verdict, got: `${r.evidence?.sectorProfile?.sector}/${r.evidence?.sectorProfile?.key} ${r.evidence?.sectorProfile?.confidenceScore ?? ""}`, title: r.evidence?.page?.title, description: r.evidence?.page?.description, h1: (r.evidence?.page?.h1s || []).slice(0, 2), nav: (r.evidence?.page?.navigationLabels || []).slice(0, 15), schema: r.evidence?.page?.schemaTypes, evidence: (r.evidence?.sectorProfile?.evidence || []).slice(0, 2) }));
   const levels = {}; for (const r of ok) { const l = r.evidence?.score?.evidenceLevel || "?"; levels[l] = (levels[l] || 0) + 1; }
-  return { commit: evidence.commitSha, total: rows.length, success: ok.length, successPct: pct(ok.length, rows.length), verdicts, failures, levels, sampleH1, changes, better, worse, violations, review };
+  // 1 Nov: missing data is never silent. A site without a baseline, without a run
+  // or only in the baseline is listed, and the comparison is marked incomplete.
+  const rowHosts = new Set(rows.map((r) => r.host));
+  const noBaseline = baseline ? rows.filter((r) => r.run && !base.has(r.host)).map((r) => r.host) : [];
+  const notTested = rows.filter((r) => !r.run).map((r) => r.host);
+  const baselineOnly = baseline ? [...base.keys()].filter((h) => !rowHosts.has(h)) : [];
+  const noAudit = rows.filter((r) => r.run && r.evidenceState !== "available").map((r) => r.host);
+  const comparisonComplete = Boolean(baseline) && !noBaseline.length && !notTested.length && !baselineOnly.length;
+  return { commit: evidence.commitSha, total: rows.length, success: ok.length, successPct: pct(ok.length, rows.length), verdicts, failures, levels, sampleH1, changes, better, worse, violations, review, noBaseline, notTested, baselineOnly, noAudit, comparisonComplete, hasBaseline: Boolean(baseline) };
 }
 
 export function toMarkdown(a) {
   const L = [];
   L.push(`# fresh144 bewijsanalyse @${String(a.commit).slice(0, 12)}`, "", `Geslaagd: ${a.success}/${a.total} (${a.successPct}) · oordelen: ${JSON.stringify(a.verdicts)} · bewijsniveau: ${JSON.stringify(a.levels)}`, "");
-  L.push(`## Vergelijking met nulmeting`, `Verbeterd: ${a.better.length} · Verslechterd: ${a.worse.length} · Gewijzigd totaal: ${a.changes.length}`, "");
+  L.push(`## Vergelijking met nulmeting`, a.hasBaseline ? `Verbeterd: ${a.better.length} · Verslechterd: ${a.worse.length} · Gewijzigd totaal: ${a.changes.length} · vergelijking ${a.comparisonComplete ? "volledig" : "ONVOLLEDIG (zie hieronder)"}` : "GEEN nulmeting opgegeven: verbeteringen en regressies zijn niet vastgesteld.", "");
+  if (a.noBaseline.length) L.push(`- **zonder nulmeting (niet vergeleken)**: ${a.noBaseline.length} — ${a.noBaseline.slice(0, 20).join(", ")}`);
+  if (a.baselineOnly.length) L.push(`- **alleen in nulmeting (niet opnieuw getest)**: ${a.baselineOnly.length} — ${a.baselineOnly.slice(0, 20).join(", ")}`);
+  if (a.notTested.length) L.push(`- **niet getest in deze run**: ${a.notTested.length} — ${a.notTested.slice(0, 20).join(", ")}`);
+  if (a.noAudit.length) L.push(`- **geen bruikbare audit (telt niet als geslaagd)**: ${a.noAudit.length} — ${a.noAudit.slice(0, 20).join(", ")}`);
   for (const c of a.worse) L.push(`- **REGRESSIE** ${c.host} (${c.expected}): ${c.before} → ${c.after} · ${c.sectorBefore} → ${c.sectorAfter}`);
   for (const c of a.better) L.push(`- verbeterd ${c.host} (${c.expected}): ${c.before} → ${c.after} · ${c.sectorBefore} → ${c.sectorAfter}`);
   L.push("", `## Niet geslaagd`, ...Object.entries(a.failures).map(([k, v]) => `- ${k}: ${v}`));

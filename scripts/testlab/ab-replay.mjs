@@ -42,6 +42,10 @@ if (mode === "compare") {
       if (c.status !== d.status || c.points !== d.points || c.max !== d.max) lines.push(`  - ${k}: ${c.status} ${c.points}/${c.max} → ${d.status} ${d.points}/${d.max}\n      A: ${c.msg}\n      B: ${d.msg}`);
     }
   }
+  // Sites only in B are never silently dropped.
+  for (const host of Object.keys(b.sites)) if (!a.sites[host]) lines.push(`${host}: ontbreekt in ${opt("a")} (niet vergeleken)`);
+  const missing = Object.keys(a.sites).filter((h) => !b.sites[h]).length + Object.keys(b.sites).filter((h) => !a.sites[h]).length;
+  lines.unshift(missing ? `VERGELIJKING ONVOLLEDIG: ${missing} site(s) staan maar in één meting.` : "Vergelijking volledig: alle sites staan in beide metingen.");
   const out = opt("out");
   const text = `# A/B-vergelijking op identieke inhoud\nA = ${a.commit} (${opt("a")})\nB = ${b.commit} (${opt("b")})\n` + lines.join("\n") + "\n";
   if (out) writeFileSync(out, text);
