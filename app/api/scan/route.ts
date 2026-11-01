@@ -16,6 +16,7 @@ import { selectRepresentativePages } from "@/lib/representative-pages";
 import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
 import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
 import { detectOutdatedLibraries } from "@/lib/library-versions";
+import { constructionGroupIdentity, missionOrganisationIdentity } from "@/lib/organisation-identity";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -1800,6 +1801,9 @@ async function runScan(request: Request) {
       title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
     });
+    const orgIdentityInput = { title, description, h1: identityH1s.join(" · "), siteName: decode(ogSiteName || ""), navLabels: identityNavLabels, schemaTypes };
+    const missionIdentity = missionOrganisationIdentity(orgIdentityInput);
+    const constructionIdentity = constructionGroupIdentity(orgIdentityInput);
     const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
@@ -1825,7 +1829,7 @@ async function runScan(request: Request) {
       // The word "news/nieuws" alone (a company's own news page) is not publisher
       // identity: news needs the same proof as the master news rule.
       const newsWithoutPublisherIdentity = item.sector === "news_media" && !schemaSet.has("newsmediaorganization") && !schemaSet.has("newsarticle")
-        && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media");
+        && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media" && !missionIdentity.primary);
       const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
         ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
@@ -1923,7 +1927,11 @@ async function runScan(request: Request) {
     // Publishers/broadcasters name themselves in title, description or H1.
     // That self-description outranks incidental telecom words, unless the page
     // itself sells subscriptions/SIM plans.
-    const newsMediaPrimaryIdentity = (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) || (euPrimaryIdentity?.sector === "news_media" && euPrimaryIdentity.confidence === "high"))
+    // A charity/conservation/humanitarian organisation publishes news and stories but is not a publisher:
+    // only a news schema or a strong publisher/broadcaster term still counts as news for it.
+    const strongPublisherTerm = /(?<![\p{L}])(?:omroep|broadcast(?:er|ing)|krant|newspaper|dagblad|persbureau|news ?agency|zeitung|rundfunk|journaal)(?![\p{L}])/iu.test([title, description, identityH1s.join(" ")].join(" "));
+    const missionBlocksNews = missionIdentity.primary && !schemaSet.has("newsmediaorganization") && !strongPublisherTerm;
+    const newsMediaPrimaryIdentity = !missionBlocksNews && (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) || (euPrimaryIdentity?.sector === "news_media" && euPrimaryIdentity.confidence === "high"))
       && !telecomSubscriptionIdentity && !telecomIndependentIdentity.subscription && !evidenceCommerceConfirmed
       && primaryBusinessEvidence.sector !== "financial_services";
     const telecomProviderIdentity = (
@@ -1939,6 +1947,10 @@ async function runScan(request: Request) {
       ? {sector:"financial_services",key:primaryBusinessEvidence.financialKind ? `financial_${primaryBusinessEvidence.financialKind}` : "financial_services",label:primaryBusinessEvidence.financialKind==="banking" ? "Bank & financiële producten" : primaryBusinessEvidence.financialKind==="insurance" ? "Verzekeringen" : "Financiële diensten & betaaldiensten",evidence:primaryBusinessEvidence.evidence}
       : euPrimaryIdentity?.sector === "financial_services" && euPrimaryIdentity.confidence === "high"
       ? {sector:"financial_services",key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`)}
+      : missionIdentity.primary && !evidenceCommerceConfirmed
+      ? {sector:"nonprofit",key:"nonprofit",label:"Goede doelen & Non-profit",evidence:missionIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:"high" as const,confidenceScore:88}
+      : constructionIdentity.primary && !evidenceCommerceConfirmed && !realEstateIdentity
+      ? {sector:"home_services",key:"construction",label:"Bouw & Infrastructuur",evidence:constructionIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:"high" as const,confidenceScore:86}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
