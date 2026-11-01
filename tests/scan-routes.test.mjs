@@ -2,13 +2,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readProcessResult } from "./helpers/process-result.mjs";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const run = (script, env) => {
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...((script.includes("consent-link") || script.includes("sample-h1") || script.includes("person-name-brand") || script.includes("sector-peers") || script.includes("render-diagnosis") || script.includes("link-check")) ? {} : { RF_REAL_DB: "1" }), ...env } });
-  const line = out.stdout.split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
-  assert.ok(line, out.stderr || out.stdout);
-  return { result: JSON.parse(line.slice(19)), out };
+  return { result: readProcessResult(out, "SCAN_MATRIX_RESULT ", script), out };
 };
 test("local development without DATABASE_URL: anonymous free scan completes, dashboard scan refuses clearly", () => {
   const { result, out } = run("tests/scan-matrix/run-free-scan-nodb.mjs", { NODE_ENV: "development", DATABASE_URL: "" });

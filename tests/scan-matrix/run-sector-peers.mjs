@@ -3,9 +3,8 @@
 // gating through the REAL /api/scan route. Fixtures: tests/fixtures/sector-peers/*.json
 // (realistic homepages, no network). Every group also holds negative controls.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const DIR = `${ROOT}/tests/fixtures/sector-peers/`;
-const groups = process.env.FIXTURE_FILE ? [JSON.parse(readFileSync(process.env.FIXTURE_FILE, "utf8"))] : readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
+const DIR = new URL("../fixtures/sector-peers/", import.meta.url);
+const groups = process.env.FIXTURE_FILE ? [JSON.parse(readFileSync(process.env.FIXTURE_FILE, "utf8"))] : readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(new URL(f, DIR), "utf8")));
 const SITES = Object.assign({}, ...groups.map((g) => g.sites));
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const page = (s) => `<!doctype html><html lang="${s.lang || "nl"}"><head><meta charset="utf-8"><title>${esc(s.title)}</title>${s.desc ? `<meta name="description" content="${esc(s.desc)}">` : ""}${s.head || ""}</head><body><header><nav>${(s.nav || []).map((n, i) => `<a href="${s.navLinks?.[i] || "/" + encodeURIComponent(n.toLowerCase())}">${esc(n)}</a>`).join("")}</nav></header><main>${s.h1 ? `<h1>${esc(s.h1)}</h1>` : ""}${(s.h2 || []).map((h) => `<h2>${esc(h)}</h2><p>${esc(s.desc)}</p>`).join("")}${s.body || ""}</main><footer>${s.footer || ""}<a href="/privacy">Privacy</a><a href="/contact">Contact</a></footer></body></html>`;
@@ -18,7 +17,7 @@ globalThis.fetch = async (i) => {
   return new Response("nf", { status: 404 });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url)); console.info = console.warn = console.error = () => {};
 const problems = []; const got = {}; const reports = {};
 for (const [host, site] of Object.entries(SITES)) {
   const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }))).json();

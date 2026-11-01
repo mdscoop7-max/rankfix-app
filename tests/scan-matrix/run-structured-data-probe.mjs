@@ -1,7 +1,6 @@
 import { createBrowserDiagnostics } from "../../lib/browser-diagnostics.ts";
 // 1 Nov 2026 (P5 phase 2): targeted browser observation for structured data.
 // Neutral hosts, no site rules. Per case: does the probe run, and what follows?
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const GTM = `<script>(function(w,d,s,l,i){var j=d.createElement(s);j.src='https://metrix.'+location.host+'/gtm.js?id='+i;})(window,document,'script','dataLayer','GTM-TEST123');</script>`;
 const LD = `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Shop","url":"https://x.test/"},{"@type":"WebSite","name":"Shop","url":"https://x.test/"}]}</script>`;
 const page = (head, path = "/") => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fietsenwinkel Noord | Fietsen kopen in Groningen</title><meta name="description" content="Fietsenwinkel Noord in Groningen: stadsfietsen, e-bikes en onderhoud. Bezoek onze winkel of maak online een afspraak."><link rel="canonical" href="https://HOST${path}">${head}</head><body><nav><a href="/fietsen">Fietsen</a><a href="/onderhoud">Onderhoud</a><a href="/over-ons">Over ons</a><a href="/contact">Contact</a></nav><h1>Fietsenwinkel Noord</h1><p>${"Stadsfietsen, e-bikes en onderhoud in Groningen. ".repeat(40)}</p></body></html>`;
@@ -82,7 +81,7 @@ globalThis.__RF_RENDER = async (url, timeoutMs, budget, options = {}) => {
   return { html, finalUrl, diagnostics, elapsedMs: 900, requests: 5, ...(view.partial ? { partialNavigation: true } : {}), titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null, ...(observation ? { observation } : {}) };
 };
 const calls = [];
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = []; const rows = []; const responses = new Map();
 for (const [host, [, , e]] of Object.entries(CASES)) {

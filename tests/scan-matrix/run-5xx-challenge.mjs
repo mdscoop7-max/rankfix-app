@@ -1,6 +1,5 @@
 // 1 Nov 2026: a 5xx challenge page is a refusal (HTTP_BLOCKED, bot protection),
 // a real 5xx is a server error. A CDN header alone (cf-ray) never decides.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CASES = {
   "cf503.test": [503, { "cf-ray": "8c1f2a3b4c5d6e7f-AMS", server: "cloudflare" }, `<!doctype html><html><head><title>Just a moment...</title></head><body><p>Checking your browser before accessing the site.</p><script>window._cf_chl_opt={cvId:'3'};</script></body></html>`, "HTTP_BLOCKED", "bot_protection"],
   "sucuri503.test": [503, { server: "Sucuri/Cloudproxy" }, `<html><head><title>Sucuri WebSite Firewall - Access Denied</title></head><body><h1>Access Denied - Sucuri Website Firewall</h1></body></html>`, "HTTP_BLOCKED", "bot_protection"],
@@ -17,7 +16,7 @@ globalThis.fetch = async (input) => {
   return new Response(c[2], { status: c[0], headers: { "content-type": "text/html; charset=utf-8", ...c[1] } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = []; const rows = [];
 for (const [host, [, , , code, kind]] of Object.entries(CASES)) {

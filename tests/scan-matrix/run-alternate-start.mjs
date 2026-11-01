@@ -3,7 +3,6 @@
 //   wall.test     homepage 403, robots + sitemap public → partial report from a category page
 //   fortress.test everything 403                         → 422 HTTP_BLOCKED, no report (unchanged)
 //   wall.test/x   a blocked non-root page entered        → 422, no substitute page
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const words = (s, n = 20) => `<p>${(s + " ").repeat(n)}</p>`;
 const page = (title, h1, body) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${title} — bekijk het assortiment en bestel online."><link rel="canonical" href="/"></head><body><header><nav><a href="/categorie/schoenen">Schoenen</a><a href="/categorie/jassen">Jassen</a><a href="/contact">Contact</a><a href="/">Home</a></nav></header><h1>${h1}</h1>${body}</body></html>`;
 const cards = Array.from({ length: 8 }, (_, i) => `<div class="product-card"><a href="/product/jas-${i}-998">Jas ${i}</a><span class="price">€ ${49 + i},95</span><form action="/cart/add" method="post"><button>In winkelmand</button></form></div>`).join("");
@@ -26,7 +25,7 @@ globalThis.fetch = async (input) => {
   return new Response(body, { status: 200, headers: { "content-type": path.endsWith(".xml") ? "application/xml" : path === "/robots.txt" ? "text/plain" : "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const scan = async (url) => { const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, mode: "both", language: "nl" }) })); return { status: res.status, j: await res.json() }; };
 const problems = [];

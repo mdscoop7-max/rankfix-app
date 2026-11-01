@@ -64,7 +64,7 @@ test("scanner applies the Nuxt evidence rules and reports actual sample coverage
   assert.match(route,/sampleEvidenceScore\(evidenceChecks/);
   assert.match(route,/refineSamplePageType\(/);
   // 31 Oct: the sitewide rule still applies to every identity except a priced service (payments, SaaS).
-  assert.match(route,/verifiedSecondaryCommerce: pricedServiceIdentity\n\s+\? pricedServiceRetailProof\n\s+: Boolean\(sitewideCommerceEvidence\.confirmed/);
+  assert.match(route,/verifiedSecondaryCommerce: pricedServiceIdentity\r?\n\s+\? pricedServiceRetailProof\r?\n\s+: Boolean\(sitewideCommerceEvidence\.confirmed/);
   assert.match(route,/secondaryRetailDetail: verifiedRepresentativeProductDetail/);
   assert.match(route,/representativeCommercialProductIntent/);
   assert.match(route,/!hydratedAccessibility\s*\? check\("unable_to_confirm","accessibility_basics"/);

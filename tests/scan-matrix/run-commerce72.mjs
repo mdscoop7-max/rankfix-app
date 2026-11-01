@@ -19,7 +19,6 @@
 //   runretail.test  "Running & Outdoor Fitness Retailer" (Sportsshoes: fitness 95%).
 // Negative controls: shop software vendor ("start je eigen webshop"), pizzeria with
 // online ordering, charity with a shop section.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const ld = (o) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...o })}</script>`;
 const filler = (t, n = 30) => `<p>${(t + " ").repeat(n)}</p>`;
 const doc = ({ lang = "nl", title, description, h1 = [], body = "", head = "", nav = "" }) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="canonical" href="/">${head}</head><body><header><nav>${nav}</nav></header>${h1.map((h) => `<h1>${h}</h1>`).join("")}<main>${body}</main><footer><a href="/privacy">Privacy</a> <a href="/contact">Contact</a> <a href="/over-ons">Over ons</a></footer></body></html>`;
@@ -160,7 +159,7 @@ globalThis.fetch = async (input) => {
   return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8", ...(host === "hyva.test" ? { "x-magento-tags": "FPC" } : {}) } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const ONLY = (process.env.ONLY || "").split(",").filter(Boolean);
 const problems = [];

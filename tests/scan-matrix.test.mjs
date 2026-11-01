@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readProcessResult } from "./helpers/process-result.mjs";
 import { fileURLToPath } from "node:url";
 
 // Runs the real scan route offline against a broad synthetic matrix of sectors,
@@ -13,9 +14,7 @@ function run(script, env = {}) {
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", `tests/scan-matrix/${script}`], {
     cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...env },
   });
-  const line = (out.stdout || "").split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
-  assert.ok(line, `no result from ${script}: ${(out.stderr || "").slice(-2000)}`);
-  return { ...JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length)), log: out.stdout };
+  return { ...readProcessResult(out, "SCAN_MATRIX_RESULT ", script), log: out.stdout };
 }
 
 for (const mode of ["both", "seo", "geo"]) {

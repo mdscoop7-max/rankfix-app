@@ -2,7 +2,6 @@
 // A scan whose browser work keeps hanging must stop itself at the hard limit with a
 // controlled SCAN_TIMEOUT answer (not charged, nothing stored), well before the
 // platform limit. Run with a short limit: RANKFIX_SCAN_HARD_LIMIT_MS=12000.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const shell = () => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Studio</title><script src="/_next/static/a.js"></script><script src="/b.js"></script><script src="/c.js"></script><script src="/d.js"></script></head><body><div id="__next"></div></body></html>`;
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
@@ -11,7 +10,7 @@ globalThis.fetch = async (input) => {
 };
 // A browser that never finishes (ignores its own timeout), like a hung Chromium.
 globalThis.__RF_RENDER = () => new Promise(() => {});
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const t0 = Date.now();

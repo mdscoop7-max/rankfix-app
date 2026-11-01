@@ -1,7 +1,6 @@
 // 31 Oct (PDF P1/P5): a short server-rendered page is not a JavaScript shell,
 // absent JSON-LD on a substantive server-rendered page is a finding even with a
 // tag manager, and a real client-side shell stays "unconfirmed".
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const words = (n) => Array.from({ length: n }, (_, i) => ["industriële", "pompen", "service", "onderhoud", "levering", "advies"][i % 6]).join(" ");
 const S = {
   // 15 words, WordPress scripts, server-rendered identity: thin content, NOT a shell.
@@ -13,7 +12,7 @@ const S = {
 };
 globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : i.url); return S[u.host] && u.pathname === "/" ? new Response(S[u.host], { status: 200, headers: { "content-type": "text/html" } }) : new Response("nf", { status: 404 }); };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url)); console.info = console.warn = console.error = () => {};
 const scan = async (h) => (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${h}/`, mode: "both", language: "nl" }) }))).json();
 const problems = [];
 const by = (j, key) => [...j.seo.checks, ...j.geo.checks].find((c) => c.key === key);

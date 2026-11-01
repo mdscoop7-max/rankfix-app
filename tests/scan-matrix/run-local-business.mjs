@@ -5,7 +5,6 @@
 const LOCAL_SITES = process.env.PROFILES === "qa144"
   ? (await import("./qa144-sector-profiles.mjs")).QA144_SITES
   : (await import("./local-business-profiles.mjs")).LOCAL_SITES;
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const site = LOCAL_SITES[u.host.replace(/^www\./, "")];
@@ -15,7 +14,7 @@ globalThis.fetch = async (input) => {
   return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 const quiet = !process.env.DEBUG_LOCAL;
 if (quiet) { console.info = () => {}; console.warn = () => {}; console.error = () => {}; }
 const only = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;

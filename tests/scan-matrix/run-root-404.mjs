@@ -8,7 +8,6 @@
 //     browser view, HTTP status unconfirmed (crawler block)
 //   - empty 404 body, the browser shows a not-found page  → HTTP_NOT_FOUND (confirmed)
 //   - a deep URL that answers 404 is not verified with a browser (missing page)
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const filler = (t) => `<p>${(t + " ").repeat(40)}</p>`;
 const notFound = `<!doctype html><html lang="nl"><head><title>Pagina niet gevonden</title></head><body><h1>404 - Pagina niet gevonden</h1><p>Deze pagina bestaat niet (meer).</p></body></html>`;
 const realHome = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Bouwmarkt | Gereedschap en tuin</title><meta name="description" content="Bouwmarkt met gereedschap, verf en tuinartikelen."><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>Alles voor je klus</h1><main>${filler("Gereedschap, verf, hout en tuinartikelen voor elke klus.")}</main><a href="/gereedschap">Gereedschap</a> <a href="/tuin">Tuin</a> <a href="/contact">Contact</a></body></html>`;
@@ -33,7 +32,7 @@ globalThis.__RF_RENDER = async (url) => {
   const r = SITES[u.host.replace(/^www\./, "")].render();
   return { finalUrl: url, elapsedMs: 300, requests: 4, titlePixelWidth: 300, domAccessibility: null, axeReport: null, ...r };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const scan = async (host, path = "/") => {
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}${path}`, mode: "both", language: "nl" }) }));

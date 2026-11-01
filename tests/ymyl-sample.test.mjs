@@ -2,6 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readProcessResult } from "./helpers/process-result.mjs";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,15 +31,13 @@ const nav = Object.keys(PAGES).filter((p) => p !== "/").map((p) => '<a href="' +
 const doc = (p) => '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + p.t + '</title><meta name="description" content="' + (p.d || p.t) + '"></head><body><nav>' + nav + '<a href="/a1">Klinikum</a><a href="/a2">Forschung</a></nav><h1>' + p.t + '</h1><p>' + p.b + '</p></body></html>';
 globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : i.url); const p = PAGES[u.pathname]; return u.host === "klinik.test" && p ? new Response(doc(p), { status: 200, headers: { "content-type": "text/html" } }) : new Response("nf", { status: 404 }); };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).pathname)}); console.info = console.warn = console.error = () => {};
+const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).href)}); console.info = console.warn = console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://klinik.test/", mode: "both", language: "nl" }) }))).json();
 const a = j.geo.checks.find((c) => c.key === "author");
 console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, status: a.status, points: a.points, message: a.message, found: a.evidence?.found, level: j.scoreModel?.evidenceLevel || j.scoreEvidence?.level || null }));
 process.exit(0);`);
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url).pathname, encoding: "utf8", timeout: 240000 });
-  const line = out.stdout.split("\n").find((l) => l.startsWith("RESULT "));
-  assert.ok(line, out.stderr || out.stdout);
-  return JSON.parse(line.slice(7));
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url), encoding: "utf8", timeout: 240000 });
+  return readProcessResult(out, "RESULT ", script);
 };
 const home = { t: "Klinikum Nord – Universitätsklinikum Hamburg", d: "Das Klinikum Nord ist ein Krankenhaus der Maximalversorgung mit 30 Kliniken für Patienten in Hamburg.", b: "Unsere Ärzte behandeln jährlich 80.000 Patienten im Krankenhaus. ".repeat(30) };
 const filler = "Informationen für Patienten und Angehörige im Klinikum. ".repeat(25);

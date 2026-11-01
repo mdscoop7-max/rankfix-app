@@ -81,8 +81,7 @@ globalThis.__RF_RENDER = async (url) => {
   const html = sc.render();
   return { html, finalUrl: sc.renderFinalUrl || url, elapsedMs: 800, requests: 12, titlePixelWidth: 410, domAccessibility: { controls: 4, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: { violations: [], passes: 20, incomplete: 0, scope: "hydrated_wcag_a_aa" } };
 };
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {};
 let bad = 0;
 for (const sc of SCEN) {

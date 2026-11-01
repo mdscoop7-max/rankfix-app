@@ -5,15 +5,14 @@
 // Run: RF_REAL_DB=1 DATABASE_URL=postgres://... node --experimental-strip-types \
 //        --import ./tests/scan-matrix/register.mjs tests/fix-engine/run-flow-pg.mjs
 import { createHash } from "node:crypto";
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const problems = [];
 const results = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); return cond; };
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; console.info = console.warn = console.error = () => {}; return () => { [console.info, console.warn, console.log, console.error] = s; }; };
 
-const { getDb } = await import(ROOT + "/lib/db.ts");
-const { ensureDatabase } = await import(ROOT + "/lib/db-init.ts");
-const { encryptToken } = await import(ROOT + "/lib/github.ts");
+const { getDb } = await import(new URL("../../lib/db.ts", import.meta.url));
+const { ensureDatabase } = await import(new URL("../../lib/db-init.ts", import.meta.url));
+const { encryptToken } = await import(new URL("../../lib/github.ts", import.meta.url));
 const db = getDb();
 await ensureDatabase();
 
@@ -198,11 +197,11 @@ globalThis.fetch = async (input, init = {}) => {
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
 
 /* ------------------------------------------------------------------ routes */
-const scanRoute = await import(ROOT + "/app/api/scan/route.ts");
-const aiFixRoute = await import(ROOT + "/app/api/ai-fix/route.ts");
-const fixRoute = await import(ROOT + "/app/api/github/fix/route.ts");
-const siteRoute = await import(ROOT + "/app/api/github/site-repository/route.ts");
-const statusRoute = await import(ROOT + "/app/api/fixes/status/route.ts");
+const scanRoute = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const aiFixRoute = await import(new URL("../../app/api/ai-fix/route.ts", import.meta.url));
+const fixRoute = await import(new URL("../../app/api/github/fix/route.ts", import.meta.url));
+const siteRoute = await import(new URL("../../app/api/github/site-repository/route.ts", import.meta.url));
+const statusRoute = await import(new URL("../../app/api/fixes/status/route.ts", import.meta.url));
 const call = async (handler, method, path, body) => {
   const restore = quiet();
   try {

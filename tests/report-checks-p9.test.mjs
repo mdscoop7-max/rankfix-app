@@ -2,7 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { readProcessResult } from "./helpers/process-result.mjs";
+import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isGenericBrandTitle, invisibleTitleCharacters } from "../lib/report-quality.ts";
@@ -27,15 +28,13 @@ const S = {
 let host = "p9.test";
 globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : i.url); return u.host === host && S[u.pathname] ? new Response(S[u.pathname], { status: 200, headers: { "content-type": "text/html" } }) : new Response("nf", { status: 404 }); };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).pathname)}); console.info = console.warn = console.error = () => {};
+const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).href)}); console.info = console.warn = console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://p9.test/", mode: "both", language: "nl" }) }))).json();
 const by = (k) => j.seo.checks.find((c) => c.key === k);
 console.log("RESULT " + JSON.stringify({ title: [by("title").status, by("title").points, by("title").message], social: [by("social").status, by("social").message] }));
 process.exit(0);`);
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url).pathname, encoding: "utf8", timeout: 240000 });
-  const line = out.stdout.split("\n").find((l) => l.startsWith("RESULT "));
-  assert.ok(line, out.stderr || out.stdout);
-  const r = JSON.parse(line.slice(7));
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url), encoding: "utf8", timeout: 240000 });
+  const r = readProcessResult(out, "RESULT ", script);
   assert.deepEqual(r.title.slice(0, 2), ["warning", 8]); assert.match(r.title[2], /algemeen woord en de merknaam/);
   assert.equal(r.social[0], "warning");
   assert.doesNotMatch(r.social[1], /Ontbrekend: .*og:image/);
@@ -86,17 +85,15 @@ const body = (lang, extra) => '<!doctype html><html lang="' + lang + '"><head><m
 const S = { "/": body("nl", '<script type="application/json">' + "x".repeat(2200000) + '</script>'), "/en/": body("en", "") };
 globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : i.url); return u.host === "p9b.test" && S[u.pathname] ? new Response(S[u.pathname], { status: 200, headers: { "content-type": "text/html" } }) : new Response("nf", { status: 404 }); };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).pathname)}); console.info = console.warn = console.error = () => {};
+const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).href)}); console.info = console.warn = console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://p9b.test/", mode: "both", language: "nl" }) }))).json();
 const all = [...j.seo.checks, ...j.geo.checks, ...(j.security?.checks || j.securityEngine?.checks || [])];
 const by = (k) => all.find((c) => c.key === k) || {};
 const pick = (k) => [by(k).status, by(k).points, by(k).maxPoints, by(k).message || "", by(k).fix || ""];
 console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, h1: pick("h1"), size: pick("html_size"), lib: pick("security_outdated_libraries"), author: pick("author"), hreflang: pick("hreflang"), schema: pick("schema"), actions: (j.securityAccessibilityActions || []).map((a) => a.impact + ":" + a.key) }));
 process.exit(0);`);
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url).pathname, encoding: "utf8", timeout: 240000 });
-  const line = out.stdout.split("\n").find((l) => l.startsWith("RESULT "));
-  assert.ok(line, out.stderr || out.stdout);
-  const r = JSON.parse(line.slice(7));
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url), encoding: "utf8", timeout: 240000 });
+  const r = readProcessResult(out, "RESULT ", script);
   assert.equal(r.h1[0], "pass"); assert.match(r.h1[3], /3 identieke kopieën/);
   assert.deepEqual(r.size.slice(0, 3), ["warning", 1, 3]); assert.match(r.size[3], /2\.\d MB/);
   assert.equal(r.lib[0], "warning"); assert.match(r.lib[3], /jQuery 3\.4\.1/);
@@ -109,8 +106,39 @@ process.exit(0);`);
   assert.equal(r.actions[0].split(":")[0], "high");
 });
 
-test("description > 250 is an attention point (−1); > 160 stays advice; long title is advice without deduction", () => {
-  const src = readFileSync(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(src, /descriptionChars > 250\n\s+\? check\("warning", "description", "seo", "Meta description", [^\n]*, 9, 10\)/);
-  assert.match(src, /titleChars > 70 \? `Meta title gevonden[^`]*Advies, geen aftrek/);
+test("description boundaries: 160/161/250 retain 10 points, 251 loses exactly one; long title is advice", () => {
+  const dir = mkdtempSync(join(tmpdir(), "rf-description-"));
+  const script = join(dir, "run.mjs");
+  writeFileSync(script, `
+let description = "";
+const title = "Advies over administratie, boekhouding en ondernemersvragen voor zelfstandigen in Utrecht";
+globalThis.fetch = async (input) => {
+  const url = new URL(typeof input === "string" ? input : input.url);
+  if (url.host !== "description.test" || url.pathname !== "/") return new Response("nf", { status: 404 });
+  return new Response('<!doctype html><html lang="nl"><head><title>' + title + '</title><meta name="description" content="' + description + '"></head><body><h1>Administratieadvies</h1><p>' + 'Persoonlijk advies voor ondernemers in Utrecht. '.repeat(40) + '</p></body></html>', { headers: { "content-type": "text/html" } });
+};
+globalThis.__RF_RENDER = async () => { throw new Error("no"); };
+const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).href)});
+console.info = console.warn = console.error = () => {};
+const results = [];
+for (const length of [160, 161, 250, 251]) {
+  description = Array.from({ length: 80 }, (_, i) => "onderwerp" + i).join(" ").slice(0, length);
+  const response = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://description.test/", mode: "both", language: "nl" }) }));
+  const report = await response.json();
+  results.push({ length, description: report.seo.checks.find(c => c.key === "description"), title: report.seo.checks.find(c => c.key === "title") });
+}
+console.log("RESULT " + JSON.stringify(results));
+process.exit(0);
+`);
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url), encoding: "utf8", timeout: 240000 });
+  const results = readProcessResult(out, "RESULT ", script);
+  assert.equal(results.length, 4);
+  for (const { length, description, title } of results) {
+    assert.deepEqual([description.status, description.points, description.maxPoints], length > 250 ? ["warning", 9, 10] : ["pass", 10, 10], `description length ${length}`);
+    assert.match(description.message, new RegExp(`${length} tekens`));
+    if (length > 160 && length <= 250) assert.match(description.message, /Advies, geen aftrek/);
+    if (length > 250) assert.match(description.message, /aandachtspunt, −1/);
+    assert.deepEqual([title.status, title.points, title.maxPoints], ["pass", 10, 10]);
+    assert.match(title.message, /Advies, geen aftrek/);
+  }
 });

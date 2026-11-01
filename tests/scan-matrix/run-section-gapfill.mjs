@@ -1,7 +1,6 @@
 // Crawl coverage (30 Oct 2026): relevant parts missing from the page's own links
 // are nominated from what the site publishes (sitemap index → child sitemap,
 // raw HTML). Neutral .test host; no guessed paths.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const words = (s, n = 15) => `<p>${(s + " ").repeat(n)}</p>`;
 const page = (title, h1, body) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${title} — informatie en aanbod voor klanten in heel Nederland."><link rel="canonical" href="/"></head><body><h1>${h1}</h1>${body}</body></html>`;
 const home = page("Winkelvoorbeeld | Wonen en keuken online", "Nieuw binnen", `<header><nav><a href="/nieuw">Nieuw</a><a href="/inspiratie">Inspiratie</a><a href="/merken">Merken</a><a href="/winkels">Winkels</a></nav></header>${Array.from({ length: 6 }, (_, i) => `<div class="product-card"><span class="price">€ ${9 + i},99</span><form action="/cart/add" method="post"><button>In winkelmand</button></form></div>`).join("")}${words("Wonen en keuken online bestellen.")}`);
@@ -26,7 +25,7 @@ globalThis.fetch = async (input) => {
   return new Response(body, { status: 200, headers: { "content-type": type } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://gap.test/", mode: "both", language: "nl" }) }))).json();
 const items = Object.fromEntries((j.multiPage?.sectionCoverage?.items || []).map((i) => [i.section, i.status]));

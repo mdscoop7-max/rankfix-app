@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 // Full-route replay of the recorded 96-site TestLab run (QA #186).
 //
 // Each recorded site is reconstructed from what the TestLab scan stored: the
@@ -17,8 +18,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const fixturePath = process.env.ROUTE_FIXTURE || `${ROOT}/tests/fixtures/testlab-96-replay/route.json.gz`;
+const fixturePath = process.env.ROUTE_FIXTURE || fileURLToPath(new URL("../fixtures/testlab-96-replay/route.json.gz", import.meta.url));
 const raw = readFileSync(fixturePath);
 const fixture = JSON.parse((fixturePath.endsWith(".gz") ? gunzipSync(raw) : raw).toString("utf8"));
 const only = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
@@ -84,8 +84,8 @@ globalThis.fetch = async (input) => {
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_REPLAY"); };
 
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { compareSector } = await import(ROOT + "/scripts/testlab/labels.mjs");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { compareSector } = await import(new URL("../../scripts/testlab/labels.mjs", import.meta.url));
 console.info = () => {}; console.warn = () => {};
 const rows = [];
 for (const site of fixture.sites) {

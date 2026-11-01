@@ -7,9 +7,8 @@ PROFILES.push(...euRealProfiles(), ...euSyntheticProfiles());
 // HOLDOUT=only runs just the blind hold-out set (benchmark), never in CI.
 if (process.env.HOLDOUT === "only") PROFILES.splice(0, PROFILES.length, ...euHoldoutProfiles(process.env.HOLDOUT_FILE || "holdout.json"));
 installMatrixFetch2();
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { labelFitsSector } = await import(ROOT + "/lib/report-consistency.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { labelFitsSector } = await import(new URL("../../lib/report-consistency.ts", import.meta.url));
 const only = process.env.ONLY ? process.env.ONLY.split(",") : null;
 const rows = []; const fs = await import("node:fs");
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; const errs = []; console.info = () => {}; console.warn = () => {}; console.error = (...a) => errs.push(a); return () => { [console.info, console.warn, console.log, console.error] = s; return errs; }; };

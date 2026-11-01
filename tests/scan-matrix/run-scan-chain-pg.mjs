@@ -2,9 +2,8 @@
 // scannen"): free scan (anonymous) and dashboard scan (logged in) of the same
 // neutral site → score → stored scan → history list → full audit (history/[id]).
 // Run: RF_REAL_DB=1 DATABASE_URL=postgres://… node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-scan-chain-pg.mjs
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { getDb } = await import(ROOT + "/lib/db.ts");
-const { ensureDatabase } = await import(ROOT + "/lib/db-init.ts");
+const { getDb } = await import(new URL("../../lib/db.ts", import.meta.url));
+const { ensureDatabase } = await import(new URL("../../lib/db-init.ts", import.meta.url));
 await ensureDatabase();
 const db = getDb();
 const words = (s, n = 25) => `<p>${(s + " ").repeat(n)}</p>`;
@@ -21,9 +20,9 @@ globalThis.fetch = async (input) => {
   return body ? new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }) : new Response("nf", { status: 404 });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const history = await import(ROOT + "/app/api/history/route.ts");
-const historyItem = await import(ROOT + "/app/api/history/[id]/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const history = await import(new URL("../../app/api/history/route.ts", import.meta.url));
+const historyItem = await import(new URL("../../app/api/history/[id]/route.ts", import.meta.url));
 const quiet = [console.info, console.warn, console.error]; const errors = [];
 console.info = () => {}; console.warn = () => {}; console.error = (...a) => errors.push(a.map(String).join(" ").slice(0, 300));
 const problems = []; const check = (c, m) => { if (!c) problems.push(m); };

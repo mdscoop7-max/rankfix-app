@@ -16,8 +16,7 @@
 //   stat.test / land.test  statistics office / land registry      -> government; no professional/real-estate modules
 //   chip.test       semiconductor maker, title lists markets      -> manufacturing; no automotive module
 //   spa-shop.test   JS shell, no render                       -> honest unknown/unconfirmed, no webshop claim
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { auditReportClaims } = await import(ROOT + "/lib/report-claim-audit.mjs");
+const { auditReportClaims } = await import(new URL("../../lib/report-claim-audit.mjs", import.meta.url));
 const words = (s, n = 18) => `<p>${(s + " ").repeat(n)}</p>`;
 const ld = (obj) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...obj })}</script>`;
 const page = ({ lang = "nl", title, description, h1, body, head = "", canonical = "/" }) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="canonical" href="${canonical}">${head}</head><body><header><nav><a href="/over-ons">Over ons</a><a href="/contact">Contact</a></nav></header><h1>${h1}</h1><main>${body}</main><footer><a href="/privacy">Privacy</a></footer></body></html>`;
@@ -60,7 +59,7 @@ globalThis.fetch = async (input) => {
   return hit ? respond(hit) : new Response("nf", { status: 404 });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const scan = async (url) => {
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, mode: "both", language: "nl" }) }));

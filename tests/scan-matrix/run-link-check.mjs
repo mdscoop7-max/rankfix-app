@@ -1,7 +1,6 @@
 // 31 Oct (PDF P4): links to an error page are broken, honeypot links are skipped,
 // a link without answer gets one retry, and the same anchor text with different
 // targets is reported (no deduction).
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const body = (t) => `<!doctype html><html lang="nl"><head><title>${t}</title></head><body><h1>${t}</h1><p>${"Tekst over banden en onderhoud. ".repeat(30)}</p></body></html>`;
 const home = `<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Garage Noord | Banden en APK</title><meta name="description" content="Garage Noord in Groningen voor banden, APK en onderhoud van alle merken. Maak eenvoudig online een afspraak."></head><body>
 <nav><a href="/apk">APK</a><a href="/banden">Banden</a><a href="/salons">Vind je vestiging</a><a href="/">Vind je vestiging</a></nav><h1>Garage Noord</h1><p>${"Banden, APK en onderhoud voor alle merken in Groningen en omgeving. ".repeat(12)}</p>
@@ -18,7 +17,7 @@ globalThis.fetch = async (i) => {
   return new Response("nf", { status: 404 });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url)); console.info = console.warn = console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://links.test/", mode: "both", language: "nl" }) }))).json();
 const c = j.seo.checks.find((x) => x.key === "broken_links");
 const problems = [];

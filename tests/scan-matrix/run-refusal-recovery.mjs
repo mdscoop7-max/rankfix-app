@@ -3,7 +3,6 @@
 // toegang verlenen tot onze site.") and it was scored 68 as the website.
 // Neutral hosts, no site rules. Per language: refusal render → no score,
 // HTTP_BLOCKED. Control: a real homepage rendered after a 403 is still recovered.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const REFUSALS = {
   "nl.refusal.test": ["nl", "merk", "Helaas kunnen we je op dit moment geen toegang verlenen tot onze site."],
   "en.refusal.test": ["en", "brand", "We're sorry. We can't grant you access to this site at the moment."],
@@ -29,7 +28,7 @@ globalThis.__RF_RENDER = async (url) => {
   if (!html) throw new Error("RENDER_UNAVAILABLE_IN_TEST");
   return { html, finalUrl: url, elapsedMs: 300, requests: 3, titlePixelWidth: 100, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = []; const rows = [];
 for (const host of [...Object.keys(REFUSALS), CONTROL]) {

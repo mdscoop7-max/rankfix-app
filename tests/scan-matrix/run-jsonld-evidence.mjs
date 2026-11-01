@@ -4,7 +4,6 @@
 //   gtm.test       SSR, no JSON-LD, tag-manager container, no render -> unconfirmed, no points lost
 //   gtag.test      SSR, no JSON-LD, only gtag.js measurement  -> warning (cannot inject markup)
 //   present.test   SSR + GTM, JSON-LD in the HTML -> pass (injector irrelevant)
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const body = `<h1>Fietsenmaker in de regio</h1><p>${"Wij repareren en onderhouden fietsen voor particulieren en bedrijven in de regio. ".repeat(20)}</p><a href="/contact">Contact</a><a href="/privacy">Privacy</a>`;
 const LD = `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Werkplaats","url":"https://present.test/"},{"@type":"WebSite","name":"Werkplaats","url":"https://present.test/"}]}</script>`;
 const GTM = `<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-ABC1234"></script>`;
@@ -20,7 +19,7 @@ globalThis.fetch = async (input) => {
   return respond(path === "/" ? doc : page());
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const scan = async (host) => {
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }));

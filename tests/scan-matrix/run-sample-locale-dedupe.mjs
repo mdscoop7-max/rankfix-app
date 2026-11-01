@@ -2,7 +2,6 @@
 // /at/ copies of one sampled page (it deduplicated on the exact URL only).
 // 1. Shop: listing links to locale copies of the same products → each product once.
 // 2. Payment provider: fee pages under /products/ never start the product hunt.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const card = (path, n) => `<div class="product"><a href="${path}">Laptop model ${n}</a><span class="price">€ ${499 + n},00</span><button>In winkelwagen</button></div>`;
 const productPage = (n) => `<!doctype html><html lang="nl"><head><title>Laptop model ${n} kopen | Shop</title><meta name="description" content="Laptop model ${n} met 16 GB geheugen."></head><body><h1>Laptop model ${n}</h1><p>${"Snelle laptop voor werk en studie. ".repeat(20)}</p><span class="price">€ ${499 + n},00</span></body></html>`;
 const SHOP = {
@@ -30,8 +29,8 @@ globalThis.fetch = async (input) => {
   return body ? new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }) : new Response("nf", { status: 404 });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { sampleIdentityKey } = await import(ROOT + "/lib/report-quality.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { sampleIdentityKey } = await import(new URL("../../lib/report-quality.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = []; const rows = [];
 for (const host of Object.keys(SITES)) {

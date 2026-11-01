@@ -2,7 +2,6 @@
 // the client timeout fires (no instant fake errors). Slow by design (~2 min);
 // run on demand: RF_SLOW_TESTS=1 npm test, or directly:
 // node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-timeout-budget.mjs
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const page = (host, title) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${title}: wegtransport, groupage en opslag in heel Europa."><link rel="canonical" href="https://${host}/"></head><body><h1>${title}</h1><p>${"Wegtransport en logistiek met groupage en opslag. ".repeat(40)}</p>${["/diensten", "/over-ons", "/contact", "/vacatures", "/opslag", "/nieuws", "/team", "/locaties"].map((p) => `<a href="${p}">${p.slice(1)}</a>`).join(" ")}</body></html>`;
 // Hangs until the caller's AbortSignal fires, exactly like an unresponsive server.
 const hang = (init) => new Promise((_, reject) => {
@@ -29,7 +28,7 @@ globalThis.__RF_RENDER = async (url) => {
   await new Promise((r) => setTimeout(r, 1500));
   return { html: page(new URL(url).host, "Vervoerder"), finalUrl: url, elapsedMs: 1500, requests: 10, titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 for (const id of Object.keys(SCEN)) {
