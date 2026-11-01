@@ -31,5 +31,9 @@ Invoke-Engine $old  @("replay", "--root", $old,  "--cache", "$out\ab-cache.json.
 node $tool compare --a "$out\replay-old.json" --b "$out\replay-new.json" --out "$out\vergelijking.md" | Out-Null
 }
 # Browserwaarneming los van de scanroute: per URL server-HTML tegenover browser-DOM.
+# RF_REAL_RENDER=1 houdt de echte browser in plaats van de teststub (alleen voor deze stap).
+$env:RF_REAL_RENDER = "1"
 & node --experimental-strip-types --no-warnings --import ("file:///" + (($root -replace '\\', '/') + "/tests/scan-matrix/register.mjs")) $tool observe --root $root --cache "$out\ab-cache.json.gz" --out "$out\observe.json" --sites $Sites
+Remove-Item Env:RF_REAL_RENDER -ErrorAction SilentlyContinue
+if ($LASTEXITCODE -ne 0) { throw "Browsermeting gestopt; zie de melding hierboven." }
 Write-Host "Klaar. Bestanden in $out : vergelijking.md, observe.md, replay-old.json, replay-new.json, record-new.json, observe.json"

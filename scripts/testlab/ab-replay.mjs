@@ -114,7 +114,13 @@ async function observe() {
   const sd = await import(pathToFileURL(resolve(root, "lib/structured-data-evidence.ts")).href);
   let render = null, renderImportError = null;
   if (process.env.AB_SELFTEST) render = globalThis.__AB_FAKE_RENDER;
-  else { try { ({ renderPublicPage: render } = await import(pathToFileURL(resolve(root, "lib/headless-render.ts")).href)); } catch (e) { renderImportError = String(e?.message || e); } }
+  else {
+    // The observe measurement needs the REAL browser. Under the test loader the
+    // renderer is a stub unless RF_REAL_RENDER=1 was set when node started.
+    if (process.env.RF_REAL_RENDER !== "1") { console.error("GESTOPT: observe vraagt de echte browser. Start met RF_REAL_RENDER=1 (Run-AB-P5.ps1 doet dat)."); process.exit(3); }
+    try { ({ renderPublicPage: render } = await import(pathToFileURL(resolve(root, "lib/headless-render.ts")).href)); } catch (e) { renderImportError = String(e?.message || e); }
+    if (render && /__RF_RENDER|RENDER_UNAVAILABLE_IN_MATRIX/.test(String(render))) { console.error("GESTOPT: de browserfunctie is de teststub, niet de echte browser; er is niets gemeten."); process.exit(3); }
+  }
   const fetcher = process.env.AB_SELFTEST ? globalThis.__AB_FAKE_FETCH : globalThis.fetch;
   const jsonLd = (html) => {
     const blocks = [...String(html || "").matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1].trim());
@@ -127,7 +133,7 @@ async function observe() {
     const about = own.filter((u) => /over|about|uber|ueber|qui-sommes|chi-siamo|quienes|organi[sz]ation|unternehmen/i.test(new URL(u).pathname));
     return [...new Set([...about, ...own])].slice(0, perSite);
   };
-  const result = { commit: (() => { try { return execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(); } catch { return "onbekend"; } })(), mode: "observe", generatedAt: new Date().toISOString(), renderImportError, urls: [] };
+  const result = { commit: (() => { try { return execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(); } catch { return "onbekend"; } })(), mode: "observe", generatedAt: new Date().toISOString(), renderImportError, renderer: process.env.AB_SELFTEST ? "selftest" : "real-headless-browser", urls: [] };
   for (const host of sites) {
     for (const url of [`https://${host}/`, ...pickSubpages(host)]) {
       const row = { host, url, raw: null, rawError: null, rendered: null, browser: { started: false, elapsedMs: null, error: renderImportError } };
