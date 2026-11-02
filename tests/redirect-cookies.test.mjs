@@ -1,16 +1,16 @@
-// 1 Nov 2026 (security 5): redirect cookies under the browser rules (RFC 6265).
+// 1 Nov 2026 (security 5) + 2 Nov integration (PR #219): host-bound redirect cookies (RFC 6265 rules).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { RedirectCookieJar } from "../lib/redirect-cookies.ts";
 
 const U = (s) => new URL(s);
 
-test("host-only cookies stay on their host; Domain cookies cover subdomains", () => {
+test("cookies stay on the exact host; a Domain cookie for a parent domain is withheld", () => {
   const jar = new RedirectCookieJar();
-  jar.store(U("https://shop.example.com/a"), ["host=1; Path=/", "dom=2; Domain=example.com; Path=/"]);
-  assert.equal(jar.header(U("https://shop.example.com/x")), "host=1; dom=2");
-  assert.equal(jar.header(U("https://www.example.com/x")), "dom=2");
-  assert.equal(jar.header(U("https://example.com/")), "dom=2");
+  jar.store(U("https://shop.example.com/a"), ["host=1; Path=/", "dom=2; Domain=example.com; Path=/", "self=3; Domain=shop.example.com; Path=/"]);
+  assert.equal(jar.header(U("https://shop.example.com/x")), "host=1; self=3");
+  assert.equal(jar.header(U("https://www.example.com/x")), null);
+  assert.equal(jar.header(U("https://example.com/")), null);
 });
 
 test("never to another site, also under multi-label public suffixes (co.uk, com.au)", () => {
@@ -20,7 +20,7 @@ test("never to another site, also under multi-label public suffixes (co.uk, com.
   assert.equal(jar.header(U("https://shop.co.uk/")), "a=1");
   const au = new RedirectCookieJar();
   au.store(U("https://www.brand.com.au/"), ["c=3; Domain=brand.com.au; Path=/"]);
-  assert.equal(au.header(U("https://checkout.brand.com.au/")), "c=3");
+  assert.equal(au.header(U("https://checkout.brand.com.au/")), null, "parent-domain scope is withheld without a complete PSL");
   assert.equal(au.header(U("https://evil.com.au/")), null);
   const other = new RedirectCookieJar();
   other.store(U("https://a.example.com/"), ["x=1; Domain=example.org"]);

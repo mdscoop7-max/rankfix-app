@@ -1787,3 +1787,12 @@ test("public safe Fix auto-resumes through authenticated stored scan after login
  assert.match(ui,/if\(response\.status===401&&fixIssue\)/);
  assert.match(ui,/router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
 });
+
+test("empty alt on a linked image and generic alt texts count as missing, decorative empty alt does not", () => {
+  const decorative = extractImageMetrics('<img src="/a.jpg" alt=""><a href="/x">Meer <img src="/b.jpg" alt=""></a>');
+  assert.equal(decorative.unnamedLinkImages, 0);
+  const linked = extractImageMetrics('<a href="/product"><img src="/a.jpg" alt=""></a><a href="/c" aria-label="Contact"><img src="/c.jpg" alt=""></a>');
+  assert.equal(linked.unnamedLinkImages, 1);
+  const generic = extractImageMetrics('<img src="/a.jpg" alt="IMG_1234.jpg"><img src="/b.jpg" alt="image"><img src="/c.jpg" alt="Hand wassen met zeep">');
+  assert.equal(generic.genericAlt, 2);
+});

@@ -1,15 +1,17 @@
 "use client";
 import {Suspense,useEffect,useState} from "react";
 import {useSearchParams} from "next/navigation";
-import {readQaAudit} from "@/lib/testlab-audit-store";
+import Link from "next/link";
+import {readQaAudit, type QaAuditResult} from "@/lib/testlab-audit-store";
 import {scoreDisplay, scoreEvidenceFields} from "@/lib/testlab-score-evidence";
 function Report(){
  const params=useSearchParams();
  const id=params.get("id")||"";
- const [record,setRecord]=useState<{host:string;createdAt:string;result:any}|null>(null);
- const [error,setError]=useState("");
+ const [record,setRecord]=useState<{host:string;createdAt:string;result:QaAuditResult}|null>(null);
+ const [loadError,setError]=useState("");
+ const error=id?loadError:"Geen audit-ID opgegeven.";
  useEffect(()=>{
-  if(!id){setError("Geen audit-ID opgegeven.");return;}
+  if(!id)return;
   readQaAudit(id).then(r=>{if(r)setRecord(r);else setError("Audit niet gevonden in deze browser. Controleer of je dezelfde browser en hetzelfde profiel gebruikt.");}).catch(e=>setError(String(e)));
  },[id]);
  const download=()=>{
@@ -18,7 +20,7 @@ function Report(){
   const a=document.createElement("a");a.href=url;a.download="rankfix-qa-audit-"+record.host.replace(/[^a-z0-9.-]/gi,"_")+".json";a.click();URL.revokeObjectURL(url);
  };
  return <main style={{maxWidth:1050,margin:"40px auto",padding:24,fontFamily:"system-ui"}}>
-  <a href="/dashboard/testlab">Terug naar TestLab</a>
+  <Link href="/dashboard/testlab">Terug naar TestLab</Link>
   <h1>RankFix QA — volledige scanbewijzen</h1>
   {error&&<p role="alert">{error}</p>}
   {record&&<>

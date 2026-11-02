@@ -36,7 +36,14 @@ async function readJson(response: Response): Promise<Json> {
   try { return JSON.parse(raw); } catch { return { error: "De server gaf een ongeldig antwoord. Probeer het opnieuw." }; }
 }
 
+// A new scan/issue in the URL remounts the page, so loading state starts fresh
+// without resetting state synchronously inside an effect.
 export default function GithubPage() {
+  const searchParams = useSearchParams();
+  return <GithubFixPage key={(searchParams.get("scan_id") || "") + "|" + (searchParams.get("issue_id") || "")} />;
+}
+
+function GithubFixPage() {
   const searchParams = useSearchParams();
   const scanId = searchParams.get("scan_id") || "";
   const issueId = searchParams.get("issue_id") || "";
@@ -91,8 +98,6 @@ export default function GithubPage() {
   // Neither loading nor inspecting status grants publishing consent.
   useEffect(() => {
     let active = true;
-    setContextLoading(true);
-    setMappingWarning("");
     fetch("/api/account/language").then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (active && d?.language && d.language in STAGE_LABELS) setLanguage(d.language as Locale); }).catch(() => {});
     fetch("/api/auth/me", { cache: "no-store" }).then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (active && d?.user?.plan_code) setPlanCode(String(d.user.plan_code)); }).catch(() => {});
     (async () => {

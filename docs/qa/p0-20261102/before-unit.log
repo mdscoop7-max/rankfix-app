@@ -1,0 +1,271 @@
+✖ P0 cookie isolation: redirect between unrelated co.uk hosts never carries a cookie (20.154509ms)
+✖ P0 AutoFix: route delegates merging to a required-check gate and contains no direct merge endpoint (1.251141ms)
+✖ P0 images: affected elements are a union, not a sum of overlapping errors (1.548659ms)
+✖ P0 commerce: delegated JS handlers are not proven broken; paid sample products are not proven placeholders (1.341628ms)
+✖ P0 identity: customer industries cannot replace a software or consulting identity (1.634228ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.23127
+
+✖ failing tests:
+
+test at tests/p0-review-regressions.test.mjs:10:1
+✖ P0 cookie isolation: redirect between unrelated co.uk hosts never carries a cookie (20.154509ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'session=qa-value'
+  - null
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/p0-review-regressions.test.mjs:12:349)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'session=qa-value',
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/p0-review-regressions.test.mjs:14:1
+✖ P0 AutoFix: route delegates merging to a required-check gate and contains no direct merge endpoint (1.251141ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /mergeVerifiedPullRequest/. Input:
+  
+  'import { NextResponse } from "next/server";\n' +
+    'import { createHash } from "crypto";\n' +
+    'import { getCurrentUser } from "@/lib/auth";\n' +
+    'import { getDb } from "@/lib/db";\n' +
+    'import { ensureDatabase } from "@/lib/db-init";\n' +
+    'import { decryptToken, githubFetch } from "@/lib/github";\n' +
+    'import { validateGithubFix } from "@/lib/github-fix-validator";\n' +
+    'import { getFixPolicy } from "@/lib/fix-policy";\n' +
+    'import { consumeRateLimit } from "@/lib/rate-limit";\n' +
+    '\n' +
+    'function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }\n' +
+    'function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }\n' +
+    'function safeFixTarget(v:string){\n' +
+    '  if(!safePath(v)) return false;\n' +
+    '  const p=v.toLowerCase().replace(/\\\\/g,"/");\n' +
+    '  const name=p.split("/").pop()||"";\n' +
+    '  if(name.startsWith(".env")||name===".npmrc"||name===".yarnrc"||name===".gitignore") return false;\n' +
+    '  if(/(^|\\/)(api|server|auth|database|db|migrations?|secrets?|private)(\\/|$)/.test(p)) return false;\n' +
+    '  if(/(^|\\/)(middleware|instrumentation)\\.(?:ts|js)$/.test(p)) return false;\n' +
+    '  if(/(^|\\/)(package|package-lock|pnpm-lock|yarn\\.lock|bun\\.lockb?|next\\.config|vite\\.config|webpack\\.config|tsconfig|eslint\\.config|postcss\\.config|tailwind\\.config)(?:\\.[^/]*)?$/.test(p)) return false;\n' +
+    '  return /\\.(?:html?|tsx|jsx|vue|php)$/.test(p);\n' +
+    '}\n' +
+    '\n' +
+    'async function chooseRepository(token:string,requested:string){\n' +
+    '  if(!requested || !safeRepo(requested)){\n' +
+    '    throw new Error("Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.");\n' +
+    '  }\n' +
+    '  // GitHub is authoritative for repository state and default branch.\n' +
+    '  const repo=await githubFetch<{full_name:string;archived?:boolean;disabled?:boolean;permissions?:{push?:boolean;admin?:boolean;maintain?:boolean};default_branch?:string}>(token,"/repos/"+requested);\n' +
+    '  if(!repo || String(repo.full_name||"").toLowerCase()!==requested.toLowerCase()){\n' +
+    '    throw new Error("De gekozen GitHub-repository kon niet veilig worden bevestigd.");\n' +
+    '  }\n' +
+    '  if(repo.archived===true || repo.disabled===true){\n' +
+    '    throw new Error("Deze GitHub-repository is gearchiveerd of uitgeschakeld en kan niet veilig worden aangepast.");\n' +
+    '  }\n' +
+    '  const canPush=repo?.permissions?.push===true || repo?.permissions?.admin===true || repo?.permissions?.maintain===true;\n' +
+    '  if(!canPush){\n' +
+    '    throw new Error("De gekoppelde GitHub-account heeft geen bevestigde schrijfrechten op deze repository.");\n' +
+    '  }\n' +
+    '  const defaultBranch=String(repo.default_branch||"").trim();\n' +
+    '  if(!defaultBranch || !/^[A-Za-z0-9._/-]{1,120}$/.test(defaultBranch)){\n' +
+    '    throw new Error("De standaardbranch van deze GitHub-repository kon niet veilig worden bevestigd.");\n' +
+    '  }\n' +
+    '  return {fullName:String(repo.full_name),defaultBranch};\n' +
+    '}\n' +
+    '\n' +
+    'async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string,issueId:string){\n' +
+    '  if(requested && safeFixTarget(requested)) return requested;\n' +
+    '  if(requested) throw new Error("Dit bestand valt buiten de veilige RankFix-codefixlijst.");\n' +
+    '  const issueText=(issueId+" "+issue).toLowerCase();\n' +
+    '  const preferred=issueText.includes("social")||issueText.includes("open graph")\n' +
+    '    ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]\n' +
+    '    : issueText.includes("canonical")\n' +
+    '      ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]\n' +
+    '      : ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"];\n' +
+    '  for(const candidate of preferred){\n' +
+    '    try{ const f=await githubFetch<{type?:string;content?:string}>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}\n' +
+    '  }\n' +
+    '  const tree=await githubFetch<{truncated?:boolean;tree?:Array<{type?:string;path?:string}>}>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");\n' +
+    '  if(tree?.truncated===true) throw new Error("Deze repository is te groot om automatisch en volledig te doorzoeken. Kies eerst expliciet het bestand dat RankFix mag aanpassen.");\n' +
+    '  const rawTree=Array.isArray(tree?.tree)?tree.tree:[];\n' +
+    '  if(rawTree.length>12000) throw new Error("Deze repository bevat te veel bestanden voor veilige automatische bestandsselectie. Kies eerst expliciet het doelbestand.");\n' +
+    '  const files=rawTree.filter((x): x is {type?:string;path:string}=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path));\n' +
+    '  const ranked=files.map((f)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a,b)=>b.score-a.score);\n' +
+    '  if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");\n' +
+    '  return ranked[0].path;\n' +
+    '}\n' +
+    'function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,42)||"seo-fix"; }\n' +
+    'function normalizeHostname(value:string){\n' +
+    '  try { return new URL(value).hostname.toLowerCase().replace(/^www\\./,""); } catch { return ""; }\n' +
+    '}\n' +
+    'function normalizeScanUrl(value:string){\n' +
+    '  try {\n' +
+    '    const url=new URL(value);\n' +
+    '    url.hash="";\n' +
+    '    url.hostname=url.hostname.toLowerCase().replace(/^www\\./,"");\n' +
+    '    url.pathname=url.pathname.replace(/\\/+$/,"")||"/";\n' +
+    '    ["utm_source","utm_medium","utm_campaign","utm_term","utm_content","gclid","fbclid","msclkid","from_srp","prevent-auto-open-privacy-settings"]\n' +
+    '      .forEach((param)=>url.searchParams.delete(param));\n' +
+    '    return url.toString();\n' +
+    '  } catch { return value.trim().replace(/\\/+$/,""); }\n' +
+    '}\n' +
+    '\n' +
+    'function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {\n' +
+    '  const errors:string[]=[];\n' +
+    `  const canonical=proposed.match(/alternates\\s*:\\s*\\{[\\s\\S]*?canonical\\s*:\\s*[\\"']([^\\"']+)[\\"']/i)?.[1]\n` +
+    `    || proposed.match(/<link\\s+rel=[\\"']canonical[\\"']\\s+href=[\\"']([^\\"']+)[\\"']/i)?.[1]\n` +
+    '    || "";\n' +
+    '  if(!canonical) return errors;\n' +
+    '  const dynamicSameOrigin=/\\{\\{\\s*request\\.(?:url_root|base_url|host_url|url)\\b/i.test(canonical)\n' +
+    '    || /\\b(?:request\\.url|request\\.headers|getServerSideProps|headers\\(\\)|window\\.location\\.origin)\\b/i.test(canonical);\n' +
+    '  if(dynamicSameOrigin) return errors;\n' +
+    '  const targetHost=normalizeHostname(targetUrl);\n' +
+    '  const canonicalHost=normalizeHostname(canonical);\n' +
+    '  if(!targetHost || !canonicalHost || canonicalHost!==targetHost){\n' +
+    '    errors.push("Canonical-URL wijst naar een ander domein dan de gescande site.");\n' +
+    '  }\n' +
+    '  return errors;\n' +
+    '}\n' +
+    'function validateRequestedFixCompletion(current:string, proposed:string, issue:string, issueId:string): { errors:string[]; currentAlreadySatisfied:boolean } {\n' +
+    '  const text=(issueId+" "+issue).toLowerCase();\n' +
+    '  const errors:string[]=[];\n' +
+    '  const socialIncomplete=issueId==="SOCIAL_METADATA_INCOMPLETE";\n' +
+    '  const wantsOgTitle=socialIncomplete||/og[: -]?title|open graph.*title/.test(text);\n' +
+    '  const wantsOgDescription=socialIncomplete||/og[: -]?description|open graph.*description/.test(text);\n' +
+    '  const wantsOgImage=socialIncomplete||/og[: -]?image|open graph.*image/.test(text);\n' +
+    '  const hasMetaProperty=(v:string,property:string)=>{\n' +
+    '    const source=v.toLowerCase().replace(/\\s+/g," ");\n' +
+    '    const p=property.toLowerCase();\n' +
+    `    const tagPattern=new RegExp("<meta[^>]+(?:property|name)=[\\"\\']"+p+"[\\"\\'][^>]+content=[\\"\\'][^\\"\\']+[\\"\\']","i");\n` +
+    `    const reversedPattern=new RegExp("<meta[^>]+content=[\\"\\'][^\\"\\']+[\\"\\'][^>]+(?:property|name)=[\\"\\']"+p+"[\\"\\']","i");\n` +
+    '    return tagPattern.test(source)||reversedPattern.test(source);\n' +
+    '  };\n' +
+    '  const hasOpenGraphField=(v:string,field:string)=>{\n' +
+    '    const block=v.match(/openGraph\\s*:\\s*\\{([\\s\\S]*?)\\}/i)?.[1]||"";\n' +
+    `    return new RegExp("\\\\b"+field+"\\\\b\\\\s*:\\\\s*[\\"\\'][^\\"\\']+[\\"\\']","i").test(block);\n` +
+    '  };\n' +
+    '  const hasOgTitle=(v:string)=>hasMetaProperty(v,"og:title")||hasOpenGraphField(v,"title");\n' +
+    '  const hasOgDescription=(v:string)=>hasMetaProperty(v,"og:description")||hasOpenGraphField(v,"description");\n' +
+    '  const hasOgImage=(v:string)=>hasMetaProperty(v,"og:image")||/openGraph\\s*:\\s*\\{[\\s\\S]*?\\b(?:images|image)\\b\\s*:\\s*[^}]+/i.test(v);\n' +
+    '  const checks=[[wantsOgTitle,hasOgTitle,"og:title"],[wantsOgDescription,hasOgDescription,"og:description"],[wantsOgImage,hasOgImage,"og:image"]] as const;\n' +
+    '  let requestedCount=0; let currentSatisfied=0;\n' +
+    '  for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("FIX_MISSING:"+label); }\n' +
+    '\n' +
+    '  // Old scan issue links can outlive source changes. Recognize common stale issues from\n' +
+    '  // the current repository content so RankFix returns "already fixed / rescan" instead\n' +
+    '  // of a misleading blocked-fix error.\n' +
+    '  if(issueId==="H1_MISSING"){\n' +
+    '    const h1Count=(current.match(/<h1\\b/gi)||[]).length;\n' +
+    '    if(h1Count>=1) return {errors:[],currentAlreadySatisfied:true};\n' +
+    '  }\n' +
+    '  if(issueId==="META_DESCRIPTION_GUIDANCE"||issueId==="META_DESCRIPTION_MISSING"){\n' +
+    `    const description=current.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["'][^>]*>/i)?.[1]\n` +
+    `      || current.match(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["'][^>]*>/i)?.[1]\n` +
+    `      || current.match(/\\bdescription\\s*:\\s*["']([^"']*)["']/i)?.[1]\n` +
+    '      || "";\n' +
+    '    if(description.trim().length>=120 && description.trim().length<=160) return {errors:[],currentAlreadySatisfied:true};\n' +
+    '  }\n' +
+    '\n' +
+    '  return {errors,currentAlreadySatisfied:requestedCount>0&&currentSatisfied===requestedCount};\n' +
+    '}\n' +
+    '\n' +
+    '\n' +
+    'function hasOgMetaTag(value:string,property:string){\n' +
+    '  const p=property.replace(":","\\\\:");\n' +
+    `  return new RegExp("<meta[^>]+(?:property|name)=[\\"\\']"+p+"[\\"\\'][^>]+content=[\\"\\'][^\\"\\']+[\\"\\']","i").test(value)\n` +
+    '    || new RegEx'... 66842 more characters
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/p0-review-regressions.test.mjs:16:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import { NextResponse } from "next/server";\nimport { createHash } from "crypto";\nimport { getCurrentUser } from "@/lib/auth";\nimport { getDb } from "@/lib/db";\nimport { ensureDatabase } from "@/lib/db-init";\nimport { decryptToken, githubFetch } from "@/lib/github";\nimport { validateGithubFix } from "@/lib/github-fix-validator";\nimport { getFixPolicy } from "@/lib/fix-policy";\nimport { consumeRateLimit } from "@/lib/rate-limit";\n\n...',
+    expected: /mergeVerifiedPullRequest/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/p0-review-regressions.test.mjs:18:1
+✖ P0 images: affected elements are a union, not a sum of overlapping errors (1.548659ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/p0-review-regressions.test.mjs:19:116)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/p0-review-regressions.test.mjs:22:1
+✖ P0 commerce: delegated JS handlers are not proven broken; paid sample products are not proven placeholders (1.341628ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   {
+  +     label: 'Add to cart',
+  +     reason: 'empty_href'
+  +   }
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/p0-review-regressions.test.mjs:23:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [Array],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/p0-review-regressions.test.mjs:27:1
+✖ P0 identity: customer industries cannot replace a software or consulting identity (1.634228ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/p0-review-regressions.test.mjs:28:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

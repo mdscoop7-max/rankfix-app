@@ -47,12 +47,13 @@ export default function DashboardScan() {
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null;qaTester?:boolean}>({plan:"",used:0,limit:null});
-  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.user?.plan_code)setUsage(current=>({...current,plan:d.user.plan_code}))}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:any)=>item?.scanned_url).filter(Boolean).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
+  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.user?.plan_code)setUsage(current=>({...current,plan:d.user.plan_code}))}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:{scanned_url?:string})=>item?.scanned_url).filter((value):value is string=>typeof value==="string"&&Boolean(value)).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
   const t=text[language];
   // The public Fix button may be used by visitors who are not signed in.
   // Preserve their selected website and issue through the safe account login.
   useEffect(()=>{
-    if(!fixIssue){setFixAuth("ready");return;}
+    // Without a Fix to resume, fixAuth starts as "ready" (see its useState).
+    if(!fixIssue)return;
     let active=true;
     fetch("/api/auth/me",{cache:"no-store"})
       .then(async r=>{if(!r.ok)throw Error("ACCOUNT_CHECK_UNAVAILABLE");return r.json()})
@@ -68,13 +69,6 @@ export default function DashboardScan() {
       .catch(()=>{if(active)setFixAuth("error");});
     return ()=>{active=false};
   },[fixIssue]);
-  useEffect(()=>{
-    if(!startFix||!fixIssue||!verificationUrl||fixAuth!=="ready"||autoStarted.current)return;
-    autoStarted.current=true;
-    // The user explicitly clicked "Start veilige Fix" on the previous screen.
-    // A saved, authenticated scan is necessary before requesting a GitHub edit.
-    void runScan(verificationUrl);
-  },[startFix,fixIssue,verificationUrl,fixAuth]);
   function run(event:React.FormEvent){
     event.preventDefault();
     if(fixIssue&&fixAuth!=="ready")return;
@@ -125,6 +119,13 @@ export default function DashboardScan() {
   const checks=[...(result?.seo?.checks||[]),...(result?.geo?.checks||[])];
   const issues=checks.filter(c=>c.status==="fail"||c.status==="warning").length;
   const passed=checks.filter(c=>c.status==="pass").length;
+  useEffect(()=>{
+    if(!startFix||!fixIssue||!verificationUrl||fixAuth!=="ready"||autoStarted.current)return;
+    autoStarted.current=true;
+    // The user explicitly clicked "Start veilige Fix" on the previous screen.
+    // A saved, authenticated scan is necessary before requesting a GitHub edit.
+    void runScan(verificationUrl);
+  },[startFix,fixIssue,verificationUrl,fixAuth]);
   return <main className="rf-page" lang={language}><div className="rf-shell">
     <header className="rf-header"><Link href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></Link><Link href="/dashboard/account" className="rf-avatar" aria-label="Account">D</Link></header>
     <DashboardNav current={1}/>

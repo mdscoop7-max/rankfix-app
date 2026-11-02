@@ -135,7 +135,9 @@ export default function AuditDetail() {
 
   useEffect(()=>{
     if(!auditedUrl) return;
-    refreshFixFlow(auditedUrl);
+    fetch("/api/fixes/status?url="+encodeURIComponent(auditedUrl),{cache:"no-store"})
+      .then(async response=>({ok:response.ok,data:await response.json()}))
+      .then(({ok,data})=>{if(ok&&Array.isArray(data.fixes))setFixFlow(data.fixes);}).catch(()=>{});
     const timer=window.setInterval(()=>refreshFixFlow(auditedUrl),15000);
     return()=>window.clearInterval(timer);
   },[auditedUrl,id]);

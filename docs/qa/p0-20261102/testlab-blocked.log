@@ -1,0 +1,1 @@
+TESTLAB_CATALOG_RESULT {"structurallyValid":false,"activationAllowed":false,"problems":["REQUIRED_INPUT_MISSING"],"missing":["/workspace/rankfix-pr219-p0/tests/fixtures/testlab-mkb/catalog.json","/workspace/rankfix-pr219-p0/qa-input/rankfix-testlab-144-fresh144-20f1effd.json"]}

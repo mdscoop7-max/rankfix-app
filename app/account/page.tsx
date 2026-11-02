@@ -1,11 +1,15 @@
 "use client";
+import { useLocationSearch, useBrowserLanguage } from "@/lib/browser-snapshot";
 
 import { useEffect, useState } from "react";
 import { accountCopy } from "@/lib/account-copy";
 import type { Locale } from "@/lib/locales";
 
 export default function Account() {
-  const [mode,setMode]=useState<"login"|"register">("login");
+  const params = new URLSearchParams(useLocationSearch());
+  const browserLanguages = useBrowserLanguage();
+  const [modeOverride,setMode]=useState<"login"|"register"|null>(null);
+  const mode = modeOverride ?? (params.get("mode") === "register" ? "register" : "login");
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -14,7 +18,10 @@ export default function Account() {
   const [busy,setBusy]=useState(false);
   const [rememberMe,setRememberMe]=useState(true);
   const [showPassword,setShowPassword]=useState(false);
-  const [language,setLanguage]=useState<Locale>("nl");
+  const [languageOverride,setLanguage]=useState<Locale|null>(null);
+  const requested = params.get("lang");
+  const detected = browserLanguages.split(",").map(value => value.toLowerCase().split("-")[0]).find((value): value is Locale => value in accountCopy);
+  const language = languageOverride ?? (requested && requested in accountCopy ? requested as Locale : detected || "nl");
   const t=accountCopy[language];
   // Return only to a local dashboard page. Never trust arbitrary redirect URLs.
   function loginDestination(){
@@ -30,20 +37,6 @@ export default function Account() {
   }
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "register") setMode("register");
-    const requested = params.get("lang");
-    if (requested && requested in accountCopy) {
-      setLanguage(requested as Locale);
-    } else {
-      // Fast, privacy-friendly first visit default: use the browser locale locally.
-      // A deliberate URL/account language always wins; no IP lookup is needed here.
-      const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language];
-      const detected = browserLocales
-        .map((value) => value.toLowerCase().split("-")[0])
-        .find((value): value is Locale => value in accountCopy);
-      if (detected) setLanguage(detected);
-    }
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {

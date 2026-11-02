@@ -1,4 +1,5 @@
 "use client";
+import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
 
@@ -218,8 +219,20 @@ type Language = keyof typeof translations;
 
 export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Language } = {}) {
   const [url, setUrl] = useState("");
-  const [testHistory, setTestHistory] = useState<TestHistoryEntry[]>(INITIAL_TEST_SITES);
-  const [historyReady, setHistoryReady] = useState(false);
+  const storedHistory = useStoredString(TEST_HISTORY_KEY);
+  const [historyOverride, setHistoryOverride] = useState<TestHistoryEntry[]|null>(null);
+  let initialHistory = INITIAL_TEST_SITES;
+  try {
+    const items: unknown = JSON.parse(storedHistory || "null");
+    if (Array.isArray(items)) {
+      const valid = items.filter((v): v is TestHistoryEntry => Boolean(v && typeof v.url === "string" && /^https?:\/\//.test(v.url) && ["success", "blocked", "failed"].includes(v.status))).slice(0,30);
+      initialHistory = [...valid,...INITIAL_TEST_SITES.filter(initial=>!valid.some(v=>canonicalTestUrl(v.url)===canonicalTestUrl(initial.url)))].slice(0,30);
+    }
+  } catch { /* Unavailable or invalid storage retains starter sites. */ }
+  const testHistory = historyOverride ?? initialHistory;
+  function setTestHistory(update:(items:TestHistoryEntry[])=>TestHistoryEntry[]) {
+    setHistoryOverride(current=>update(current??initialHistory));
+  }
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -235,25 +248,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(TEST_HISTORY_KEY);
-      if (saved) {
-        const items = JSON.parse(saved);
-        if (Array.isArray(items)) {
-          const valid = items.filter((v): v is TestHistoryEntry =>
-            Boolean(v && typeof v.url === "string" && /^https?:\/\//.test(v.url) &&
-              ["success", "blocked", "failed"].includes(v.status))).slice(0, 30);
-          setTestHistory([...valid, ...INITIAL_TEST_SITES.filter(initial =>
-            !valid.some(v => canonicalTestUrl(v.url) === canonicalTestUrl(initial.url)))].slice(0, 30));
-        }
-      }
-    } catch { /* Storage unavailable: starter sites remain visible */ }
-    setHistoryReady(true);
-  }, []);
-  useEffect(() => {
-    if (!historyReady) return;
-    try { window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(testHistory)); } catch { /* Private browsing */ }
-  }, [testHistory, historyReady]);
+    if (historyOverride === null) return;
+    try { window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(historyOverride)); } catch { /* Private browsing */ }
+  }, [historyOverride]);
   const auditShareText = {
     nl: {copy:"Volledige audit kopiëren",share:"Audit delen",copied:"De volledige audit is gekopieerd. Plak hem in ChatGPT of een bericht.",failed:"Kopiëren is niet gelukt. Probeer het opnieuw."},
     en: {copy:"Copy full audit",share:"Share audit",copied:"Full audit copied. Paste it into ChatGPT or a message.",failed:"Could not copy the audit. Please try again."},
@@ -366,7 +363,6 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
   useEffect(() => {
     if (!scanning) return;
-    setScanStep(0);
     const timer = window.setInterval(() => setScanStep((step) => Math.min(step + 1, scanSteps.length - 1)), 850);
     return () => window.clearInterval(timer);
   }, [scanning]);
@@ -664,6 +660,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
   async function handleScan(e: React.FormEvent) {
     e.preventDefault();
+    setScanStep(0);
     setScanning(true);
     setError("");
     setResult(null);
@@ -676,7 +673,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       });
       const contentType = response.headers.get("content-type") || "";
       const raw = await response.text();
-      let data: any = null;
+      let data: (ScanResult & {error?: string}) | null = null;
       if (contentType.includes("application/json")) {
         try { data = JSON.parse(raw); } catch {}
       }
@@ -905,6 +902,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                       ? ["SEO","GEO / AI Search","Security","Técnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","SEO local","Datos estructurados","Accesibilidad","Quality & Trust","Enlaces rotos","Redirecciones"]
                       : ["SEO","GEO / AI Search","Security","Technical","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
             ).map((feature) => <span key={feature} className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">✓ {feature}</span>)}
+            <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-cyan-200">◷ {language === "nl" ? "Website Speed: mobiel + desktop (in ontwikkeling)" : language === "de" ? "Website-Speed: Mobil + Desktop (in Entwicklung)" : language === "fr" ? "Vitesse du site : mobile + ordinateur (en développement)" : language === "it" ? "Velocità sito: mobile + desktop (in sviluppo)" : language === "es" ? "Velocidad web: móvil + escritorio (en desarrollo)" : "Website speed: mobile + desktop (in development)"}</span>
           </div>
           <p className="mt-3 text-center text-xs text-slate-300">
             {language === "nl"

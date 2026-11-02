@@ -11,6 +11,7 @@ const data = (score, inp = null) => ({
       "largest-contentful-paint": { numericValue: 1800 },
       "cumulative-layout-shift": { numericValue: 0.03 },
       "total-blocking-time": { numericValue: 45 },
+      "speed-index": { numericValue: 2100 },
     },
   },
   loadingExperience: { metrics: inp == null ? {} : { INTERACTION_TO_NEXT_PAINT: { percentile: inp } } },
@@ -22,6 +23,7 @@ test("PageSpeed supports actual 0 and 100, lab metrics and separate field INP", 
   assert.equal(result.score, 100);
   assert.equal(result.lab.lcpMs, 1800);
   assert.equal(result.lab.cls, 0.03);
+  assert.equal(result.lab.speedIndexMs, 2100);
   assert.equal(result.field.inpMs, 180);
   assert.equal(parsePageSpeed(data(1)).field.inpMs, null);
 });
@@ -248,4 +250,14 @@ test("CrUX origin-only fallback is used honestly and labeled origin", () => {
   }};
   const result = parsePageSpeed(fixture);
   assert.deepEqual(result.field,{inpMs:210,lcpMs:1800,cls:0.12,scope:"origin"});
+});
+
+test("No key means unavailable, without a provider request or SEO score changes", async () => {
+  const speed = await measureWebsiteSpeed("https://example.org/", {
+    apiKey: "",
+    fetcher: async () => { throw new Error("must not call"); },
+  });
+  assert.equal(speed.status, "unavailable");
+  assert.equal(speed.mobile.score, null);
+  assert.equal(speed.desktop.score, null);
 });

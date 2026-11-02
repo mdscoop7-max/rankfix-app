@@ -226,3 +226,13 @@ test("reserved, parked and for-sale domain placeholders are recognised in EU lan
   // A long article that mentions a parked domain is not a placeholder.
   assert.equal(p({ title: "Wat te doen met een oud domein", text: "Dit domein is geparkeerd ... " + "woord ".repeat(400), words: 405 }), false);
 });
+
+test("titles: soft hyphens and generic 'Home |' prefixes are flagged, long titles stay advice", () => {
+  assert.equal(assessPageTitle("Kinder­klinik en spoedeisende hulp | Ziekenhuis Voorbeeld", "voorbeeld.test").flag, "soft_hyphen");
+  assert.equal(assessPageTitle("Home | Voorbeeld Kappers", "voorbeeld.test").flag, "generic_prefix");
+  assert.equal(assessPageTitle("Welkom - Voorbeeld Kappers", "voorbeeld.test").flag, "generic_prefix");
+  const long = assessPageTitle("Gespecialiseerde kinderzorg en jeugdpsychiatrie in de regio Utrecht en omstreken | Voorbeeld", "voorbeeld.test");
+  assert.equal(long.status, "PASS");
+  assert.match(long.details, /langer dan 70 tekens/);
+  assert.equal(assessPageTitle("Kappers in Utrecht | Voorbeeld Kappers", "voorbeeld.test").status, "PASS");
+});

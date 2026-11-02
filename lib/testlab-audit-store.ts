@@ -26,7 +26,8 @@ export async function saveQaAudit(id:string, result:unknown, host:string):Promis
   });
  }finally{db.close();}
 }
-export async function readQaAudit(id:string):Promise<{id:string;host:string;createdAt:string;result:any}|null>{
+export type QaAuditResult = import("./testlab-score-evidence").ScanResponseLike & { overallScore?: number | null; seo?: { score?: number | null } | null; geo?: { score?: number | null } | null } & Record<string, unknown>;
+export async function readQaAudit(id:string):Promise<{id:string;host:string;createdAt:string;result:QaAuditResult}|null>{
  const db=await openDb();
  try{return await new Promise((resolve,reject)=>{
   const tx=db.transaction(STORE,"readonly");

@@ -31,8 +31,8 @@ for (const [host, site] of Object.entries(SITES)) {
   } : {});
   if (r.sector === "unknown" && (j.sectorProfile?.confidence !== "low" || !(j.sectorProfile?.confidenceScore >= 0 && j.sectorProfile.confidenceScore <= 35))) problems.push(`${host}: unknown sector with unsupported certainty`);
   const modules = j.sectorProfile?.applicableModules || [];
-  for (const module of e.modules || []) if (!modules.includes(module)) problems.push(`${host}: missing module ${module}`);
-  for (const module of e.noModules || []) if (modules.includes(module)) problems.push(`${host}: unexpected module ${module}`);
+  for (const expectedModule of e.modules || []) if (!modules.includes(expectedModule)) problems.push(`${host}: missing module ${expectedModule}`);
+  for (const unexpectedModule of e.noModules || []) if (modules.includes(unexpectedModule)) problems.push(`${host}: unexpected module ${unexpectedModule}`);
   if (e.noCheckout && (j.evidenceLayer?.evidence?.commerce?.checkout?.value || j.metrics?.checkoutFunnel?.checkoutLink)) problems.push(`${host}: lead form mistaken for checkout`);
   if (e.sampleProduct) {
     const product = j.metrics?.productOptimizer;

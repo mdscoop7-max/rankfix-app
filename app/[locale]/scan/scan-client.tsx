@@ -1,6 +1,7 @@
 "use client";
+import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import SpeedAudit from "@/components/speed-audit";
@@ -27,11 +28,12 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const t = copy[locale];
   const free = freeInfo[locale];
   const u = scanUi[locale];
-  const [url, setUrl] = useState("");
+  const rememberedUrl = useStoredString("rankfix:last-scan-url");
+  const [urlOverride, setUrl] = useState<string|null>(null);
+  const url = urlOverride ?? rememberedUrl;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
-  useEffect(() => { try { const remembered = window.localStorage.getItem("rankfix:last-scan-url"); if (remembered) setUrl(remembered); } catch {} }, []);
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {
@@ -50,6 +52,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const unableToConfirm = checks.filter(check => check.status === "unable_to_confirm").length;
   return <div className="lc-container lc-prose"><h1>{t.run}</h1><p>{t.intro}</p>
     <section className="lc-card lc-free-scope"><strong>{free.title}</strong><div className="lc-free-scope-grid">{free.items.map(item=><span key={item}>✓ {item}</span>)}</div></section>
+    <p className="lc-note">{locale === "nl" ? "Binnenkort in dezelfde gratis scan: snelheid mobiel + desktop." : locale === "de" ? "Demnächst im selben kostenlosen Scan: Mobil- und Desktop-Geschwindigkeit." : locale === "fr" ? "Bientôt dans la même analyse gratuite : vitesse sur mobile et ordinateur." : locale === "it" ? "Presto nella stessa scansione gratuita: velocità mobile e desktop." : locale === "es" ? "Próximamente en el mismo análisis gratuito: velocidad móvil y de escritorio." : "Coming soon in this same free scan: mobile and desktop speed."}</p>
     <form onSubmit={run} className="lc-scan-box"><label htmlFor="lc-url">{t.url}</label><input id="lc-url" value={url} onChange={event => { const next=event.target.value; const embedded=next.slice(1).search(/https?:\/\//i); setUrl(embedded>=0?next.slice(embedded+1):next); }} onFocus={event=>event.currentTarget.select()} placeholder="https://example.com" required /><button type="submit" disabled={busy} className="lc-primary">{busy ? t.running : t.run}</button></form>
     {error && <p role="alert" className="lc-note">{error}</p>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}

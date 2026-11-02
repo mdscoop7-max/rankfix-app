@@ -9,7 +9,7 @@
  */
 import { dimensionDisplayOf } from "./dimension-score-display.mjs";
 type Dimension = { score?: number | null; coverage?: { coveragePercent?: number; relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null | undefined;
-type ScanResponseLike = {
+export type ScanResponseLike = {
   scoreModel?: {
     evidenceLevel?: string | null;
     evidenceReasons?: string[] | null;

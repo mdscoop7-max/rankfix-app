@@ -1,0 +1,28 @@
+{
+  "baseline": "ecdb17a9bbac633be92c4bbe88a281f97d949184",
+  "candidate": "f212f6a9443fe09922c770e40c9b71a57cdf8d8e",
+  "fixtures": 134,
+  "sameCaseIds": true,
+  "unchanged": 134,
+  "changed": 0,
+  "differences": [],
+  "liveValidation": false,
+  "finalHead": "41effe0bb172bbf7c8d6b2d428f4cb6fde2c7f0a",
+  "engineBlob": "0fa21be9258c973388af1261f3c971d066926035",
+  "engineUnchangedAfterBenchmark": true,
+  "comparedFields": [
+    "id",
+    "status",
+    "sector",
+    "key",
+    "conf",
+    "page",
+    "score",
+    "problems",
+    "bench"
+  ],
+  "excludedFields": [
+    "ms"
+  ],
+  "reproduction": "BENCH_OUT=/tmp/bench.json node --experimental-strip-types --no-warnings --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-matrix.mjs (run on baseline and candidate with dependencies installed; compare JSON rows excluding ms)"
+}

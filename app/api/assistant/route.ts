@@ -63,8 +63,8 @@ export async function POST(request: Request) {
       githubContext = JSON.stringify({ connected: Boolean(githubConnection.rowCount) });
       if (dashboard) {
         const [fixStats, monitoringStats] = await Promise.all([
-          getDb().query("SELECT status, COUNT(*)::int AS count FROM fix_proposals WHERE user_id=$1 GROUP BY status",[user.id]).catch(()=>({rows:[]} as any)),
-          getDb().query("SELECT enabled, COUNT(*)::int AS count FROM website_monitors WHERE user_id=$1 GROUP BY enabled",[user.id]).catch(()=>({rows:[]} as any)),
+          getDb().query("SELECT status, COUNT(*)::int AS count FROM fix_proposals WHERE user_id=$1 GROUP BY status",[user.id]).catch(()=>({rows:[]})),
+          getDb().query("SELECT enabled, COUNT(*)::int AS count FROM website_monitors WHERE user_id=$1 GROUP BY enabled",[user.id]).catch(()=>({rows:[]})),
         ]);
         dashboardContext = JSON.stringify({
           recent_scans: scans.rows.length,

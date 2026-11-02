@@ -36,15 +36,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Production dependency audit (blocking)
-        run: npm audit --omit=dev --audit-level=high
+      - name: Dependency audit (production and development)
+        run: npm audit --audit-level=high
 
       - name: Tests
         run: npm test
 
-      - name: Lint (legacy debt; nonblocking, must be fixed separately)
+      - name: Lint (blocking — existing debt must remain visible)
         if: ${{ !cancelled() }}
-        continue-on-error: true
         run: npm run lint
 
       - name: Production build
@@ -82,3 +81,17 @@ jobs:
             sleep 1
           done
           node tests/manual/fixes-responsive.browser.mjs
+      - name: Browser context regression (local production build, mocked APIs)
+        if: ${{ success() }}
+        run: node tests/ui-context-smoke.mjs
+
+  testlab-catalog:
+    name: Required 144-site catalog and baseline evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate offline dataset; missing real inputs fail closed
+        run: node scripts/testlab/validate-mkb-catalog.mjs

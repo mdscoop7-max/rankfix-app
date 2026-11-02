@@ -29,12 +29,14 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     },
   ]);
   const [busy, setBusy] = useState(false);
-  const [scanIssue, setScanIssue] = useState<any>(null);
+  type ScanIssue = { issue_id?: string; rule_id?: string; title?: string; confidence?: string };
+  const [scanIssue, setScanIssue] = useState<ScanIssue | null>(null);
   const [scanIssueLoaded,setScanIssueLoaded]=useState(false);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
-  const [language, setLanguage] = useState(publicLocale);
-  const extra: Record<string, any> = {
+  const [dashboardLanguage, setLanguage] = useState(publicLocale);
+  const language = dashboard ? dashboardLanguage : publicLocale;
+  const extra: Record<string, Record<string, string>> = {
     nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:"Geen actief probleem gevonden.",githubFail:"GitHub Fix kon niet worden gestart.",created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:"De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",nochange:"Er is geen wijziging bevestigd.",failed:"GitHub Fix mislukt.",generic:"Er ging iets mis.",retry:"Er ging iets mis. Probeer het opnieuw.",safe:"Veilige fix",loading:"Actief scanprobleem laden…",checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
     en:{greet:"Hi! I’m RankFix AI. Ask me technical questions about your scans, SEO, GEO, scores, fixes, plans or Dashboard.",blocked:"I can see RankFix safely blocked this action.",blockedAsk:"Explain why this action was blocked and what I should safely check.",scanAsk:"Explain this scan and list the 3 most important problems with a concrete solution.",none:"No active issue found.",githubFail:"GitHub Fix could not be started.",created:"Code proposal created. Review and merge the PR, then scan again: ",already:"The code already contains this; nothing was changed. Verify the live page with a new scan.",nochange:"No change was confirmed.",failed:"GitHub Fix failed.",generic:"Something went wrong.",retry:"Something went wrong. Please try again.",safe:"Safe fix",loading:"Loading active scan issue…",checking:"GitHub Fix is being checked…",start:"Start safe GitHub Fix"},
     de:{greet:"Hallo! Ich bin RankFix AI. Frag mich zu deinen Scans, SEO, GEO, Scores, Fixes, Tarifen oder dem Dashboard.",blocked:"RankFix hat diese Aktion aus Sicherheitsgründen blockiert.",blockedAsk:"Erkläre, warum diese Aktion blockiert wurde und was ich sicher prüfen sollte.",scanAsk:"Erkläre diesen Scan und nenne die 3 wichtigsten Probleme mit einer konkreten Lösung.",none:"Kein aktives Problem gefunden.",githubFail:"GitHub Fix konnte nicht gestartet werden.",created:"Codevorschlag erstellt. Prüfe und merge den PR und scanne danach erneut: ",already:"Der Code enthält dies bereits; es wurde nichts geändert. Prüfe die Live-Seite mit einem neuen Scan.",nochange:"Keine Änderung wurde bestätigt.",failed:"GitHub Fix fehlgeschlagen.",generic:"Etwas ist schiefgelaufen.",retry:"Etwas ist schiefgelaufen. Bitte versuche es erneut.",safe:"Sicherer Fix",loading:"Aktives Scanproblem wird geladen…",checking:"GitHub Fix wird geprüft…",start:"Sicheren GitHub Fix starten"},
@@ -44,12 +46,24 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   };
   const ex=extra[language]||extra.nl;
 
-  useEffect(() => {
-    if (!dashboard) {
-      setLanguage(publicLocale);
-      setMessages((current) => current.length <= 1 ? [{ role: "assistant", content: greeting[publicLocale] || greeting.nl }] : current);
+  // Reconcile changed conversation context during render. The guard settles before
+  // children commit, so a new scan never exposes the previous scan's fix controls.
+  const [previousContext,setPreviousContext]=useState({dashboard,locale:publicLocale,error:null as string|null,scan:null as string|null});
+  if(previousContext.dashboard!==dashboard||previousContext.locale!==publicLocale||previousContext.error!==errorContext||previousContext.scan!==scanId){
+    setPreviousContext({dashboard,locale:publicLocale,error:errorContext,scan:scanId});
+    if(!dashboard&&previousContext.locale!==publicLocale&&messages.length<=1){
+      setMessages([{role:"assistant",content:greeting[publicLocale]||greeting.nl}]);
     }
-  }, [dashboard, publicLocale]);
+    if(dashboard&&errorContext&&(previousContext.error!==errorContext||!previousContext.dashboard)){
+      // Fix errors must not automatically reopen the assistant above the controls.
+      setMessages(current=>[...current,{role:"assistant",content:ex.blocked+" "+errorContext}]);
+      setInput(ex.blockedAsk);
+    }
+    if(previousContext.scan!==scanId||previousContext.dashboard!==dashboard){
+      setScanIssue(null);setScanIssueLoaded(false);setFixResult("");
+      if(dashboard&&scanId)setInput(ex.scanAsk);
+    }
+  }
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -74,37 +88,31 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   }, []);
 
   useEffect(() => {
-    if (!dashboard || !errorContext) return;
-    // Fix errors must not automatically reopen the assistant above the controls.
-    setMessages((m) => [...m, { role: "assistant", content: (extra[language]||extra.nl).blocked + " " + errorContext }]);
-    setInput((extra[language]||extra.nl).blockedAsk);
-  }, [dashboard, errorContext]);
-
-  useEffect(() => {
     if (!dashboard || !scanId) return;
-    setInput((extra[language]||extra.nl).scanAsk);
-    setScanIssue(null);
-    setScanIssueLoaded(false);
-    setFixResult("");
-    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
+    // PR #219: an older scan request must never overwrite the issue of a newer scan.
+    let cancelled = false;
+    const controller = new AbortController();
+    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store", signal: controller.signal })
       .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
       .then((d) => {
+        if (cancelled) return;
         const issues = Array.isArray(d.issues) ? d.issues : [];
         // The assistant must select only actionable findings, never a manual
         // Brand Identity issue that leads to a misleading GitHub Fix button.
-        const supported = issues.filter((item: any) => {
+        const supported = (issues as ScanIssue[]).filter((item) => {
           const policy=getFixPolicy(String(item?.issue_id||item?.rule_id||""));
           return policy.action==="github_fix" && Boolean(policy.safe_type);
         });
-        const verifiedSchema = supported.find((item: any) =>
+        const verifiedSchema = supported.find((item) =>
           ["ORGANIZATION_WEBSITE_SCHEMA","STRUCTURED_DATA_MISSING","SITE_STRUCTURED_DATA_MISSING"]
             .includes(String(item?.issue_id||item?.rule_id||"").toUpperCase())
           && String(item?.confidence||"").toLowerCase()==="high"
         );
         setScanIssue(verifiedSchema || supported[0] || null);
       })
-      .catch(() => setScanIssue(null))
-      .finally(() => setScanIssueLoaded(true));
+      .catch(() => { if (!cancelled) setScanIssue(null); })
+      .finally(() => { if (!cancelled) setScanIssueLoaded(true); });
+    return () => { cancelled = true; controller.abort(); };
   }, [dashboard, scanId]);
 
   function startGithubFix() {
@@ -143,7 +151,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
         body: JSON.stringify({ message: question, dashboard, scanId, language, errorContext }),
       });
       const raw = await response.text();
-      let data:any={};
+      let data: {answer?: string; error?: string} = {};
       try { data=raw.trim()?JSON.parse(raw):{}; } catch { data={}; }
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {

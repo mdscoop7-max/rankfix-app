@@ -234,7 +234,7 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "dangling_separator" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "dangling_separator" | "brand_only" | "duplicate_segment" | "outdated_year" | "soft_hyphen" | "generic_prefix" };
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -268,6 +268,8 @@ export function templateFieldLeak(title: string, host = "", path = ""): string |
   return rest === brand || sections.includes(rest) || sections.includes(rest.replace(/\s+/g, "-")) ? last : null;
 }
 
+const GENERIC_TITLE_SEGMENT = /^(?:home|homepage|home\s*page|welkom|welcome|startseite|start|accueil|inicio|startpagina|hauptseite|pagina\s+principale|index)$/i;
+
 export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null, path = ""): MetaAssessment {
   const value = title.trim();
   if (!value) return { status: "WARNING", credit: 0.25, details: "Geen title gevonden in raw HTML.", flag: "missing" };
@@ -289,6 +291,17 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   const lengthText = `Title gevonden (${length} tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens.`;
   if (duplicate) {
     return { status: "WARNING", credit: 0.8, details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
+  }
+  // Soft hyphens (U+00AD / &shy;) in a title are copied into search results and break words.
+  if (/[\u00AD]|&shy;|&#173;/i.test(value)) {
+    return { status: "WARNING", credit: 0.85, details: `${lengthText} De title bevat zachte koppeltekens (U+00AD) die in zoekresultaten en deelvoorbeelden storen; gebruik ze alleen in zichtbare tekst.`, flag: "soft_hyphen" };
+  }
+  // "Home | Brand": a generic first segment tells searchers nothing about the page.
+  if (GENERIC_TITLE_SEGMENT.test(value.split(/\s[|\-–—·:]\s/)[0]?.trim() || "") && /\s[|\-–—·:]\s/.test(value)) {
+    return { status: "WARNING", credit: 0.85, details: `${lengthText} De title begint met een generiek onderdeel ("${value.split(/\s[|\-–—·:]\s/)[0].trim()}"); noem het onderwerp of de belangrijkste dienst van de pagina.`, flag: "generic_prefix" };
+  }
+  if (length > 70) {
+    return { status: "PASS", credit: 1, details: `${lengthText} Aandachtspunt: met ${length} tekens is de title langer dan 70 tekens en wordt waarschijnlijk afgekapt; zet het belangrijkste woord vooraan (advies, geen aftrek).` };
   }
   const oldYear = outdatedTitleYear(value, now);
   if (oldYear) {
@@ -313,6 +326,7 @@ export function assessPageDescription(description: string, tagPresent: boolean, 
   // Like titles: Google truncates long descriptions in the snippet; length alone
   // is advice, not a demonstrated defect, so it costs no points.
   if (length > 160 && length <= 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in (advies, geen aftrek).` };
+  if (length > 250) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang (aandachtspunt): boven 250 tekens wordt de tekst in zoekresultaten vrijwel zeker ingekort. Zet de kern in de eerste 155 tekens (advies, geen aftrek).` };
   if (length > 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang, wordt in zoekresultaten ingekort (advies, geen aftrek).` };
   if (length >= 50) return { status: "WARNING", credit: 0.85, details: `Meta description gevonden (${length} tekens); kort.` };
   return { status: "WARNING", credit: 0.65, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort.` };

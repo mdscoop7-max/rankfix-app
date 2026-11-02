@@ -21,12 +21,22 @@ export function commerceApplicability(input: {
   referralPlatform?: boolean;
   /** Keep "unable to confirm" for a thin sample even without any shop signal. */
   requireSampleForAbsence?: boolean;
+  /** The primary sector could not be established. */
+  sectorUnknown?: boolean;
+  /** Cart link/API, add-to-cart, price + order button or payment logos were found. */
+  hardCommerceSignals?: boolean;
 }): CommerceApplicability {
   if (input.referralPlatform) return { state: "unconfirmed", reason: "referral_platform" };
   if (input.confirmed) return { state: "confirmed" };
   // The shop pages themselves refused RankFix: whether checkout works is unknowable,
   // never "absent" and never a weak-signal verdict about the shop.
   if ((input.refusedRetailPages || 0) >= 2 && (input.commerceHints || input.verifiedSecondaryCommerce)) return { state: "unconfirmed", reason: "sample_refused" };
+  // Unknown sector and no hard store signal: store checks are N.v.t. instead of a pile of
+  // "unconfirmed" items. A JS shell, country picker, verified secondary commerce or an
+  // explicitly requested thin-sample verdict still cannot prove absence.
+  if (input.sectorUnknown && !input.hardCommerceSignals && !input.marketSelector && !input.thinShell && !input.verifiedSecondaryCommerce && !input.requireSampleForAbsence) {
+    return { state: "absent", reason: "no_commerce_evidence" };
+  }
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
   // A primary service identity may also sell real products (e.g. phones at a
@@ -130,8 +140,10 @@ export function confirmedRetailEvidenceForService(input: {
    * shop (tyres, parts, phones) is then also a webshop.
    */
   storefrontChain?: boolean;
+  /** Hard store signals: cart link/API together with add-to-cart, price + order button or payment logos. */
+  storefrontProven?: boolean;
 }): boolean {
-  return input.representativePurchase ||
+  return input.representativePurchase || Boolean(input.storefrontProven) ||
     (input.productDetailSchema && input.addToCart && input.productAndPrice) ||
     Boolean(input.storefrontChain && input.addToCart);
 }
