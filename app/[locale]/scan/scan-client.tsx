@@ -1,4 +1,5 @@
 "use client";
+import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
@@ -27,11 +28,12 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const t = copy[locale];
   const free = freeInfo[locale];
   const u = scanUi[locale];
-  const [url, setUrl] = useState("");
+  const rememberedUrl = useStoredString("rankfix:last-scan-url");
+  const [urlOverride, setUrl] = useState<string|null>(null);
+  const url = urlOverride ?? rememberedUrl;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
-  useEffect(() => { try { const remembered = window.localStorage.getItem("rankfix:last-scan-url"); if (remembered) setUrl(remembered); } catch {} }, []);
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {

@@ -12,6 +12,9 @@ type Repo={full_name:string;default_branch:string;private:boolean};
 type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
 type FixPreview={startLine:number;before:string[];after:string[];truncated?:boolean;changedLines?:number;summary?:string};
 type AiProposal={title:string;content:string;reason:string};
+type ScanCheck={issue_id?:string;rule_id?:string;title?:string;status?:string;fix?:string};
+type FixScan={scanned_url:string;result?:{seo?:{checks?:ScanCheck[]};geo?:{checks?:ScanCheck[]};metrics?:{title?:string;description?:string;h1s?:string[];canonical?:string;imageAltCandidates?:unknown[];openGraph?:{title?:string;description?:string;image?:string};recommendedSchema?:unknown;productOptimizer?:{sourceCount?:number;product?:{name?:string;sku?:string;offers?:unknown[]}}}}};
+type FixResponse={error?:string;status?:string;path?:string;validation?:ValidationResult;preview?:FixPreview;summary?:string;proposal_id?:string;proposal_hash?:string;alreadyApplied?:boolean;pr?:{number?:number;url?:string;title?:string};merge?:{merged?:boolean}};
 const ui:Record<Locale,{back:string;title:string;intro:string;connect:string;connectInfo:string;connectCta:string;connected:string;reconnect:string;linkedRepo:string;searchRepo:string;chooseRepo:string;searching:string;loading:string;selectRepo:string;privateRepo:string;mappedInfo:string;chooseInfo:string;changeRepo:string;website:string;blocked:string;warnings:string;preview:string;changed:string;empty:string;truncated:string;cancel:string;busy:string;approve:string;makePreview:string;invalidLink:string;verifyFail:string;release:string;mappingFail:string;released:string;missingSite:string;changing:string;oldReleased:string;missingAudit:string;chooseOnce:string;repoFormat:string;fixFail:string;invalidGithub:string;previewReady:string;alreadyApplied:string;prProposed:string;engineFail:string}>={
 nl:{back:"Dashboard",title:"Verbeter je website met een veilig codevoorstel",intro:"Bekijk eerst wat RankFix wil aanpassen. Jij controleert het voorstel voordat er iets naar GitHub gaat. Na publicatie controleer je met een nieuwe scan of de verbetering echt werkt.",connect:"Verbind GitHub",connectInfo:"Koppel je GitHub-account om codewijzigingen te bekijken en via een pull request door te voeren. Je geeft zelf toestemming bij GitHub.",connectCta:"Verbind met GitHub",connected:"GitHub verbonden als",reconnect:"GitHub opnieuw verbinden",linkedRepo:"Gekoppelde repository",searchRepo:"Repository zoeken…",chooseRepo:"Kies het GitHub-project van je website",searching:"RankFix zoekt je GitHub-repositories en controleert de koppeling met deze website…",loading:"Repositories laden…",selectRepo:"Selecteer repository",privateRepo:"privé",mappedInfo:"RankFix gebruikt deze geverifieerde koppeling automatisch.",chooseInfo:"Dit stel je één keer in. Daarna zoekt RankFix de juiste bestanden voor je op.",changeRepo:"Repositorykoppeling wijzigen",website:"Website",blocked:"Deze wijziging kan nog niet doorgaan",warnings:"Aandachtspunten",preview:"Voorbeeld van codewijziging · vanaf regel",changed:"gewijzigde regels",empty:"leeg",truncated:"Het voorbeeld is ingekort. Bekijk de volledige wijziging op GitHub voordat je deze goedkeurt.",cancel:"Preview annuleren",busy:"AI + GitHub zijn bezig…",approve:"Fix publiceren",makePreview:"Bekijk eerst de voorgestelde wijziging",invalidLink:"De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw.",verifyFail:"GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.",release:"Repositorykoppeling wordt vrijgegeven…",mappingFail:"Repositorykoppeling kon niet worden gewijzigd.",released:"Koppeling vrijgegeven. Kies nu de juiste repository voor deze website.",missingSite:"Websitecontext ontbreekt; open deze fix opnieuw vanuit het auditrapport.",changing:"Repositorykoppeling wordt gewijzigd…",oldReleased:"Oude koppeling vrijgegeven. Controleer de nieuwe repository en maak daarna de diff-preview.",missingAudit:"De auditcontext ontbreekt. Open deze fix opnieuw via ‘Maak AI-fix’ bij het specifieke verbeterpunt in het auditrapport.",chooseOnce:"Kies eenmalig de GitHub-repository die bij deze website hoort.",repoFormat:"Repository moet in het formaat owner/repository staan, bijvoorbeeld mdscoop7-max/Trendmix.",fixFail:"De wijziging is niet gelukt. Controleer of je het juiste GitHub-project hebt gekoppeld.",invalidGithub:"Je GitHub-koppeling is ongeldig. Klik op ‘GitHub opnieuw verbinden’ en autoriseer RankFix opnieuw.",previewReady:"Je voorbeeld is klaar. Bekijk de oude en nieuwe code hieronder. Er is nog niets op GitHub aangepast.",alreadyApplied:"Deze wijziging staat al in je code. Je hoeft niets aan te passen. Voer een nieuwe scan uit om de live website te controleren.",prProposed:"Codewijziging voorgesteld in PR",engineFail:"De verbinding met GitHub is mislukt. Probeer het opnieuw."},
 en:{back:"Dashboard",title:"A code proposal for your website.",intro:"RankFix only reads the selected file, makes the smallest necessary change and opens a separate Pull Request. After your approval, RankFix creates the Pull Request and safely attempts to merge it automatically. The live website is verified afterwards.",connect:"Connect GitHub",connectInfo:"RankFix only gets GitHub access after you approve it on GitHub.",connectCta:"Connect GitHub",connected:"GitHub connected as",reconnect:"Reconnect GitHub",linkedRepo:"Linked repository",searchRepo:"Searching repository…",chooseRepo:"Choose this website’s repository once",searching:"RankFix is searching your GitHub repositories and checking the link to this website…",loading:"Loading repositories…",selectRepo:"Select repository",privateRepo:"private",mappedInfo:"RankFix automatically uses this verified link.",chooseInfo:"You only need to do this once per website. RankFix then selects the branch, file and technical details automatically.",changeRepo:"Change repository link",website:"Website",blocked:"Fix blocked",warnings:"Warnings",preview:"Diff preview · from line",changed:"changed lines",empty:"empty",truncated:"Preview is shortened; also review the full GitHub diff after creating it.",cancel:"Cancel preview",busy:"AI + GitHub are working…",approve:"Publish fix",makePreview:"Create diff preview first",invalidLink:"The GitHub connection is invalid. Reconnect GitHub.",verifyFail:"GitHub could not be verified. Reconnect GitHub.",release:"Releasing repository link…",mappingFail:"Repository link could not be changed.",released:"Link released. Now choose the correct repository for this website.",missingSite:"Website context is missing; reopen this fix from the audit report.",changing:"Changing repository link…",oldReleased:"Old link released. Check the new repository and then create the diff preview.",missingAudit:"Audit context is missing. Reopen this fix via ‘Create AI fix’ for the specific issue in the audit report.",chooseOnce:"Choose the GitHub repository for this website once.",repoFormat:"Repository must use owner/repository format, for example mdscoop7-max/Trendmix.",fixFail:"GitHub fix failed. Check the repository and file.",invalidGithub:"Your GitHub connection is invalid. Click ‘Reconnect GitHub’ and authorize RankFix again.",previewReady:"Preview ready. Review the change below; no branch or Pull Request has been created yet.",alreadyApplied:"The requested code is already in the file. Nothing was changed. Check the live page with a new scan.",prProposed:"Code change proposed in PR",engineFail:"Connection to GitHub Fix Engine failed."},
@@ -22,18 +25,23 @@ es:{back:"Panel",title:"Una propuesta de código para tu web.",intro:"RankFix so
 
 export default function GithubPage(){
   const searchParams=useSearchParams();
+  return <GithubContext key={searchParams.toString()} query={searchParams.toString()}/>;
+}
+
+function GithubContext({query}:{query:string}){
+  const searchParams=new URLSearchParams(query);
   const [connected,setConnected]=useState(false);
   const [login,setLogin]=useState("");
   const [repos,setRepos]=useState<Repo[]>([]);
   const [reposLoading,setReposLoading]=useState(true);
   const [repo,setRepo]=useState("");
   const [path,setPath]=useState("");
-  const [siteUrl,setSiteUrl]=useState("");
-  const [scanId,setScanId]=useState(()=>searchParams.get("scan_id")||"");
-  const [issueId,setIssueId]=useState(()=>searchParams.get("issue_id")||"");
+  const [siteUrl,setSiteUrl]=useState(()=>searchParams.get("url")||"");
+  const [scanId]=useState(()=>searchParams.get("scan_id")||"");
+  const [issueId]=useState(()=>searchParams.get("issue_id")||"");
   const [mapped,setMapped]=useState(false);
-  const [issue,setIssue]=useState("");
-  const [context,setContext]=useState("");
+  const [issue]=useState(()=>searchParams.get("issue")||"");
+  const [context]=useState(()=>searchParams.get("context")||"");
   const [baseBranch,setBaseBranch]=useState("main");
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
@@ -44,12 +52,8 @@ export default function GithubPage(){
   const [proposalHash,setProposalHash]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("free");
-  const [scanData,setScanData]=useState<any>(null);
-  const [selectedCheck,setSelectedCheck]=useState<any>(null);
-  const [proposal,setProposal]=useState<AiProposal|null>(null);
-  const [proposalLoading,setProposalLoading]=useState(false);
-  const [proposalError,setProposalError]=useState("");
-  const [proposalRequested,setProposalRequested]=useState(false);
+  const [scanData,setScanData]=useState<FixScan|null>(null);
+  const [remoteProposal,setRemoteProposal]=useState<{key:string;proposal?:AiProposal;error?:string}|null>(null);
   const [copied,setCopied]=useState(false);
   const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
@@ -66,9 +70,7 @@ export default function GithubPage(){
     fetch("/api/account/language").then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
     fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
     const params=new URLSearchParams(searchParams.toString());
-    setIssue(params.get("issue")||"");
-    setContext(params.get("context")||"");
-    const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
+    const incomingScanId=params.get("scan_id")||"";
     let incomingUrl=params.get("url")||"";
     (async()=>{
       if(incomingScanId){
@@ -77,7 +79,7 @@ export default function GithubPage(){
           const sd=await readJsonSafe(sr);
           if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); setScanData(sd.scan); }
         }catch{}
-      } else setSiteUrl(incomingUrl);
+      }
       const r=await fetch("/api/github/status"); const d=await readJsonSafe(r);
       if(d.connected){
         setConnected(true);setLogin(d.connection.github_login);
@@ -90,23 +92,21 @@ export default function GithubPage(){
       }
       setReposLoading(false);
     })();
-  },[searchParams]);
+  },[query]);
 
-  useEffect(()=>{
-    if(!scanData||!issueId||proposalRequested) return;
-    setProposalRequested(true);
+  const selectedCheck=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])].find(c=>String(c.issue_id||c.rule_id||"").trim().toUpperCase()===issueId.trim().toUpperCase());
+  function proposalPlan():{direct?:AiProposal;error?:string;request?:string}{
+    if(!scanData||!issueId)return {};
     const allChecks=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])];
     const normalizedRequestedIssue=String(issueId||"").trim().toUpperCase();
-    const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"").trim().toUpperCase()===normalizedRequestedIssue);
-    if(!check){setProposalError(language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan.");return;}
-    setSelectedCheck(check);
+    const check=allChecks.find((c)=>String(c.issue_id||c.rule_id||"").trim().toUpperCase()===normalizedRequestedIssue);
+    if(!check){return {error:language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan."};}
     const directProposal=String(check.fix||"").trim();
     // Scan instructions such as "Voeg og:title..." describe what to fix, but are not a concrete proposal.
     // Only bypass the AI generator when the scan already contains actual code/markup.
     const directLooksConcrete=directProposal.includes("<") || /(?:\{|\[)[\s\S]*(?:\}|\])/.test(directProposal);
     if(directLooksConcrete){
-      setProposal({title:language==="nl"?"Concreet scanvoorstel":"Concrete scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
-      return;
+      return {direct:{title:language==="nl"?"Concreet scanvoorstel":"Concrete scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."}};
     }
     const rawNormalizedIssue=String(check.rule_id||check.issue_id||issueId);
     const normalizedIssue=rawNormalizedIssue.toLowerCase()==="product_copy_optimizer"?"PRODUCT_COPY_OPTIMIZER":rawNormalizedIssue;
@@ -114,18 +114,29 @@ export default function GithubPage(){
     const typeMap:Record<string,string>={title:"meta_title",description:"meta_description",h1:"h1",alt:"alt_text",schema:"structured_data",META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise",PRODUCT_COPY_OPTIMIZER:"product_copy_metadata",product_copy_optimizer:"product_copy_metadata"};
     const inferredType=titleHint.includes("social")||titleHint.includes("open graph")?"social_metadata":titleHint.includes("meta description")?"meta_description":titleHint.includes("meta title")?"meta_title":titleHint.includes("structured data")?"structured_data":titleHint.includes("canonical")?"canonical":titleHint.includes("alt")?"alt_text":titleHint.includes("heading")?"heading_structure":titleHint.includes("h1")?"h1":"";
     const type=typeMap[normalizedIssue]||typeMap[issueId]||inferredType;
-    if(!type){setProposalError(language==="nl"?"Voor dit verbeterpunt is nog geen veilig AI-fixformaat beschikbaar.":"No safe AI fix format is available for this issue yet.");return;}
+    if(!type){return {error:language==="nl"?"Voor dit verbeterpunt is nog geen veilig AI-fixformaat beschikbaar.":"No safe AI fix format is available for this issue yet."};}
     const m=scanData?.result?.metrics||{};
     const current=type==="meta_title"?(m.title||""):type==="meta_description"?(m.description||""):type==="h1"?(m.h1s?.[0]||""):"";
     const productOptimizer=m.productOptimizer||{};
     const productEvidence=productOptimizer.product||{};
     const context={title:m.title||"",description:m.description||"",h1:m.h1s?.[0]||"",canonical:m.canonical||"",imageAltCandidates:m.imageAltCandidates||[],ogTitle:m.openGraph?.title||"",ogDescription:m.openGraph?.description||"",ogImage:m.openGraph?.image||"",recommendedSchema:m.recommendedSchema||"",url:scanData.scanned_url,productName:productEvidence.name||"",productSku:productEvidence.sku||"",productOffers:productEvidence.offers||[],productSourceCount:String(productOptimizer.sourceCount||0)};
-    setProposalLoading(true);setProposalError("");
-    fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
-      .then(async r=>{const d=await readJsonSafe(r);if(!r.ok){if(d.error==="insufficient_verified_product_data")throw new Error(d.message||"Product Optimizer heeft onvoldoende bewezen productgegevens.");if(d.error==="ai_required")throw new Error(d.message||"Product Optimizer AI is niet beschikbaar.");if(d.error==="missing_verified_asset")throw new Error(language==="nl"?"Afbeelding nodig voor deze fix. RankFix kon geen bestaande, geschikte afbeelding voor og:image bevestigen en verzint daarom geen afbeeldings-URL. Kies een bestaande afbeelding van de website of geef een geldige afbeeldings-URL op; daarna kan RankFix de fix veilig maken.":"An image is needed for this fix. RankFix could not verify an existing suitable image for og:image and will not invent an image URL. Choose an existing website image or provide a valid image URL so RankFix can create the fix safely.");throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.message||d.error||"AI-fix mislukt.");}setProposal(d.fix);})
-      .catch(e=>setProposalError(e instanceof Error?e.message:"AI-fix mislukt."))
-      .finally(()=>setProposalLoading(false));
-  },[scanData,issueId,proposalRequested,language]);
+    return {request:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})};
+  }
+  const planForProposal=proposalPlan();
+  const requestKey=planForProposal.request||"";
+  const completedProposal=remoteProposal?.key===requestKey?remoteProposal:null;
+  const proposal=planForProposal.direct||completedProposal?.proposal||null;
+  const proposalError=planForProposal.error||completedProposal?.error||"";
+  const proposalLoading=Boolean(requestKey&&!completedProposal);
+  useEffect(()=>{
+    if(!requestKey)return;
+    let cancelled=false;
+    const controller=new AbortController();
+    fetch("/api/ai-fix",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({...JSON.parse(requestKey),request_id:crypto.randomUUID()})})
+      .then(async r=>{const d=await readJsonSafe(r);if(!r.ok){if(d.error==="insufficient_verified_product_data")throw new Error(d.message||"Product Optimizer heeft onvoldoende bewezen productgegevens.");if(d.error==="ai_required")throw new Error(d.message||"Product Optimizer AI is niet beschikbaar.");if(d.error==="missing_verified_asset")throw new Error(language==="nl"?"Afbeelding nodig voor deze fix. RankFix kon geen bestaande, geschikte afbeelding voor og:image bevestigen en verzint daarom geen afbeeldings-URL. Kies een bestaande afbeelding van de website of geef een geldige afbeeldings-URL op; daarna kan RankFix de fix veilig maken.":"An image is needed for this fix. RankFix could not verify an existing suitable image for og:image and will not invent an image URL. Choose an existing website image or provide a valid image URL so RankFix can create the fix safely.");throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.message||d.error||"AI-fix mislukt.");}if(!cancelled)setRemoteProposal({key:requestKey,proposal:d.fix});})
+      .catch(e=>{if(!cancelled)setRemoteProposal({key:requestKey,error:e instanceof Error?e.message:"AI-fix mislukt."});});
+    return ()=>{cancelled=true;controller.abort();};
+  },[requestKey,language]);
 
   async function changeRepositoryMapping(){
     if(!siteUrl||busy) return;
@@ -136,7 +147,7 @@ export default function GithubPage(){
       if(!r.ok) throw new Error(d.error||t.mappingFail);
       setMapped(false); setRepo(""); setBaseBranch("main");
       setMessage(t.released);
-    }catch(e:any){ setError(e?.message||t.mappingFail); }
+    }catch(e:unknown){ setError((e instanceof Error ? e.message : t.mappingFail)); }
     finally{ setBusy(false); }
   }
 
@@ -151,8 +162,8 @@ export default function GithubPage(){
         if(!r.ok) throw new Error(d.error||t.mappingFail);
         setMapped(false);
         setMessage(t.oldReleased);
-      }catch(e:any){
-        setError(e?.message||t.mappingFail);
+      }catch(e:unknown){
+        setError((e instanceof Error ? e.message : t.mappingFail));
         return;
       }finally{ setBusy(false); }
     }
@@ -188,7 +199,7 @@ export default function GithubPage(){
     try{
       const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,proposal_id:publish?proposalId:undefined,proposal_hash:publish?proposalHash:undefined,language})});
       const text=await r.text();
-      let d:any={};
+      let d:FixResponse={};
       try{d=JSON.parse(text);}catch{}
       if(!r.ok){
         const apiError=d.error||t.fixFail;
