@@ -49,3 +49,14 @@ jobs:
       - name: Production build
         if: ${{ !cancelled() }}
         run: npm run build
+
+  testlab-catalog:
+    name: Required 144-site catalog and baseline evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate offline dataset; missing real inputs fail closed
+        run: node scripts/testlab/validate-mkb-catalog.mjs
