@@ -36,8 +36,10 @@ test("same anchor text with different targets is reported, generic texts are ign
 test("time-outs never prove a broken link and a 200 from the page fetch beats a link failure", () => {
   assert.equal(classifyLinkOutcome({ status: null, error: true }, "https://a.test/x"), "unconfirmed");
   assert.equal(classifyLinkOutcome({ status: 404, error: false }, "https://a.test/x"), "broken");
-  assert.equal(classifyLinkOutcome({ status: 503, error: false }, "https://a.test/x"), "broken");
+  // A transient 503 can be a challenge; an explicit 500 remains a server failure.
+  assert.equal(classifyLinkOutcome({ status: 500, error: false }, "https://a.test/x"), "broken");
+  assert.equal(classifyLinkOutcome({ status: 503, error: false }, "https://a.test/x"), "unconfirmed");
   assert.equal(classifyLinkOutcome({ status: 200, error: false }, "https://a.test/pagenotfound"), "soft_error_page");
   assert.equal(classifyLinkOutcome({ status: null, error: true }, "https://a.test/x", new Set(["https://a.test/x"])), "ok");
-  assert.equal(classifyLinkOutcome({ status: 403, error: false }, "https://a.test/x"), "ok");
+  assert.equal(classifyLinkOutcome({ status: 403, error: false }, "https://a.test/x"), "unconfirmed");
 });

@@ -19,6 +19,11 @@ const SUPPORT_ACTION = rx(["doneer", "doneren", "donatie", "gift", "schenking", 
 const NGO_SCHEMA = new Set(["ngo", "nonprofitorganization", "charity"]);
 const ANBI = /\banbi\b|charity registration|registered charity|gemeinn[üu]tzig|association loi 1901/i;
 
+// Customer/audience declarations are supporting topics, not the provider's trade.
+const AUDIENCE_PROVIDER=/\b(?:consultancy|consultants?|adviesbureau|marketing agency|software|saas|cloud platform|logiciel|beratung|softwareanbieter|agenzia|agencia)\b/i;
+const AUDIENCE_LINK=/\b(?:for|voor|pour|für|para|per)\b/i;
+function servesAudience(own:string){return AUDIENCE_PROVIDER.test(own)&&AUDIENCE_LINK.test(own);}
+
 export function missionOrganisationIdentity(input: { title?: string; description?: string; h1?: string; siteName?: string; navLabels?: string[]; schemaTypes?: string[] }) {
   const own = [input.title, input.description, input.h1, input.siteName].filter(Boolean).join(" · ");
   const nav = (input.navLabels || []).join(" · ");
@@ -34,7 +39,7 @@ export function missionOrganisationIdentity(input: { title?: string; description
   if (supportOwn || supportNav) evidence.push("Doneren, lid worden of vrijwilliger worden als hoofdactie");
   if (anbi) evidence.push("Goededoelenregistratie (ANBI of gelijkwaardig)");
   // Mission + support action, or typed non-profit schema with either, or ANBI with a mission.
-  const primary = (mission && (supportOwn || supportNav)) || (schemaNgo && (mission || supportOwn || supportNav)) || (anbi && mission);
+  const primary = !servesAudience(own) && ((mission && (supportOwn || supportNav)) || (schemaNgo && (mission || supportOwn || supportNav)) || (anbi && mission));
   return { primary, mission, support: supportOwn || supportNav, evidence };
 }
 
@@ -54,6 +59,6 @@ export function constructionGroupIdentity(input: { title?: string; description?:
   if (core) evidence.push("Eigen identiteit noemt bouw, infrastructuur of ontwikkeling van projecten");
   else if (coreNav) evidence.push("Navigatie noemt bouw- of infrastructuurdiensten");
   if (activity) evidence.push("Beschrijft het realiseren of ontwikkelen van projecten");
-  const primary = schemaType || (core && activity) || (core && coreNav);
+  const primary = !servesAudience(own) && (schemaType || (core && activity) || (core && coreNav));
   return { primary, evidence };
 }

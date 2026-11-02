@@ -68,6 +68,7 @@ export type LinkOutcome = { status: number | null; error: boolean };
 export function classifyLinkOutcome(outcome: LinkOutcome, url: string, knownGoodUrls: Set<string> = new Set()): "ok" | "broken" | "soft_error_page" | "unconfirmed" {
   if (outcome.error || outcome.status === null) return knownGoodUrls.has(url) ? "ok" : "unconfirmed";
   if (outcome.status === 404 || outcome.status === 410) return knownGoodUrls.has(url) ? "ok" : "broken";
+  if ([401,403,405,429,503].includes(outcome.status)) return "unconfirmed";
   if (outcome.status >= 500) return knownGoodUrls.has(url) ? "ok" : "broken";
   try {
     if (outcome.status >= 200 && outcome.status < 400 && isErrorPagePath(new URL(url).pathname)) return "soft_error_page";

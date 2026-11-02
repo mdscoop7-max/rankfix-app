@@ -5,6 +5,8 @@ export type ImageMetrics = {
   elementCount: number;
   uniqueImageReferences: number;
   missingAlt: number;
+  /** Union of affected image elements; categories can overlap. */
+  affectedAltImages: number;
   /** Images that are the only content of a link/button but have an empty alt: the link has no accessible name. */
   unnamedLinkImages: number;
   /** Images whose alt is a file name or a placeholder word ("IMG_1234.jpg", "image", "afbeelding"). */
@@ -54,7 +56,7 @@ function addSrcSet(set: Set<string>, value: string): void {
 const GENERIC_ALT = /^(?:img[-_ ]?\d+|dsc[-_ ]?\d+|image(?: ?\d+)?|afbeelding(?: ?\d+)?|foto(?: ?\d+)?|photo(?: ?\d+)?|picture|bild(?: ?\d+)?|untitled|placeholder|banner|slide ?\d*|[\w-]+\.(?:jpe?g|png|webp|gif|svg|avif))$/i;
 
 /** Links/buttons whose only content is images with an empty alt and no aria-label/title/text. */
-function countUnnamedLinkImages(html: string): number {
+function countUnnamedLinkImages(html: string, affected?: Set<number>): number {
   let count = 0;
   for (const match of html.matchAll(/<(a|button)\b([^>]*)>([\s\S]{0,1500}?)<\/\1>/gi)) {
     const attrs = match[2];
@@ -65,18 +67,26 @@ function countUnnamedLinkImages(html: string): number {
     const text = inner.replace(/<img\b[^>]*>/gi, " ").replace(/<(?:script|style)[\s\S]*?<\/(?:script|style)>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;|\s+/g, " ").trim();
     if (text) continue;
     const named = imgs.some((tag) => attr(tag, "alt").trim().length > 0);
-    if (!named && !/\bhref\s*=\s*["']#?["']/i.test(attrs)) count++;
+    if (!named && !/\bhref\s*=\s*["']#?["']/i.test(attrs)) {
+      count++;
+      const innerStart=match.index!+match[0].indexOf(">")+1;
+      for(const img of inner.matchAll(/<img\b[^>]*>/gi))affected?.add(innerStart+img.index!);
+    }
   }
   return count;
 }
 
 export function extractImageMetrics(html: string): ImageMetrics {
   const refs = new Set<string>();
-  const images = html.match(/<img\b[^>]*>/gi) ?? [];
+  const imageMatches = [...html.matchAll(/<img\b[^>]*>/gi)];
+  const images = imageMatches.map(m=>m[0]);
+  const affected = new Set<number>();
   let missingAlt = 0;
   let genericAlt = 0;
 
-  for (const tag of images) {
+  for (const match of imageMatches) {
+    const tag=match[0];
+    if(!hasAttr(tag,"alt") || (attr(tag,"alt").trim() && GENERIC_ALT.test(attr(tag,"alt").trim())))affected.add(match.index!);
     const altValue = attr(tag, "alt").trim();
     if (altValue && GENERIC_ALT.test(altValue)) genericAlt++;
     // alt="" is valid for decorative images. Only a genuinely missing alt
@@ -117,11 +127,13 @@ export function extractImageMetrics(html: string): ImageMetrics {
     if (ref) refs.add(ref);
   }
 
+  const unnamedLinkImages=countUnnamedLinkImages(html,affected);
   return {
     elementCount: images.length,
     uniqueImageReferences: Math.max(images.length, refs.size),
     missingAlt,
-    unnamedLinkImages: countUnnamedLinkImages(html),
+    affectedAltImages: affected.size,
+    unnamedLinkImages,
     genericAlt,
     detection: "html",
   };

@@ -222,7 +222,7 @@ export type EvidenceLevel = "complete" | "provisional" | "insufficient";
  * certainty. "insufficient" means the number describes only part of the site
  * evidence and must be presented as an indication, never as a final grade.
  */
-export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[]; samplePages?: { selected: number; fetched: number } }): { level: EvidenceLevel; reasons: string[] } {
+export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[]; samplePages?: { selected: number; fetched: number; assessed?: number } }): { level: EvidenceLevel; reasons: string[] } {
   const reasons: string[] = [];
   if (input.coveragePercent < 60) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 60%)`);
   else if (input.coveragePercent < 95) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 95%)`);
@@ -232,10 +232,10 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (input.unconfirmed > 0) reasons.push(`${input.unconfirmed} toepasselijke controle(s) niet te bevestigen`);
   // Page coverage: a site score built from 1 of 15 selected pages describes the homepage, not the site.
   const sample = input.samplePages;
-  const sampleShare = sample && sample.selected >= 4 ? sample.fetched / sample.selected : 1;
+  const sampleShare = sample && sample.selected >= 4 ? (sample.assessed ?? sample.fetched) / sample.selected : 1;
   const sampleThin = Boolean(sample) && sample!.selected >= 4 && sampleShare < 0.5;
   const sampleVeryThin = Boolean(sample) && sample!.selected >= 4 && sampleShare < 1 / 3;
-  if (sampleThin) reasons.push(`Slechts ${sample!.fetched} van ${sample!.selected} geselecteerde pagina's konden worden opgehaald; de score beschrijft vooral de gescande pagina`);
+  if (sampleThin) reasons.push(`Slechts ${sample!.assessed ?? sample!.fetched} van ${sample!.selected} geselecteerde pagina's konden inhoudelijk worden beoordeeld; de score beschrijft vooral de gescande pagina`);
   const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75) || sampleVeryThin;
   // An ambiguous primary sector changes which modules apply: never "definitief".
   const sectorAmbiguous = typeof input.sectorConfidence === "number" && input.sectorConfidence > 0 && input.sectorConfidence < 75;

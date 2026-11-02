@@ -1,3 +1,5 @@
+import {metadataTopicMismatch} from "@/lib/metadata-alignment";
+import { readHeadDirectives } from "@/lib/head-directives";
 import { detectCmsSignatures } from "@/lib/cms-signatures";
 import { classifyLinkOutcome, findConflictingAnchorTargets, isErrorPagePath, isHiddenAnchor, LINK_RETRY_DELAY_MS } from "@/lib/link-audit-rules";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
@@ -16,7 +18,7 @@ import { selectRepresentativePages } from "@/lib/representative-pages";
 import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
 import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
 import { detectOutdatedLibraries } from "@/lib/library-versions";
-import { findInertOrderButtons, findTestProducts, parseVisibleRating, parseVisibleReviewCount, reviewContradictions } from "@/lib/content-integrity";
+import { boundVisibleReviewText, findInertOrderButtons, findTestProducts, parseVisibleRating, parseVisibleReviewCount, reviewContradictions } from "@/lib/content-integrity";
 import { constructionGroupIdentity, missionOrganisationIdentity } from "@/lib/organisation-identity";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
@@ -879,6 +881,7 @@ async function runScan(request: Request) {
       return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", charged: false }, { status: 422 });
     }
 
+    const headDirectives = readHeadDirectives(html,finalUrl.toString(),response.headers.get("x-robots-tag")||"");
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
@@ -887,29 +890,26 @@ async function runScan(request: Request) {
     const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
     const description = descriptionContentMatch ? stripHtml(descriptionContentMatch[2]).trim() : "";
     const descriptionState: "missing" | "empty" | "present" = !descriptionMetaTag ? "missing" : !description ? "empty" : "present";
-    const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
+    const rawH1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml);
+    const h1s = rawH1s.filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
     const headings = headingTags.map((m) => ({ level: Number(m[1]), text: stripHtml(m[2]) })).filter((h) => h.text);
-    const canonical =
-      firstMatch(html, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
-      firstMatch(html, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i);
+    const canonical = headDirectives.canonicals[0] || "";
     const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
     const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
     const viewportContent =
       firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
     const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
-    const robots =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']robots["']/i);
+    const robots = headDirectives.robots.join(" | ");
     const xRobotsTag = response.headers.get("x-robots-tag") || "";
-    const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
+    const noindexSignal = headDirectives.noindex;
     const imageMetrics = extractImageMetrics(html);
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
     const imagesMissingAltAttribute = imageMetrics.missingAlt;
     // An image that is the only content of a link has no accessible name with an empty alt; generic alts ("IMG_1234.jpg") carry no information.
-    const imagesMissingAlt = Math.min(imageMetrics.elementCount, imagesMissingAltAttribute + imageMetrics.unnamedLinkImages + imageMetrics.genericAlt);
+    const imagesMissingAlt = imageMetrics.affectedAltImages;
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
@@ -2884,6 +2884,7 @@ async function runScan(request: Request) {
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
 
+    const metadataMismatch = metadataTopicMismatch(title,description,h1s,headings.filter(h=>h.level===2).map(h=>h.text),localSchemaCandidates);
     // Search snippets truncate in pixels, not at an exact number of characters.
     // Length alone cannot justify a material ranking penalty.
     const titleLengthPoints = (length: number) => length >= 15 && length <= 110 ? 10 : 9;
@@ -2897,7 +2898,9 @@ async function runScan(request: Request) {
     };
 
     seoChecks.push(
-      !title
+      metadataMismatch
+        ? check("unable_to_confirm","title","seo","Meta title","De title en description noemen een andere activiteit dan de H1 en H2. Of de metadata bij deze pagina hoort, vraagt inhoudelijke controle.","Vergelijk de metadata met de aantoonbare hoofdinhoud; wijzig niets op basis van alleen een onderwerpheuristiek.",0,10)
+        : !title
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "title", "seo", "Meta title", "De meta title kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
           : check("fail", "title", "seo", "Meta title", "Er is geen meta title gevonden.", "Voeg een unieke, beschrijvende title toe.", 0, 10)
@@ -2918,7 +2921,9 @@ async function runScan(request: Request) {
             : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
-      !description
+      metadataMismatch
+        ? check("unable_to_confirm","description","seo","Meta description","De metadata en inhoudelijke headings wijzen op verschillende activiteiten.","Controleer eerst of de description werkelijk deze pagina samenvat.",0,10)
+        : !description
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
           : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
@@ -2934,7 +2939,9 @@ async function runScan(request: Request) {
                 : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
             : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
     );
-    seoChecks.push(h1s.length === 1
+    seoChecks.push(rawH1s.some(h=>!h.trim())
+      ? check("warning","h1","seo","H1-heading","Lege H1-heading gevonden naast de beoordeelde H1-inhoud.","Verwijder een leeg template-element of vul een inhoudelijk passende heading in.",7,8)
+      : h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
       : h1s.length === 0
         ? bodyStructureMayBeClientRendered
@@ -2942,7 +2949,7 @@ async function runScan(request: Request) {
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een lichte structuurbevinding (2 van 8 punten aftrek) en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
-    const subheadingCount = headings.length;
+    const subheadingCount = headings.filter(h=>h.level>1).length;
     const hasH2 = headings.some((h) => h.level === 2);
     const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
     seoChecks.push(subheadingCount > 0 && hasH2
@@ -2996,7 +3003,9 @@ async function runScan(request: Request) {
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) !== canonicalHost(finalUrl.hostname));
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
     seoChecks.push(
-      canonicalInvalid
+      headDirectives.conflictingCanonicals
+        ? check("warning","canonical","seo","Canonical URL",`Tegenstrijdige canonical-verklaringen gevonden: ${headDirectives.canonicals.join(" | ")}.`,"Behoud één aantoonbaar bedoelde voorkeurs-URL; controleer redirects en indexeerbaarheid.",3,7)
+        : canonicalInvalid
         ? check("fail", "canonical", "seo", "Canonical URL", `Er is een canonical gevonden, maar de waarde is geen geldige URL: "${canonical}".`, "Corrigeer de canonical naar één geldige absolute of relatieve voorkeurs-URL.", 0, 7)
         : !canonicalUrl
           ? metadataMayBeClientRendered
@@ -3403,21 +3412,24 @@ async function runScan(request: Request) {
       const testProducts = findTestProducts({ productNames, visibleText: text });
       integrityEvidence.testProducts = testProducts;
       if (testProducts.length > 0) {
-        seoChecks.push(check("warning", "test_content", "seo", "Test- of voorbeeldcontent", `Er is mogelijk test- of voorbeeldcontent gevonden: ${testProducts.slice(0, 3).join("; ")}.`, "Verwijder testproducten en placeholdertekst uit de live winkel, of zet ze op noindex en haal ze uit sitemap en navigatie.", 2, 4));
+        seoChecks.push(check("warning", "test_content", "seo", "Test- of voorbeeldcontent", `Er is mogelijk test- of voorbeeldcontent gevonden: ${testProducts.slice(0, 3).join("; ")}.`, "Controleer of dit werkelijk achtergebleven testinhoud is. Behoud verkoopbare samples en demo-artikelen; verwijder of noindexeer alleen na bevestiging.", 0, 0));
       }
       const inertButtons = findInertOrderButtons(html);
       integrityEvidence.inertButtons = inertButtons.map((b) => `${b.label}:${b.reason}`);
       if (inertButtons.length > 0) {
         seoChecks.push(check("warning", "order_button", "seo", "Bestelknop", `${inertButtons.length} bestelknop(pen) lijken in de HTML niet te kunnen werken (${inertButtons.slice(0, 3).map((b) => `"${b.label}": ${b.reason === "empty_href" ? "link naar # of lege bestemming" : b.reason === "disabled_always" ? "permanent uitgeschakeld zonder voorraadmelding of variantkeuze" : "verzendknop buiten een formulier"}`).join("; ")}). Dit is gemeten in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML.`, "Controleer de bestelknop handmatig in een echte browser; koppel hem aan een formulier of actie en test het toevoegen aan de winkelwagen.", 2, 4));
       }
-      const ratingObject: any = schemaObjects.map((item: any) => item?.aggregateRating).find(Boolean);
-      const visibleRating = parseVisibleRating(text);
-      const reviewConflicts = ratingObject ? reviewContradictions({
+      const ratingOwner: any = schemaObjects.find((item: any) => item?.aggregateRating);
+      const ratingObject: any = ratingOwner?.aggregateRating;
+      const reviewText = boundVisibleReviewText(html,ratingOwner?.["@id"] || ratingOwner?.url,finalUrl.toString());
+      const visibleRating = reviewText ? parseVisibleRating(reviewText) : null;
+      const reviewConflicts = ratingObject && reviewText ? reviewContradictions({
+        schemaBestRating: Number(ratingObject.bestRating || 5),
         schemaRating: Number.parseFloat(String(ratingObject.ratingValue ?? "").replace(",", ".")) || null,
         schemaCount: Number.parseInt(String(ratingObject.reviewCount ?? ratingObject.ratingCount ?? ""), 10) || null,
         visibleRating: visibleRating?.rating ?? null,
         visibleScale: visibleRating?.scale ?? null,
-        visibleCount: parseVisibleReviewCount(text),
+        visibleCount: parseVisibleReviewCount(reviewText),
       }) : [];
       integrityEvidence.reviewConflicts = reviewConflicts;
       if (reviewConflicts.length > 0) {
@@ -3870,7 +3882,7 @@ async function runScan(request: Request) {
       if(item.status!=="warning"&&item.status!=="fail") continue;
       if(item.key==="canonical"){
         item.title=({nl:"Canonical URL",en:"Canonical URL",de:"Canonical-URL",fr:"URL canonique",it:"URL canonico",es:"URL canónica"} as Record<string,string>)[scanLanguage]||"Canonical URL";
-        item.message=canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
+        item.message=headDirectives.conflictingCanonicals?`Conflicting canonical declarations: ${headDirectives.canonicals.join(" | ")}`:canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
         item.fix=concreteCopy.canonicalFix;
         item.evidence.details=item.message;
       }
@@ -5359,7 +5371,7 @@ async function runScan(request: Request) {
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
       sectorUnknown: sectorProfile.sector === "unknown",
       // Actual page coverage of the representative sample (the scanned page itself always counts as fetched).
-      samplePages: { selected: uniqueMultiPagePages.length, fetched: Math.min(uniqueMultiPagePages.length, multiPageAudits.filter((item) => item && (item.status === "audited" || item.status === "unable_to_confirm" && item.httpStatus != null && item.httpStatus < 400)).length + 1) },
+      samplePages: { selected: uniqueMultiPagePages.length, fetched: multiPageAudits.filter(item=>item?.httpStatus!=null && item.httpStatus<400).length, assessed: multiPageAudits.filter((item) => item?.status === "audited").length },
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {
