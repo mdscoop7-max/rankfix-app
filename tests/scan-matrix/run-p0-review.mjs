@@ -2,7 +2,7 @@ import {writeFileSync} from 'node:fs';
 import {extractImageMetrics} from '../../lib/image-metrics.ts';
 import {findInertOrderButtons,findTestProducts} from '../../lib/content-integrity.ts';
 import {missionOrganisationIdentity,constructionGroupIdentity} from '../../lib/organisation-identity.ts';
-import {pageIdentityKey,eligibleSampleCandidates} from '../../lib/sample-eligibility.ts';
+import {pageIdentityKey} from '../../lib/sample-eligibility.ts';
 import {classifyLinkOutcome} from '../../lib/link-audit-rules.ts';
 const unit={
  delegatedClick:findInertOrderButtons(`<a class="js-buy" href="#">Add to cart</a><script>document.addEventListener('click',e=>{if(e.target.matches('.js-buy')){e.preventDefault();fetch('/cart/add',{method:'POST'});}});</script>`),

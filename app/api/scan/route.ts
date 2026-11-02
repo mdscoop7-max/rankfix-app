@@ -907,7 +907,6 @@ async function runScan(request: Request) {
     const imageMetrics = extractImageMetrics(html);
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
-    const imagesMissingAltAttribute = imageMetrics.missingAlt;
     // An image that is the only content of a link has no accessible name with an empty alt; generic alts ("IMG_1234.jpg") carry no information.
     const imagesMissingAlt = imageMetrics.affectedAltImages;
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
@@ -3419,8 +3418,8 @@ async function runScan(request: Request) {
       if (inertButtons.length > 0) {
         seoChecks.push(check("warning", "order_button", "seo", "Bestelknop", `${inertButtons.length} bestelknop(pen) lijken in de HTML niet te kunnen werken (${inertButtons.slice(0, 3).map((b) => `"${b.label}": ${b.reason === "empty_href" ? "link naar # of lege bestemming" : b.reason === "disabled_always" ? "permanent uitgeschakeld zonder voorraadmelding of variantkeuze" : "verzendknop buiten een formulier"}`).join("; ")}). Dit is gemeten in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML.`, "Controleer de bestelknop handmatig in een echte browser; koppel hem aan een formulier of actie en test het toevoegen aan de winkelwagen.", 2, 4));
       }
-      const ratingOwner: any = schemaObjects.find((item: any) => item?.aggregateRating);
-      const ratingObject: any = ratingOwner?.aggregateRating;
+      const ratingOwner: {"@id"?:string;url?:string;aggregateRating?:{ratingValue?:unknown;reviewCount?:unknown;ratingCount?:unknown;bestRating?:unknown}} | undefined = schemaObjects.find((item: any) => item?.aggregateRating);
+      const ratingObject = ratingOwner?.aggregateRating;
       const reviewText = boundVisibleReviewText(html,ratingOwner?.["@id"] || ratingOwner?.url,finalUrl.toString());
       const visibleRating = reviewText ? parseVisibleRating(reviewText) : null;
       const reviewConflicts = ratingObject && reviewText ? reviewContradictions({
