@@ -1,4 +1,3 @@
-const { join } = require("path");
 
 // Keep the downloaded Chrome inside the project directory. Hosts such as Render
 // build in one environment and run in another: the default ~/.cache/puppeteer is
@@ -6,6 +5,6 @@ const { join } = require("path");
 // `npm install` (puppeteer's postinstall) downloads Chrome into this folder.
 /** @type {import("puppeteer").Configuration} */
 module.exports = {
-  cacheDirectory: join(__dirname, ".cache", "puppeteer"),
+  cacheDirectory: `${__dirname}/.cache/puppeteer`,
   skipDownload: Boolean(process.env.VERCEL || process.env.CI),
 };

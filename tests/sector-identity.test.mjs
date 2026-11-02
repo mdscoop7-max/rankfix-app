@@ -166,7 +166,7 @@ test("every module the scanner can activate has a report label in every locale",
   for (const locale of ["nl", "en", "de", "fr", "it", "es"]) {
     const line = report.split("\n").find((l) => l.trimStart().startsWith(`${locale}:{`) && l.includes("core_seo:"));
     assert.ok(line, `labels for ${locale}`);
-    for (const module of modules) assert.ok(line.includes(`${module}:"`), `${locale} label for ${module}`);
+    for (const activeModule of modules) assert.ok(line.includes(`${activeModule}:"`), `${locale} label for ${activeModule}`);
   }
 });
 

@@ -437,6 +437,14 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
  * category. A row that stays "running" means the platform killed the function
  * (timeout). Best effort: logging never changes the scan response.
  */
+function schemaRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+function schemaTypeValues(value: Record<string, unknown>): unknown[] {
+  const types = value["@type"];
+  return Array.isArray(types) ? types : [types];
+}
+
 export async function POST(request: Request) {
   const attemptStarted = Date.now();
   let requestedUrl = "";
@@ -962,7 +970,7 @@ async function runScan(request: Request) {
 
     const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
-    const schemaObjects: any[] = [];
+    const schemaObjects: Record<string, unknown>[] = [];
     let validJsonLd = 0;
     const collectSchemaObjects = (value: unknown, seen = new Set<object>()) => {
       if (!value || typeof value !== "object") return;
@@ -991,7 +999,7 @@ async function runScan(request: Request) {
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = hasOrganizationSchema(schemaTypes) || ["person", "product", "article", "website"].some((t) => schemaSet.has(t));
     const organizationObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types = schemaTypeValues(item);
       return hasOrganizationSchema(types.filter((type: unknown) => typeof type === "string"));
     });
     const organizationSchema = organizationObjects[0] || null;
@@ -999,8 +1007,8 @@ async function runScan(request: Request) {
     const organizationSchemaUrl = typeof organizationSchema?.url === "string" ? organizationSchema.url.trim() : "";
     const organizationSchemaLogo = typeof organizationSchema?.logo === "string"
       ? organizationSchema.logo.trim()
-      : typeof organizationSchema?.logo?.url === "string"
-        ? organizationSchema.logo.url.trim()
+      : typeof schemaRecord(organizationSchema?.logo).url === "string"
+        ? String(schemaRecord(organizationSchema?.logo).url).trim()
         : "";
     const organizationSchemaSameAs = Array.isArray(organizationSchema?.sameAs)
       ? organizationSchema.sameAs.filter((value: unknown) => typeof value === "string" && value.trim()).length
@@ -1021,7 +1029,7 @@ async function runScan(request: Request) {
     const financialOfferSchema = isFinancialOfferSchema([...schemaSet]);
     const hasProductSchema = schemaSet.has("product") && !financialOfferSchema;
     const productSchemaObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types = schemaTypeValues(item);
       return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
     });
     type ProductOfferEvidence = {
@@ -1036,7 +1044,9 @@ async function runScan(request: Request) {
     const schemaIdIndex = indexJsonLdIds(schemaObjects);
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
-      const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
+      const normalizedOffers: ProductOfferEvidence[] = offers.map((rawOffer: unknown) => {
+        const offer = schemaRecord(rawOffer);
+        return ({
         type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
         // Missing price stays null (never 0); WooCommerce may only fill priceSpecification.
         price: offerPrice(offer).price,
@@ -1045,7 +1055,7 @@ async function runScan(request: Request) {
         availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
         shippingDetails: Boolean(offer?.shippingDetails),
         returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
-      }));
+      }); });
       // URL, ImageObject, array or an @id reference elsewhere in the @graph.
       const imageUrl = resolveSchemaImage(product?.image, schemaIdIndex) || "";
       return {
@@ -1250,7 +1260,7 @@ async function runScan(request: Request) {
       || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)?.[1]
       || "";
     const localBusinessObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types = schemaTypeValues(item);
       return types.some((type: unknown) => {
         const normalized = String(type || "").toLowerCase();
         return normalized === "localbusiness" || normalized.endsWith("store") || normalized === "restaurant";
@@ -2122,9 +2132,9 @@ async function runScan(request: Request) {
     // local, trust) but may never turn an incidental topic into another sector.
     const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","accommodation","marketplace"]);
     sectorProfile.applicableModules = [...new Set([
-      ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module)),
+      ...sectorProfile.applicableModules.filter((activeModule)=>!sectorDefiningModules.has(activeModule)),
       ...(primarySectorModules[sectorProfile.sector] || []),
-      ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module)),
+      ...capabilityModules.filter((activeModule)=>!sectorDefiningModules.has(activeModule)),
     ])];
 
     const masterEvidence = {
@@ -2335,7 +2345,7 @@ async function runScan(request: Request) {
     if (sectorProfile.sector === "real_estate") {
       const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
-      const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.areaServed));
       seoChecks.push(
         sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
         sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
@@ -2362,7 +2372,7 @@ async function runScan(request: Request) {
     } else if (sectorProfile.sector === "home_services") {
       const serviceSignal = /\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(text);
       const quoteSignal = /\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\b/i.test(text) || hasContactChannelSignal;
-      const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.areaServed));
       seoChecks.push(
         sectorCheck("sector_home_services_offer","Vakdiensten",serviceSignal,"De belangrijkste vak-/servicediensten zijn in de pagina bevestigd.","De aangeboden vakdiensten konden niet betrouwbaar worden bevestigd.","Maak concreet welke werkzaamheden en diensten worden uitgevoerd."),
         sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
@@ -2378,7 +2388,7 @@ async function runScan(request: Request) {
         sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
       );
     } else if (sectorProfile.sector === "hospitality") {
-      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
+      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
       const menuSignal = /\b(menukaart|onze menu's|ons menu|bekijk (?:het|ons) menu|our menu|view (?:the |our )?menu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|ontbijt|lunch|diner|dinner|gerechten|dishes)\b/i.test(text) || links.some((href)=>/\/(?:menu|menukaart|kaart|lunchkaart|dinerkaart)(?:[/.?#-]|$)/i.test(href));
       const reservationSignal = hasContactChannelSignal || /\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\b/i.test(text);
       seoChecks.push(
@@ -3403,11 +3413,11 @@ async function runScan(request: Request) {
               : check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Er zijn eurobedragen en structured-data prijzen gevonden, maar de zichtbare bedragen zijn niet betrouwbaar aan de primaire productprijs te koppelen.","Gebruik expliciete productprijs-markup en houd die gelijk aan Product/Offer structured data.",0,6));
     // Content integrity on shop pages: test products, order buttons that cannot work, contradicting review claims.
     // Only on product pages or pages with hard shop evidence; weak or script-driven cases abstain.
-    let integrityEvidence: { testProducts: string[]; inertButtons: string[]; reviewConflicts: string[] } = { testProducts: [], inertButtons: [], reviewConflicts: [] };
+    const integrityEvidence: { testProducts: string[]; inertButtons: string[]; reviewConflicts: string[] } = { testProducts: [], inertButtons: [], reviewConflicts: [] };
     if (isProductPage || hasEcommerceSignal) {
-      const typeOf = (item: any) => ([] as string[]).concat(item?.["@type"] || []).map((t) => String(t).toLowerCase());
-      const productObjects = schemaObjects.filter((item: any) => typeOf(item).includes("product"));
-      const productNames = [...productObjects.map((item: any) => String(item?.name || "")), ...(isProductPage ? h1s : [])].filter(Boolean);
+      const typeOf = (item: Record<string, unknown>) => schemaTypeValues(item).map((t) => String(t).toLowerCase());
+      const productObjects = schemaObjects.filter((item) => typeOf(item).includes("product"));
+      const productNames = [...productObjects.map((item) => String(item?.name || "")), ...(isProductPage ? h1s : [])].filter(Boolean);
       const testProducts = findTestProducts({ productNames, visibleText: text });
       integrityEvidence.testProducts = testProducts;
       if (testProducts.length > 0) {
@@ -3418,9 +3428,10 @@ async function runScan(request: Request) {
       if (inertButtons.length > 0) {
         seoChecks.push(check("warning", "order_button", "seo", "Bestelknop", `${inertButtons.length} bestelknop(pen) lijken in de HTML niet te kunnen werken (${inertButtons.slice(0, 3).map((b) => `"${b.label}": ${b.reason === "empty_href" ? "link naar # of lege bestemming" : b.reason === "disabled_always" ? "permanent uitgeschakeld zonder voorraadmelding of variantkeuze" : "verzendknop buiten een formulier"}`).join("; ")}). Dit is gemeten in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML.`, "Controleer de bestelknop handmatig in een echte browser; koppel hem aan een formulier of actie en test het toevoegen aan de winkelwagen.", 2, 4));
       }
-      const ratingOwner: {"@id"?:string;url?:string;aggregateRating?:{ratingValue?:unknown;reviewCount?:unknown;ratingCount?:unknown;bestRating?:unknown}} | undefined = schemaObjects.find((item: any) => item?.aggregateRating);
-      const ratingObject = ratingOwner?.aggregateRating;
-      const reviewText = boundVisibleReviewText(html,ratingOwner?.["@id"] || ratingOwner?.url,finalUrl.toString());
+      const ratingOwner = schemaObjects.find((item) => item?.aggregateRating);
+      const ratingObject = ratingOwner?.aggregateRating ? schemaRecord(ratingOwner.aggregateRating) : null;
+      const ownerId = ratingOwner?.["@id"] || ratingOwner?.url;
+      const reviewText = boundVisibleReviewText(html, typeof ownerId === "string" ? ownerId : undefined, finalUrl.toString());
       const visibleRating = reviewText ? parseVisibleRating(reviewText) : null;
       const reviewConflicts = ratingObject && reviewText ? reviewContradictions({
         schemaBestRating: Number(ratingObject.bestRating || 5),
@@ -3737,13 +3748,13 @@ async function runScan(request: Request) {
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
         sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
-        sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
+        sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item)=>Boolean(item?.areaServed))}` : null,
         sector_automotive_services: sectorProfile.sector==="automotive" ? "sector=automotive; workshop evidence evaluated" : null,
         sector_automotive_conversion: sectorProfile.sector==="automotive" ? "sector=automotive" : null,
         sector_automotive_inventory: sectorProfile.sector==="automotive" ? "sector=automotive; inventory evidence evaluated" : null,
         sector_home_services_offer: sectorProfile.sector==="home_services" ? "sector=home_services; service evidence evaluated" : null,
         sector_home_services_quote: sectorProfile.sector==="home_services" ? `sector=home_services; contact=${hasContactChannelSignal}` : null,
-        sector_home_services_area: sectorProfile.sector==="home_services" ? `sector=home_services; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
+        sector_home_services_area: sectorProfile.sector==="home_services" ? `sector=home_services; areaServed=${schemaObjects.some((item)=>Boolean(item?.areaServed))}` : null,
         identity: `brandSignals=${visibleBrandSignals}/4; found=${foundBrandSignals.join(",") || "none"}; missing=${missingBrandSignals.join(",") || "none"}`,
       };
       const heuristicKeys = new Set([
@@ -3810,12 +3821,12 @@ async function runScan(request: Request) {
             })
           });
           if (!aiResponse.ok) return;
-          const aiJson:any = await aiResponse.json();
+          const aiJson: {choices?: Array<{message?: {content?: string}}>} = await aiResponse.json();
           const parsed = JSON.parse(aiJson?.choices?.[0]?.message?.content || "{}");
-          const translated = Array.isArray(parsed?.items) ? parsed.items : [];
-          const byKey = new Map(translated.map((item:any) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
+          const translated: Record<string, unknown>[] = Array.isArray(parsed?.items) ? parsed.items.filter((value: unknown) => value && typeof value === "object" && !Array.isArray(value)) : [];
+          const byKey = new Map(translated.map((item) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
           for (const item of items) {
-            const translatedItem:any = translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
+            const translatedItem = translated.find((candidate)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
             if (!translatedItem) continue;
             if (typeof translatedItem.title === "string" && translatedItem.title.trim()) item.title = translatedItem.title.trim();
             if (typeof translatedItem.message === "string" && translatedItem.message.trim()) item.message = translatedItem.message.trim();
@@ -4421,12 +4432,13 @@ async function runScan(request: Request) {
             try {
               const parsed = JSON.parse(raw);
               pageJsonLdRoots.push(parsed);
-              const queue:any[] = Array.isArray(parsed) ? [...parsed] : [parsed];
+              const queue:unknown[] = Array.isArray(parsed) ? [...parsed] : [parsed];
               while (queue.length) {
-                const value = queue.shift();
+                const rawValue = queue.shift();
+                const value = schemaRecord(rawValue);
                 if (!value || typeof value !== "object") continue;
-                const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
-                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) return value;
+                const types = schemaTypeValues(value);
+                if (types.some((t: unknown)=>String(t||"").toLowerCase()==="product")) return value;
                 for (const nested of Object.values(value)) {
                   if (Array.isArray(nested)) queue.push(...nested);
                   else if (nested && typeof nested==="object") queue.push(nested);
@@ -4436,7 +4448,7 @@ async function runScan(request: Request) {
           }
           return null;
         })();
-        const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
+        const pageOffer = schemaRecord(pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null);
         const pageImageValue = pageProductJson?.image;
         const pageProductEvidence = pageProductJson && !pageFinancialOffer ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
@@ -4729,9 +4741,9 @@ async function runScan(request: Request) {
       for (const capability of ["ecommerce","products","pricing"]) {
         if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
       }
-      for (const module of ["ecommerce","product","pricing_currency","merchant"]) {
-        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
-        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
+      for (const activeModule of ["ecommerce","product","pricing_currency","merchant"]) {
+        if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
+        if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
       }
       for (const capability of ["ecommerce","products","pricing","merchant","consumer_rights"]) {
         if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
@@ -4875,7 +4887,7 @@ async function runScan(request: Request) {
       sectorProfile.confidenceScore = Math.min(76, Math.max(70, sectorProfile.confidenceScore));
       sectorProfile.evidence = [...sectorProfile.evidence, `${transportOwnPages} representatieve sitepagina's noemen transport/logistiek in hun eigen titel of omschrijving; de homepage bevestigt dit niet zelf`].slice(0,6);
       sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, "transport_travel", "lead_conversion", "local"])];
-      for (const module of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+      for (const activeModule of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
     }
     // Motor v2.1: module applicability follows the final Master commerce decision,
     // not an early incidental capability. Page-specific checks still require proof.
@@ -4902,27 +4914,27 @@ async function runScan(request: Request) {
       technologyProfile.isCommerce = false;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
     }
-    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
-    masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
+    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((activeModule)=>!allCommerceModules.has(activeModule) || allowedCommerceModules.has(activeModule));
+    masterEvidence.activeModules = masterEvidence.activeModules.filter((activeModule)=>!allCommerceModules.has(activeModule) || allowedCommerceModules.has(activeModule));
     if (finalCommerceDecision.confirmed) {
-      for (const module of commerceModules) {
-        if (!allowedCommerceModules.has(module)) continue;
-        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
-        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+      for (const activeModule of commerceModules) {
+        if (!allowedCommerceModules.has(activeModule)) continue;
+        if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
+        if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
       }
       if (allowedCommerceModules.has("eu_consumer")) {
         if (!sectorProfile.applicableModules.includes("eu_consumer")) sectorProfile.applicableModules.push("eu_consumer");
         if (!masterEvidence.activeModules.includes("eu_consumer")) masterEvidence.activeModules.push("eu_consumer");
       }
     } else {
-      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
-      masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module));
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((activeModule)=>!allCommerceModules.has(activeModule));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter((activeModule)=>!allCommerceModules.has(activeModule));
       // A telecom/service identity does not erase independently proven Product
       // metadata; it only prevents claims about an unverified retail checkout.
       if (verifiedRepresentativeProductDetail) {
-        for (const module of motorCommerceModules.filter((value)=>value==="product" || value==="pricing_currency")) {
-          if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
-          if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+        for (const activeModule of motorCommerceModules.filter((value)=>value==="product" || value==="pricing_currency")) {
+          if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
+          if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
         }
       }
     }
@@ -5537,18 +5549,18 @@ async function runScan(request: Request) {
       try {
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
-        const pending = await getDb().query(
+        const pending = await getDb().query<{issue_id:string;status:string}>(
           "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
         );
-        pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
+        pendingFixes = new Map(pending.rows.map((row: {issue_id:string;status:string}) => [String(row.issue_id), { status: String(row.status) }]));
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
         const rememberedFixes = await getDb().query(
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
         );
-        const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
+        const rememberedByRule = new Map(rememberedFixes.rows.map((row: {rule_id:string;file_path:string|null;repository:string|null;pr_number:number|null;fix_summary:string|null;evidence:unknown;last_confirmed_at:string|null;recurrence_count:number;recurrence_open:boolean;last_recurred_at:string|null})=>[String(row.rule_id),row]));
 
         for (const item of checks) {
           const issueId = String(item.issue_id || item.rule_id || item.key);
@@ -5780,7 +5792,7 @@ async function runScan(request: Request) {
             return null;
           };
           const statusRank:Record<string,number>={FAIL:0,WARNING:1,PASS:2};
-          const previousByRule = new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),normalizeHealthStatus(x.issue_status||x.status)]));
+          const previousByRule = new Map(previousChecks.map((x: {issue_id?:string;rule_id?:string;key?:string;issue_status?:string;status?:string})=>[String(x.issue_id||x.rule_id||x.key),normalizeHealthStatus(x.issue_status||x.status)]));
           for (const item of checks) {
             const ruleId=String(item.issue_id||item.rule_id||item.key);
             const before=previousByRule.get(ruleId);
