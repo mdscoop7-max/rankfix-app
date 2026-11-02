@@ -39,7 +39,7 @@ export function missionOrganisationIdentity(input: { title?: string; description
   if (supportOwn || supportNav) evidence.push("Doneren, lid worden of vrijwilliger worden als hoofdactie");
   if (anbi) evidence.push("Goededoelenregistratie (ANBI of gelijkwaardig)");
   // Mission + support action, or typed non-profit schema with either, or ANBI with a mission.
-  const primary = !servesAudience(own) && ((mission && (supportOwn || supportNav)) || (schemaNgo && (mission || supportOwn || supportNav)) || (anbi && mission));
+  const primary = !servesAudience([input.title,input.h1,input.siteName].filter(Boolean).join(" · ")) && ((mission && (supportOwn || supportNav)) || (schemaNgo && (mission || supportOwn || supportNav)) || (anbi && mission));
   return { primary, mission, support: supportOwn || supportNav, evidence };
 }
 
@@ -59,6 +59,6 @@ export function constructionGroupIdentity(input: { title?: string; description?:
   if (core) evidence.push("Eigen identiteit noemt bouw, infrastructuur of ontwikkeling van projecten");
   else if (coreNav) evidence.push("Navigatie noemt bouw- of infrastructuurdiensten");
   if (activity) evidence.push("Beschrijft het realiseren of ontwikkelen van projecten");
-  const primary = !servesAudience(own) && (schemaType || (core && activity) || (core && coreNav));
+  const primary = !servesAudience([input.title,input.h1,input.siteName].filter(Boolean).join(" · ")) && (schemaType || (core && activity) || (core && coreNav));
   return { primary, evidence };
 }
