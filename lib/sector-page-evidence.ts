@@ -39,6 +39,32 @@ function identityPage(page: IdentityPage, url: URL): boolean {
   return segments.length <= 2 && !EDITORIAL_PATH.test(url.pathname) && !(page.schemaTypes || []).some((t) => /^(?:article|newsarticle|blogposting|reportage)$/i.test(t));
 }
 
+// 2 Nov 2026 (TestLab 144): a page collecting reviews or customer experiences of the
+// organisation ITSELF ("Wise Reviews | Read our customer reviews", "Ervaringen met
+// Voorbeeld", "Kundenbewertungen über Beispiel") describes that organisation; it is
+// not an independent publishing/blog activity. Generic, multilingual, no domains:
+// the reviewed subject must be the site's own brand (host label) directly next to
+// the review word, or the page must speak of "our customers". An independent review
+// platform ("Coolblue reviews | Trustpilot") reviews OTHER brands and still votes.
+const REVIEW_WORD = "(?:reviews?|customer reviews|testimonials?|ratings?|ervaringen|klantervaringen|beoordelingen|recensies|klantbeoordelingen|bewertungen|kundenbewertungen|erfahrungen|kundenmeinungen|avis(?: clients)?|t[ée]moignages|opiniones|rese[ñn]as|valoraciones|recensioni|opinioni|testimonianze|omd[øo]mmen|anmeldelser|recenzje|opinie)";
+const OWN_CUSTOMERS = /(?<![\p{L}])(?:our customers|our clients|onze klanten|unsere kunden|nos clients|nuestros clientes|i nostri clienti|nossos clientes|våra kunder|vores kunder|naszych klientów)(?![\p{L}])/iu;
+const REVIEW_RX = new RegExp(`(?<![\\p{L}])${REVIEW_WORD}(?![\\p{L}])`, "iu");
+const escapeRx = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function isOwnReviewPage(page: { url: string; title?: string | null; description?: string | null; identityHeadings?: string[] }, host: string): boolean {
+  const text = [page.title, page.description, ...(page.identityHeadings || [])].filter(Boolean).join(" · ").normalize("NFKC");
+  let path = "";
+  try { path = decodeURIComponent(new URL(page.url).pathname); } catch { path = page.url; }
+  if (!REVIEW_RX.test(text) && !REVIEW_RX.test(path.replace(/[-_/]+/g, " "))) return false;
+  const label = host.toLowerCase().replace(/^www\./, "").split(".")[0];
+  if (label.length < 2) return OWN_CUSTOMERS.test(text);
+  // "my-brand" also matches "My Brand" and "MyBrand".
+  const b = label.split(/[-_]+/).filter(Boolean).map(escapeRx).join("[\\s-]?");
+  // Brand right before the review word ("Wise (formerly X) Reviews") or after a
+  // preposition ("ervaringen met Wise", "reviews of Wise", "avis sur Wise").
+  const adjacent = new RegExp(`(?<![\\p{L}])${b}(?:\\s*\\([^)]{0,60}\\))?\\s*[-:]?\\s*${REVIEW_WORD}(?![\\p{L}])|${REVIEW_WORD}\\s+(?:of|about|for|met|over|van|von|über|zu|de|sur|sobre|di|su|om|af|o)\\s+${b}(?![\\p{L}])`, "iu");
+  return adjacent.test(text) || adjacent.test(path.replace(/[-_/]+/g, " ")) || OWN_CUSTOMERS.test(text);
+}
+
 export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
   const home = new URL(homeUrl);
   const host = home.hostname.replace(/^www\./, "");
@@ -78,6 +104,8 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
     const result = primary.sector !== "unknown"
       ? {...primary, key:primary.financialKind ? `financial_${primary.financialKind}` : primary.sector, label:primary.sector === "hospitality" ? "Accommodatie & verblijf" : "Financiële dienstverlening"}
       : eu;
+    // Reviews of the organisation itself are not a publishing activity (see isOwnReviewPage).
+    if (result?.sector === "news_media" && path !== "/" && page.type !== "homepage" && isOwnReviewPage(page, host)) { nonVotingOwnPages.push({url:url.toString(), signature}); continue; }
     if (audiencePage) {
       if (!result || result.confidenceScore < 75) continue;
       const segment = (() => { const last = url.pathname.split("/").filter(Boolean).pop() || ""; try { return decodeURIComponent(last); } catch { return last; } })().replace(/[-_]+/g, " ");
