@@ -111,3 +111,18 @@ test("TestLab: a local retail trade meets the broad retail label, other health k
   assert.equal(compareSector("retail", { sector: "health_wellness", key: "dentist" }).sectorMatch, false);
   assert.equal(compareSector("beauty", { sector: "ecommerce" }).sectorMatch, false);
 });
+
+test("P5: only a whole navigation label is a store finder; headlines about shops are editorial", async () => {
+  const { isStoreFinderLabel, decideSalesChannel } = await import("../lib/sales-channel.ts");
+  for (const label of ["Onze winkels", "Winkels", "Find a store", "Filialen finden", "Nos magasins »", "Vind een winkel bij jou in de buurt"]) assert.equal(isStoreFinderLabel(label), true, label);
+  for (const label of ["0:36 Dichtgetimmerde winkels in Den Haag", "Winkels moeten eerder sluiten door energiecrisis", "Supermarktketen opent tien nieuwe filialen", "Locations where we deliver"]) assert.equal(isStoreFinderLabel(label), false, label);
+  const base = { sector: "news_media", key: "news_media", navLabels: ["Winkels moeten eerder sluiten door energiecrisis"], internalPaths: [], identityText: "NieuwsNu - Het laatste nieuws", schemaTypes: [], hasAddress: true, hasOpeningHours: false, onlineSalesConfirmed: false };
+  assert.equal(decideSalesChannel(base).channel, "unknown");
+});
+
+test("P5: booking is the website identity only for booking-primary activities", async () => {
+  const { buildWebsiteProfile } = await import("../lib/website-profile.ts");
+  const base = { commerceState: "absent", sector: "health_wellness", sectorLabel: "Universitair medisch centrum", sectorConfidence: 90, technologies: [], catalog: [] };
+  assert.equal(buildWebsiteProfile(base).websiteType.label, "Dienstverlener / organisatie");
+  assert.equal(buildWebsiteProfile({ ...base, sector: "hospitality", sectorLabel: "Hotel", bookingPrimary: true }).websiteType.label, "Boekings-/afsprakenwebsite");
+});

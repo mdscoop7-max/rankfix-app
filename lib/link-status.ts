@@ -10,7 +10,20 @@
 export type LinkOutcome = "ok" | "missing" | "server_error" | "unconfirmed" | "skipped";
 export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null };
 
+/**
+ * 31 Oct (PDF P4: an internal link to /pagenotfound was not reported). A link
+ * whose own target or final destination IS an error page ("/pagenotfound",
+ * "/404", "/not-found", "/error") is a broken link, whatever HTTP status the
+ * error template returns.
+ */
+export function isErrorPageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try { return /(?:^|\/)(?:pagenotfound|page-not-found|pagina-niet-gevonden|notfound|not-found|404|404\.html|error|errorpage|error-page|foutpagina|fehlerseite)(?:[/.?#]|$)/i.test(new URL(url).pathname); }
+  catch { return false; }
+}
+
 export function linkOutcome(link: LinkCheck): LinkOutcome {
+  if (isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))) return "missing";
   if (link.error || link.status === null) return "unconfirmed";
   if (link.status === 404 || link.status === 410) return "missing";
   if (link.status >= 500) return "server_error";
@@ -24,7 +37,9 @@ export function linkOutcome(link: LinkCheck): LinkOutcome {
 }
 
 const pathOf = (url: string) => { try { const u = new URL(url); return `${u.pathname}${u.search}` || "/"; } catch { return url; } };
-const reasonOf = (link: LinkCheck) => link.error || link.status === null
+const reasonOf = (link: LinkCheck) => isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))
+  ? "verwijst naar een foutpagina"
+  : link.error || link.status === null
   ? "geen antwoord"
   : link.status === 429 ? "HTTP 429, tijdelijk beperkt"
   : link.status === 401 || link.status === 403 ? `HTTP ${link.status}, toegang geweigerd voor RankFix`
@@ -107,7 +122,8 @@ export function brokenLinkRecords(links: LinkCheck[], sourceUrl: string): Broken
     const outcome = linkOutcome(link);
     if (outcome === "ok" || outcome === "skipped") return [];
     const evidence = outcome === "missing"
-      ? (link.softNotFound ? `HTTP ${link.status} met een 'niet gevonden'-pagina (soft 404)` : `HTTP ${link.status}: de pagina bestaat niet`)
+      ? isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl) ? `De link verwijst naar een foutpagina (${link.finalUrl || link.url})`
+      : (link.softNotFound ? `HTTP ${link.status} met een 'niet gevonden'-pagina (soft 404)` : `HTTP ${link.status}: de pagina bestaat niet`)
       : outcome === "server_error" ? `HTTP ${link.status} bij twee pogingen` : reasonOf(link);
     const impact = outcome === "missing"
       ? "Bezoekers en zoekmachines volgen een link naar een pagina die niet bestaat; linkwaarde gaat verloren."

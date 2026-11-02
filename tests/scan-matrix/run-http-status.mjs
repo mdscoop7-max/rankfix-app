@@ -8,7 +8,6 @@
 //  - internal links: 404/410 and soft 404 are missing pages (with URL + action);
 //    a 5xx is a server error, not a missing page; 401/403/429 and network errors
 //    are unconfirmed, never silently "passed"; account/login links are skipped.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const html = ({ title, description = "", h1 = [], body = "", lang = "nl" }) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title>${description ? `<meta name="description" content="${description}">` : ""}<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="canonical" href="/"></head><body>${h1.map((h) => `<h1>${h}</h1>`).join("")}<main>${body}</main><footer><a href="/privacy">Privacy</a></footer></body></html>`;
 const filler = (t) => `<p>${(t + " ").repeat(25)}</p>`;
 const page = (t) => html({ title: `${t} | Werkplaats`, description: `${t} van de werkplaats.`, h1: [t], body: filler(`${t}: informatie en contact.`) });
@@ -39,7 +38,7 @@ globalThis.fetch = async (input) => {
   return site(u.pathname.replace(/\/$/, "") || "/");
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const scan = async (host, language = "nl") => {
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language }) }));

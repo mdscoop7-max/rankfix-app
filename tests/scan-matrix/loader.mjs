@@ -27,8 +27,11 @@ export async function load(url, ctx, next) {
   if (url === pathToFileURL(ROOT + "/lib/safe-fetch.ts").href) {
     return { format: "module-typescript", source: readFileSync(new URL(url), "utf8").replace("await assertPublicDns(current.hostname);", ""), shortCircuit: true };
   }
-  if (url === pathToFileURL(ROOT + "/lib/headless-render.ts").href) {
-    const src = readFileSync(new URL(url), "utf8").replace(/export async function renderPublicPage\(([^)]*)\)([^{]*)\{/, "export async function renderPublicPage($1)$2{ if (globalThis.__RF_RENDER) return globalThis.__RF_RENDER(arguments[0]); throw new Error('RENDER_UNAVAILABLE_IN_MATRIX');");
+  // RF_REAL_RENDER=1 (set before the process starts; hooks run in their own
+  // thread): keep the REAL headless browser. Only the A/B observe measurement
+  // uses this; every test keeps the controllable stub below.
+  if (url === pathToFileURL(ROOT + "/lib/headless-render.ts").href && process.env.RF_REAL_RENDER !== "1") {
+    const src = readFileSync(new URL(url), "utf8").replace(/export async function renderPublicPage\(([^)]*)\)([^{]*)\{/, "export async function renderPublicPage($1)$2{ if (globalThis.__RF_RENDER) return globalThis.__RF_RENDER(...arguments); throw new Error('RENDER_UNAVAILABLE_IN_MATRIX');");
     return { format: "module-typescript", source: src, shortCircuit: true };
   }
   return next(url, ctx);

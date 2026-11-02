@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "frozenAt": "2026-11-01T19:22:23.788828+00:00",
+  "fixtureSha256": "67ae6900692b4eb67b43aa3e7d6a5ea31fde6ff6f710cc3ae1385a6ed20a5cce",
+  "baselineCommit": "81c8db2431d325fbf40fd757b5c5565d77b4da86",
+  "candidateCommit": "8c7fb7caa7616f8f54b2d03c028b149884ea7869",
+  "catalogSize": 66,
+  "caseCount": 76,
+  "tuningForbiddenAfterFreeze": true,
+  "independentReviewer": null,
+  "qualityScore": null,
+  "certificationBlockers": [
+    "same_author_synthetic_cases",
+    "no_independent_label_review",
+    "no_live_browser_or_database_report_flow",
+    "limited_per_sector_and_language_support"
+  ],
+  "criteria": {
+    "sector": "exact expected broad engine sector from published catalog mapping; unknown is a separately counted abstention, not a correct explicit identity",
+    "subtype": "exact catalog key, informational due broad legacy aliases; never substituted after measurement",
+    "applicability": "non-retail cases must not receive ecommerce/product/checkout/merchant modules or retail warnings/fails; retail case must receive ecommerce/product/checkout modules",
+    "falsePositives": "each forbidden module or warning/fail on non-retail checks counts one FP; incorrect non-unknown sector counts one sector FP",
+    "falseNegatives": "missing required retail module counts one FN; unknown/wrong explicit sector counts one sector FN",
+    "seoGeoEvidence": "exact title, description, canonical and JSON-LD count; warning/fail evidence must include URL, source and concrete found/details; this is limited evidence integrity, not a full semantic audit",
+    "coverage": "PAGE_SAMPLE only; selected count reconciles outcomes; reported audited count equals actual audited page entries; no full-site claim",
+    "consistency": "classification sector agrees; page type agrees; check status agrees with issue_status and score breakdown; summary counts reconcile; N/A/unknown earn no points"
+  },
+  "additionalCriteria": [
+    "Unknown sector certainty must be low and between 0 and 35.",
+    "Report correct explicit identities, wrong non-unknown identities, unknown outputs and expected-unknown matches separately.",
+    "Retail flag is independent from primary activity for hybrid cases.",
+    "Do not tune rules in response to this measurement. Report deficiencies first."
+  ],
+  "acceptance": "All measured dimensions >=90%, no regression against baseline, and external independent evidence/security/browser/data review required for any 9/10 certification. This synthetic set cannot certify 9/10."
+}

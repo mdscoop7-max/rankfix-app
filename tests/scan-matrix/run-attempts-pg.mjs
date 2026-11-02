@@ -3,8 +3,7 @@
 // attempt lands in scan_attempts with the right outcome, code and category,
 // including an upgrade from the first scan_attempts schema.
 // Run: RF_REAL_DB=1 DATABASE_URL=postgres://... node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-attempts-pg.mjs
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { getDb } = await import(ROOT + "/lib/db.ts");
+const { getDb } = await import(new URL("../../lib/db.ts", import.meta.url));
 const db = getDb();
 const problems = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); };
@@ -15,7 +14,7 @@ const check = (cond, msg) => { if (!cond) problems.push(msg); };
 await db.query("DROP TABLE IF EXISTS rankfix_schema_versions");
 await db.query("DROP TABLE IF EXISTS scan_attempts");
 await db.query(`CREATE TABLE IF NOT EXISTS scan_attempts (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, requested_url TEXT NOT NULL, http_status INTEGER NOT NULL, outcome TEXT NOT NULL, error TEXT, duration_ms INTEGER, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-const { ensureDatabase } = await import(ROOT + "/lib/db-init.ts");
+const { ensureDatabase } = await import(new URL("../../lib/db-init.ts", import.meta.url));
 await ensureDatabase();
 const cols = (await db.query("SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name='scan_attempts'")).rows;
 for (const c of ["category", "error_code", "final_url", "scan_id", "finished_at"]) check(cols.some((r) => r.column_name === c), `column ${c} missing after upgrade`);
@@ -45,7 +44,7 @@ globalThis.fetch = async (input, init) => {
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
 
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; console.info = console.warn = console.error = () => {}; return () => { [console.info, console.warn, console.log, console.error] = s; }; };
 const run = async (url) => { const restore = quiet(); try { const r = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, mode: "both", language: "nl", dashboard: true }) })); return { status: r.status, body: await r.json() }; } finally { restore(); } };
 

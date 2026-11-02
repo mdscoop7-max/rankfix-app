@@ -166,3 +166,16 @@ export function fetchFailureMessage(code: string, language: string, seconds: num
   const byCode = m[code];
   return byCode ? (byCode[language] || byCode.en || byCode.nl) : "";
 }
+
+
+/**
+ * 1 Nov 2026: a 5xx answer can be a bot challenge (several WAF/CDN products answer
+ * 503 with a challenge page) or a real server error. Only the BODY decides: a
+ * provider header such as cf-ray is on every response of that CDN, also on real
+ * origin errors, so a header alone is never enough.
+ */
+export function isChallengeServerError(status: number, body = ""): boolean {
+  if (status < 500 || status > 599 || !body) return false;
+  if (detectProtectionProvider(null, body)) return true;
+  return /(?:checking (?:if the site connection is secure|your browser)|verify (?:you are|that you are) (?:a )?human|enable javascript and cookies to continue|performing security verification|just a moment\.\.\.|attention required|pardon our interruption|please complete the security check|ddos protection by|bot (?:check|verification))/i.test(body.slice(0, 60000));
+}

@@ -1,0 +1,356 @@
+{
+  "developmentStep1": {
+    "fixtureSha256": "cc79340997457ce5dfc95ee97c07b4892ffac4290f9631355688a56743c7163d",
+    "baselineCommit": "81c8db2431d325fbf40fd757b5c5565d77b4da86",
+    "candidateCommit": "04968a67a86bde088d1484ccd178a9731aac2895",
+    "baseline": {
+      "correctExplicit": 47,
+      "unknownOutputs": 20,
+      "wrongNonUnknown": 1,
+      "correctUnknown": 1
+    },
+    "candidate": {
+      "correctExplicit": 53,
+      "unknownOutputs": 15,
+      "wrongNonUnknown": 0,
+      "correctUnknown": 1
+    },
+    "fixed": [
+      {
+        "host": "holdout-011.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-041.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-061.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-063.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-064.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-068.test",
+        "criterion": "sector"
+      }
+    ],
+    "regressions": [],
+    "newFalsePositives": [],
+    "changedSectors": [
+      {
+        "host": "holdout-011.test",
+        "before": "unknown",
+        "after": "beauty"
+      },
+      {
+        "host": "holdout-041.test",
+        "before": "unknown",
+        "after": "health_wellness"
+      },
+      {
+        "host": "holdout-061.test",
+        "before": "government",
+        "after": "maritime_ports"
+      },
+      {
+        "host": "holdout-063.test",
+        "before": "unknown",
+        "after": "agriculture_horticulture"
+      },
+      {
+        "host": "holdout-064.test",
+        "before": "unknown",
+        "after": "professional_services"
+      },
+      {
+        "host": "holdout-068.test",
+        "before": "unknown",
+        "after": "manufacturing_industrial"
+      }
+    ],
+    "qualityScore": null,
+    "certified": false
+  },
+  "developmentStep2": {
+    "fixtureSha256": "cc79340997457ce5dfc95ee97c07b4892ffac4290f9631355688a56743c7163d",
+    "baselineCommit": "04968a67a86bde088d1484ccd178a9731aac2895",
+    "candidateCommit": "8c7fb7caa7616f8f54b2d03c028b149884ea7869",
+    "baseline": {
+      "correctExplicit": 53,
+      "unknownOutputs": 15,
+      "wrongNonUnknown": 0,
+      "correctUnknown": 1
+    },
+    "candidate": {
+      "correctExplicit": 67,
+      "unknownOutputs": 1,
+      "wrongNonUnknown": 0,
+      "correctUnknown": 1
+    },
+    "fixed": [
+      {
+        "host": "holdout-002.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-010.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-014.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-028.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-033.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-035.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-038.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-040.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-044.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-045.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-048.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-051.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-053.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "holdout-054.test",
+        "criterion": "sector"
+      }
+    ],
+    "regressions": [],
+    "newFalsePositives": [],
+    "changedSectors": [
+      {
+        "host": "holdout-002.test",
+        "before": "unknown",
+        "after": "service_marketplace"
+      },
+      {
+        "host": "holdout-010.test",
+        "before": "unknown",
+        "after": "transport_travel"
+      },
+      {
+        "host": "holdout-014.test",
+        "before": "unknown",
+        "after": "saas_b2b"
+      },
+      {
+        "host": "holdout-028.test",
+        "before": "unknown",
+        "after": "events_culture"
+      },
+      {
+        "host": "holdout-033.test",
+        "before": "unknown",
+        "after": "general_business"
+      },
+      {
+        "host": "holdout-035.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "holdout-038.test",
+        "before": "unknown",
+        "after": "saas_b2b"
+      },
+      {
+        "host": "holdout-040.test",
+        "before": "unknown",
+        "after": "professional_services"
+      },
+      {
+        "host": "holdout-044.test",
+        "before": "unknown",
+        "after": "education"
+      },
+      {
+        "host": "holdout-045.test",
+        "before": "unknown",
+        "after": "health_wellness"
+      },
+      {
+        "host": "holdout-048.test",
+        "before": "unknown",
+        "after": "transport_travel"
+      },
+      {
+        "host": "holdout-051.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "holdout-053.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "holdout-054.test",
+        "before": "unknown",
+        "after": "professional_services"
+      }
+    ],
+    "qualityScore": null,
+    "certified": false
+  },
+  "freshHoldout": {
+    "fixtureSha256": "67ae6900692b4eb67b43aa3e7d6a5ea31fde6ff6f710cc3ae1385a6ed20a5cce",
+    "baselineCommit": "81c8db2431d325fbf40fd757b5c5565d77b4da86",
+    "candidateCommit": "8c7fb7caa7616f8f54b2d03c028b149884ea7869",
+    "baseline": {
+      "correctExplicit": 48,
+      "unknownOutputs": 23,
+      "wrongNonUnknown": 5,
+      "correctUnknown": 2
+    },
+    "candidate": {
+      "correctExplicit": 59,
+      "unknownOutputs": 12,
+      "wrongNonUnknown": 5,
+      "correctUnknown": 2
+    },
+    "fixed": [
+      {
+        "host": "round2-blind-028.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-033.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-035.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-038.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-040.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-044.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-045.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-048.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-051.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-053.test",
+        "criterion": "sector"
+      },
+      {
+        "host": "round2-blind-054.test",
+        "criterion": "sector"
+      }
+    ],
+    "regressions": [],
+    "newFalsePositives": [],
+    "changedSectors": [
+      {
+        "host": "round2-blind-028.test",
+        "before": "unknown",
+        "after": "events_culture"
+      },
+      {
+        "host": "round2-blind-033.test",
+        "before": "unknown",
+        "after": "general_business"
+      },
+      {
+        "host": "round2-blind-035.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "round2-blind-038.test",
+        "before": "unknown",
+        "after": "saas_b2b"
+      },
+      {
+        "host": "round2-blind-040.test",
+        "before": "unknown",
+        "after": "professional_services"
+      },
+      {
+        "host": "round2-blind-044.test",
+        "before": "unknown",
+        "after": "education"
+      },
+      {
+        "host": "round2-blind-045.test",
+        "before": "unknown",
+        "after": "health_wellness"
+      },
+      {
+        "host": "round2-blind-048.test",
+        "before": "unknown",
+        "after": "transport_travel"
+      },
+      {
+        "host": "round2-blind-051.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "round2-blind-053.test",
+        "before": "unknown",
+        "after": "hospitality"
+      },
+      {
+        "host": "round2-blind-054.test",
+        "before": "unknown",
+        "after": "professional_services"
+      }
+    ],
+    "qualityScore": null,
+    "certified": false
+  }
+}

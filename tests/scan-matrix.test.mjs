@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readProcessResult } from "./helpers/process-result.mjs";
 import { fileURLToPath } from "node:url";
 
 // Runs the real scan route offline against a broad synthetic matrix of sectors,
@@ -13,9 +14,7 @@ function run(script, env = {}) {
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", `tests/scan-matrix/${script}`], {
     cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...env },
   });
-  const line = (out.stdout || "").split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
-  assert.ok(line, `no result from ${script}: ${(out.stderr || "").slice(-2000)}`);
-  return { ...JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length)), log: out.stdout };
+  return { ...readProcessResult(out, "SCAN_MATRIX_RESULT ", script), log: out.stdout };
 }
 
 for (const mode of ["both", "seo", "geo"]) {
@@ -140,6 +139,13 @@ test("HTTP status matrix: homepage, sampled pages and internal links", { timeout
   assert.equal(r.failed, 0, r.log);
 });
 
+// fresh144: missing JSON-LD is only a warning when its absence is proven; a tag
+// manager without a render leaves it unconfirmed and costs no points.
+test("JSON-LD evidence: absence is proven only without a possible client-side injector", { timeout: 300000 }, () => {
+  const r = run("run-jsonld-evidence.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {
@@ -183,6 +189,30 @@ test("QA 144: blocked homepage → incident + alternative start; accessible subp
   assert.equal(r.failed, 0, r.log);
 });
 
+test("P1 (31 Oct): a refusal page received by the browser after HTTP 403 is never scored (NL/EN/DE/FR/IT/ES); a real recovered homepage still is", () => {
+  const r = run("run-refusal-recovery.mjs");
+  assert.equal(r.total, 7);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("P7 (31 Oct): language/variant copies never re-enter the sample via the product hunt; fee pages of a payment provider do not start it", () => {
+  const r = run("run-sample-locale-dedupe.mjs");
+  assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("P5 phase 2 (1 Nov): browser probe preserves JSON-LD evidence, records failures and distinguishes www redirects from different pages", () => {
+  const r = run("run-structured-data-probe.mjs");
+  assert.equal(r.total, 25);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("1 Nov: a 5xx challenge page is a refusal (bot protection), a real 5xx a server error; a CDN header alone never decides", () => {
+  const r = run("run-5xx-challenge.mjs");
+  assert.equal(r.total, 6);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
   const r = run("run-local-business.mjs", { PROFILES: "qa144" });
   assert.ok(r.total >= 11, `profiles missing: ${r.total}`);
@@ -215,5 +245,19 @@ test("QA 144 run 7a2155c: DNS/timeout www/apex fallback (same site only, not aft
 test("QA 144 run 7a2155c: DIY store chain declared in its title is retail after a refused request; software for DIY stores is not", () => {
   const r = run("run-diy-recovered.mjs");
   assert.equal(r.total, 3);
+  assert.equal(r.failed, 0, r.log);
+});
+
+// Actual sampled product sale beside a primary trade identity; quotes are leads.
+test("hybrid trades: service identity and verified shop capabilities remain independent", () => {
+  const r = run("run-sector-peers.mjs", { GROUP: "hybrid-capabilities" });
+  assert.ok(r.total >= 13);
+  assert.equal(r.failed, 0, r.log);
+});
+
+// The previous 68-case holdout is development material after sector tuning.
+test("catalog development regressions retain all previously corrected primary identities", () => {
+  const r = run("run-sector-peers.mjs", { FIXTURE_FILE: "tests/fixtures/quality-20261101/catalog-holdout.json", ASSERT_CATALOG_EXPECTATIONS: "1" });
+  assert.equal(r.total, 68);
   assert.equal(r.failed, 0, r.log);
 });

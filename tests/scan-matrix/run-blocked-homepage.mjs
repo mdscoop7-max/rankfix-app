@@ -5,7 +5,6 @@
 //      from API 422, and the answer suggests another public start page.
 //   2. Category page entered → report from that page; the homepage is
 //      registered as blocked, only assessed pages count, scan is partial.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const HOST = "shopwall.test";
 const nav = ["/schoenen/fitness", "/schoenen/hardlopen", "/over-ons", "/contact", "/", "/klantenservice/retour"].map((h, i) => `<a href="${h}">Link ${i}</a>`).join(" ");
 const doc = ({ title, description, h1, body }) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="https://${HOST}${body.path}"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><header><nav>${nav}</nav></header><h1>${h1}</h1><main>${body.html}</main><footer><a href="/privacy">Privacy</a></footer></body></html>`;
@@ -35,7 +34,7 @@ globalThis.__RF_RENDER = async (url) => {
   if (path === "/") return { html: CHALLENGE, finalUrl: url, elapsedMs: 300, requests: 3, titlePixelWidth: 100, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
   throw new Error("RENDER_UNAVAILABLE_IN_TEST");
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

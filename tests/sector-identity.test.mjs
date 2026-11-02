@@ -99,7 +99,8 @@ test("scan route wires the central identity rules without brand exceptions", asy
   // Retail identity without confirmed shop functionality is labelled as such, and
   // in-store reservations never turn a retailer into a booking website.
   assert.match(source, /sectorProfile\.key === "ecommerce" && !finalCommerceDecision\.confirmed\) \{\n\s+sectorProfile\.label = "Retail · webshopfunctionaliteit niet bevestigd"/);
-  assert.match(source, /sectorProfile\.key !== "ecommerce" && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
+  assert.match(source, /const bookingPrimaryIdentity = BOOKING_PRIMARY_KEYS\.has\(sectorProfile\.key\) && sectorProfile\.key !== "ecommerce";/);
+  assert.match(source, /: bookingPrimaryIdentity && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
   assert.equal(/\bikea\b|zalando|coolblue|kwik-?fit|transheroes|housingnet|dekas/i.test(await readFile(new URL("../lib/sector-identity.ts", import.meta.url), "utf8")), false);
 });
 
@@ -195,7 +196,8 @@ test("product-detail candidates are nominated by URL shape, never editorial page
 test("retail sites without a product sample get a bounded second hop", async () => {
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   // QA commerce 72/72: a sampled grid of linked, priced products is retail context too.
-  assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal \|\| listingWithProducts;/);
+  // 31 Oct (P7): a payment/financial/SaaS service's fee pages are not a product grid.
+  assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal \|\| \(listingWithProducts && !pricedServiceForSample\);/);
   // QA-144: the second hop only starts with time left before the sample deadline,
   // and never after the website rate-limited RankFix (QA #207).
   assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\) && !sampleRateLimit\.stopped\)/);

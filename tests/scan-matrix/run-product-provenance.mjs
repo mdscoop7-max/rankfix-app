@@ -5,7 +5,6 @@
 //      diagnostics use the page's own product (article number in the URL).
 //   2. Two products, neither matching URL/H1 → not confirmable, never merged.
 //   3. A sampled sibling product page never overwrites the entered product.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const HOST = "witgoed.test";
 const P_OWN = "/nl/product/_merk-wm-7000-serie-wasmachine-1807532.html";
 const P_SIB = "/nl/product/_merk-wm-8000-serie-wasmachine-1807530.html";
@@ -28,7 +27,7 @@ globalThis.fetch = async (input) => {
   return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

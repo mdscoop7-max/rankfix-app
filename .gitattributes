@@ -1,0 +1,4 @@
+# Frozen fixtures are checked by raw-byte SHA-256 on Windows and Linux.
+# Keep their original LF bytes; do not weaken or rewrite the expected hashes.
+tests/fixtures/quality-20261101/catalog-holdout.json text eol=lf
+tests/fixtures/quality-round2-20261101/catalog-holdout.json text eol=lf

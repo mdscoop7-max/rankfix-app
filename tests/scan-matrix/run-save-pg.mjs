@@ -3,9 +3,8 @@
 // fixed-length slices; before the jsonb guard a slice through an emoji left a lone
 // UTF-16 surrogate and PostgreSQL rejected the whole report (SCAN_HISTORY_SAVE_FAILED).
 // Run: RF_REAL_DB=1 DATABASE_URL=postgres://... node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-save-pg.mjs
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { getDb } = await import(ROOT + "/lib/db.ts");
-const { ensureDatabase } = await import(ROOT + "/lib/db-init.ts");
+const { getDb } = await import(new URL("../../lib/db.ts", import.meta.url));
+const { ensureDatabase } = await import(new URL("../../lib/db-init.ts", import.meta.url));
 const db = getDb();
 await ensureDatabase();
 const problems = [];
@@ -33,7 +32,7 @@ globalThis.fetch = async (input) => {
   return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 const s = [console.info, console.warn, console.error]; console.info = console.warn = () => {}; const errors = []; console.error = (...a) => errors.push(a);
 const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://emoji.test/", mode: "both", language: "nl", dashboard: true }) }));
 [console.info, console.warn, console.error] = s;

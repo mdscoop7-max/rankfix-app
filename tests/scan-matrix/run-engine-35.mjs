@@ -491,8 +491,7 @@ globalThis.__RF_RENDER = async (url) => {
   if (!html) throw new Error("TimeoutError: Navigation timeout of 12000 ms exceeded");
   return { html: html.replaceAll("__URL__", u.origin + u.pathname).replaceAll("__HOST__", u.host), finalUrl: url, elapsedMs: 700, requests: 10, titlePixelWidth: 420, domAccessibility: { controls: 3, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {};
 const only = process.env.ONLY ? process.env.ONLY.split(",") : null;
 let bad = 0, total = 0;

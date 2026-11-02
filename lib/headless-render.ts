@@ -1,5 +1,6 @@
 import { AXE_RUN_SCRIPT } from "./axe-script.ts";
-import type { Browser } from "puppeteer-core";
+import type { Browser, HTTPRequest } from "puppeteer-core";
+import { createBrowserDiagnostics, type BrowserAbortCause, type BrowserDiagnostics } from "./browser-diagnostics.ts";
 import { claimRender, launchSourceFor, hardenedServerlessArgs, type RenderBudget } from "@/lib/render-limits";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
@@ -20,7 +21,21 @@ export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; 
   axeReport: AxeSummary | null;
   /** Why axe-core did not complete (null when it ran or was not attempted). */
   axeError?: string | null;
+  /** Structured-data observation mode only: how complete the observation was. */
+  observation?: RenderObservation;
+  /** Diagnostic evidence only; never an automatic score deduction. */
+  diagnostics?: BrowserDiagnostics;
 };
+
+/**
+ * 1 Nov 2026 (P5): a separate, bounded observation mode for the targeted
+ * structured-data check. It waits for the full "load" event and then at most
+ * `settleMs` for network quiet, skips the accessibility scan, gives no consent
+ * (the crawler view) and reports every limit, so an incomplete observation can
+ * never be taken as proof that JSON-LD is absent.
+ */
+export type RenderOptions = { mode?: "default" | "structured_data"; settleMs?: number; /** Measurement only: extra fixed wait after settling (long-window comparison). */ holdMs?: number };
+export type RenderObservation = { loadReached: boolean; settledMs: number; networkQuiet: boolean; requestCapHit: boolean; abortedRequests: number; failedRequests: number; consent: "none"; window: string };
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
 // Cap on requests that are actually loaded (document, script, stylesheet, xhr, fetch).
@@ -81,7 +96,17 @@ async function withinTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T>
   }
 }
 
-export async function renderPublicPage(value: string, timeoutMs = 12000, budget?: RenderBudget): Promise<RenderedPage> {
+export async function renderPublicPage(value: string, timeoutMs = 12000, budget?: RenderBudget, options: RenderOptions = {}): Promise<RenderedPage> {
+  const structuredMode = options.mode === "structured_data";
+  const settleMs = Math.max(0, Math.min(options.settleMs ?? 3000, 5000));
+  const requestCap = structuredMode ? 150 : MAX_REQUESTS;
+  let cappedRequests = 0;
+  let failedRequests = 0;
+  const diagnostics = createBrowserDiagnostics(value);
+  const abortCauses = new WeakMap<HTTPRequest, BrowserAbortCause>();
+  const interceptionErrors = new WeakMap<HTTPRequest, string>();
+  let lastObservedUrl = value;
+  let navigationFailure: BrowserDiagnostics["navigationError"] = null;
   const target = validatePublicHttpUrl(value);
   await assertPublicDns(target.hostname);
   claimRender(budget);
@@ -160,22 +185,48 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       if (!pending) { pending = assertPublicDns(hostname); dnsChecks.set(hostname, pending); }
       return pending;
     };
+    page.on("requestfailed", (req) => {
+      // Images/fonts/media are intentionally never loaded, not network failures.
+      if (!ALLOWED.has(req.resourceType())) return;
+      failedRequests++;
+      diagnostics.failed({ url: req.url(), resourceType: req.resourceType(), errorText: req.failure()?.errorText, abortCause: abortCauses.get(req), interceptionError: interceptionErrors.get(req) });
+    });
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) lastObservedUrl = frame.url();
+    });
+    page.on("response", (response) => {
+      const req = response.request();
+      // Only HTTP redirects of the top-level document, not iframes or API calls.
+      if (!req.isNavigationRequest() || req.frame() !== page.mainFrame() || response.status() < 300 || response.status() >= 400) return;
+      const location = response.headers().location;
+      if (location) try { diagnostics.redirected(response.url(), new URL(location, response.url()).toString(), response.status()); } catch {}
+    });
     page.on("request", (req) => {
       void (async () => {
         try {
           if (!ALLOWED.has(req.resourceType())) {
+            diagnostics.filtered();
             await req.abort();
             return;
           }
           requests++;
-          if (requests > MAX_REQUESTS) {
+          if (requests > requestCap) {
+            cappedRequests++;
+            abortCauses.set(req, "request_cap");
             await req.abort();
             return;
           }
-          const requestUrl = validatePublicHttpUrl(req.url());
-          await checkHost(requestUrl.hostname);
+          try {
+            const requestUrl = validatePublicHttpUrl(req.url());
+            await checkHost(requestUrl.hostname);
+          } catch (error) {
+            abortCauses.set(req, "public_url_guard");
+            throw error;
+          }
           await req.continue();
-        } catch {
+        } catch (error) {
+          interceptionErrors.set(req, error instanceof Error ? error.message : String(error));
+          if (!abortCauses.has(req)) abortCauses.set(req, "interception_error");
           try { await req.abort(); } catch {}
         }
       })();
@@ -187,22 +238,35 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // renderImprovesEvidence/isSubstantiveRender still decide whether it is usable.
     let partialNavigation = false;
     try {
-      await page.goto(target.toString(), { waitUntil: "domcontentloaded", timeout: Math.max(1000, remaining() - SNAPSHOT_RESERVE_MS) });
+      await page.goto(target.toString(), { waitUntil: structuredMode ? "load" : "domcontentloaded", timeout: Math.max(1000, remaining() - SNAPSHOT_RESERVE_MS) });
     } catch (navigationError) {
       const message = navigationError instanceof Error ? navigationError.message : String(navigationError);
-      if (!/timeout|timed out|exceeded/i.test(message) || page.url() === "about:blank") throw navigationError;
+      const timedOut = /timeout|timed out|exceeded/i.test(message);
+      navigationFailure = { name: navigationError instanceof Error ? navigationError.name : "Error", message: message.slice(0, 300), category: timedOut ? "timeout" : "other" };
+      if (!timedOut || page.url() === "about:blank") throw navigationError;
       partialNavigation = true;
+    }
+    // Structured-data mode: after "load", wait at most settleMs for 750 ms of
+    // network quiet (tag managers fire on load); stop early when quiet.
+    let networkQuiet = false;
+    let settledMs = 0;
+    if (structuredMode && !partialNavigation && remaining() > SNAPSHOT_RESERVE_MS) {
+      const settleStarted = Date.now();
+      try { await page.waitForNetworkIdle({ idleTime: 750, timeout: Math.max(1, Math.min(settleMs, remaining() - SNAPSHOT_RESERVE_MS)) }); networkQuiet = true; } catch {}
+      const hold = Math.max(0, Math.min(options.holdMs ?? 0, 8000, remaining() - SNAPSHOT_RESERVE_MS));
+      if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
+      settledMs = Date.now() - settleStarted;
     }
     // Let common hydration/XHR finish, but do not consume several extra seconds
     // per page on sites that continuously poll analytics or APIs.
-    if (!partialNavigation && remaining() > 300) {
+    if (!structuredMode && !partialNavigation && remaining() > 300) {
       try { await page.waitForNetworkIdle({ idleTime: 350, timeout: Math.min(1200, remaining()) }); } catch {}
     }
     // Nuxt/Next hydrate shortly after DOMContentLoaded and can still be updating
     // after a brief network-idle interval. Take a bounded, observable snapshot
     // after the app root settles; never wait indefinitely for polling scripts.
     // This does not bypass site protections or mark a degraded page as valid.
-    if (!partialNavigation && remaining() > 1700) {
+    if (!structuredMode && !partialNavigation && remaining() > 1700) {
       try {
         await withinTimeout(page.evaluate(() => new Promise<void>((resolve) => {
           const appRoot = document.querySelector("#__nuxt, #__next, [ng-version], [data-reactroot]");
@@ -269,7 +333,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     let axeReport: AxeSummary | null = null;
     let axeError: string | null = partialNavigation ? "PARTIAL_NAVIGATION" : null;
     // A partially loaded page is not a basis for an accessibility rule run.
-    if (!partialNavigation) try {
+    if (!partialNavigation && !structuredMode) try {
       const axeCore = (await import("axe-core")).default;
       await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
       // Passed as a STRING, not a function: a bundled/transpiled async function
@@ -280,7 +344,16 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       axeError = error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE";
       console.info("RankFix axe-core fallback", { reason: axeError });
     }
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport, axeError };
+    const observation: RenderObservation | undefined = structuredMode ? {
+      loadReached: !partialNavigation, settledMs, networkQuiet, requestCapHit: cappedRequests > 0,
+      abortedRequests: cappedRequests, failedRequests, consent: "none",
+      window: `load${partialNavigation ? " (niet bereikt)" : ""} + ${settledMs} ms${networkQuiet ? " tot netwerkrust" : " (geen netwerkrust)"}`,
+    } : undefined;
+    return { html, finalUrl: finalUrl.toString(), diagnostics: diagnostics.snapshot(finalUrl.toString(), navigationFailure), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport, axeError, ...(observation ? { observation } : {}) };
+  } catch (error) {
+    // Preserve request evidence even when navigation fails before a DOM snapshot.
+    if (error instanceof Error) Object.assign(error, { browserDiagnostics: diagnostics.snapshot(lastObservedUrl, navigationFailure) });
+    throw error;
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }

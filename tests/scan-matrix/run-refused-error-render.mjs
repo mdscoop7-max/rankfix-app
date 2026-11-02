@@ -9,7 +9,6 @@
 //   botwall2.test    403 + real page with navigation            -> report (browser recovery)
 //   shortnav.test    403 + short real page WITH own navigation  -> report
 // Plus page-gate unit cases for the new multilingual error wording.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const nav = (n) => Array.from({ length: n }, (_, i) => `<a href="/sectie-${i}">Sectie ${i}</a>`).join(" ");
 const page = ({ title, h1, body, links = 0, description = "" }) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title>${description ? `<meta name="description" content="${description}">` : ""}</head><body><header>${nav(links)}</header><h1>${h1}</h1><main>${body}</main></body></html>`;
 const words = (n, w = "tekst") => `<p>${Array.from({ length: n }, () => w).join(" ")}</p>`;
@@ -38,8 +37,8 @@ globalThis.__RF_RENDER = async (url) => {
   if (!html || u.pathname !== "/") throw new Error("RENDER_UNAVAILABLE_IN_TEST");
   return { html, finalUrl: url, elapsedMs: 900, requests: 8, titlePixelWidth: 200, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { classifyNonContentPage } = await import(ROOT + "/lib/page-gate.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { classifyNonContentPage } = await import(new URL("../../lib/page-gate.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

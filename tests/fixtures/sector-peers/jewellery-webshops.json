@@ -1,0 +1,55 @@
+{
+ "group": "jewellery-webshops",
+ "note": "Sieraden-webshops (My Jewellery e.a.)",
+ "sites": {
+  "myjewellery.test": {
+   "title": "My Jewellery | Sieraden & accessoires online kopen",
+   "desc": "Shop de mooiste sieraden en accessoires bij My Jewellery. Kettingen, oorbellen en armbanden. Gratis verzending vanaf € 25.",
+   "h1": "Sieraden voor elke dag",
+   "nav": [
+    "Kettingen",
+    "Oorbellen",
+    "Armbanden",
+    "Ringen",
+    "Sale"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Ketting met muntje</a> <span class=\"price\">€ 29,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Oorbellen goud</a> <span class=\"price\">€ 19,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "type": "ecommerce_store"
+   }
+  },
+  "lucardi.test": {
+   "title": "Lucardi | Sieraden en horloges",
+   "desc": "Ontdek sieraden en horloges bij Lucardi. Bestel online met gratis verzending of haal af in een van onze winkels.",
+   "h1": "Sieraden en horloges",
+   "nav": [
+    "Sieraden",
+    "Horloges",
+    "Cadeaus",
+    "Winkels",
+    "Klantenservice"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Zilveren ring</a> <span class=\"price\">€ 24,99</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "type": "ecommerce_store"
+   }
+  },
+  "goudsmidmarit.test": {
+   "title": "Goudsmid Marit | Handgemaakte trouwringen",
+   "desc": "Handgemaakte trouwringen en sieraden op maat in ons atelier in Gouda. Maak een afspraak voor een persoonlijk ontwerp.",
+   "h1": "Trouwringen op maat",
+   "nav": [
+    "Trouwringen",
+    "Op maat",
+    "Atelier",
+    "Afspraak",
+    "Contact"
+   ],
+   "expect": {
+    "shopChecks": "not_applicable"
+   }
+  }
+ }
+}

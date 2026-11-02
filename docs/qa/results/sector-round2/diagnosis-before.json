@@ -1,0 +1,1572 @@
+[
+  {
+    "host": "holdout-002.test",
+    "catalogKey": "marketplace",
+    "language": "en",
+    "expectedSector": "service_marketplace",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-002.test/",
+    "title": "Mosaic Market for independent sellers",
+    "description": "Our online marketplace connects independent sellers and buyers. Each merchant publishes listings and its own seller identity.",
+    "h1": "Mosaic Market for independent sellers",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "Catalog recognises marketplace; declared-identity table only recognises mediated tradespeople, not independent-seller marketplaces.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-010.test",
+    "catalogKey": "travel",
+    "language": "en",
+    "expectedSector": "transport_travel",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-010.test/",
+    "title": "Meadow Routes travel agency holidays",
+    "description": "Our travel agency plans guided holidays and package tours. Discuss an itinerary with a travel adviser and reserve a trip.",
+    "h1": "Meadow Routes travel agency holidays",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No declared-identity travel-agency rule; isolated booking capability cannot anchor the existing legacy sector.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-011.test",
+    "catalogKey": "beauty_salon",
+    "language": "fr",
+    "expectedSector": "beauty",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-011.test/",
+    "title": "Institut Belle Rive salon de beauté",
+    "description": "Notre salon de beauté propose soins du visage et manucure. Prenez rendez-vous pour un soin avec notre équipe.",
+    "h1": "Institut Belle Rive salon de beauté",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "French salon de beauté missing from declared beauty nouns; catalogue keyword score cannot anchor own identity.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-014.test",
+    "catalogKey": "saas_b2b",
+    "language": "en",
+    "expectedSector": "saas_b2b",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-014.test/",
+    "title": "Lattice Desk business workflow software",
+    "description": "Our SaaS platform helps teams automate approval workflows. Explore subscription plans and book a software demonstration.",
+    "h1": "Lattice Desk business workflow software",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "Only web hosting has a declared software rule; general SaaS/workflow self-description is unsupported.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-028.test",
+    "catalogKey": "events",
+    "language": "en",
+    "expectedSector": "events_culture",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-028.test/",
+    "title": "Riverlight Events conference organiser",
+    "description": "Our event organiser produces business conferences and exhibitions. Browse event dates, programmes and registration information.",
+    "h1": "Riverlight Events conference organiser",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No declaration rule for conference/event organisers; generic events vocabulary alone is not an identity anchor.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-033.test",
+    "catalogKey": "wholesale",
+    "language": "nl",
+    "expectedSector": "general_business",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-033.test/",
+    "title": "Groothandel Veldpoort materialen voor installateurs",
+    "description": "Onze groothandel levert bouwmaterialen uitsluitend aan zakelijke klanten en installateurs. Vraag een zakelijke offerte of bezoek ons afhaalpunt.",
+    "h1": "Groothandel Veldpoort materialen voor installateurs",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 5,
+        "evidence": [
+          "Sectorspecifieke content gevonden",
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "Catalogue has wholesale, but declaration table lacks wholesale identity; audience installers correctly does not prove a trade.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-035.test",
+    "catalogKey": "food_delivery",
+    "language": "nl",
+    "expectedSector": "hospitality",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-035.test/",
+    "title": "Maaltijdservice Avondkom bezorging aan huis",
+    "description": "Onze maaltijdbezorgdienst bereidt avondmaaltijden en bezorgt deze thuis. Bekijk het weekmenu en geef een maaltijdvoorkeur door.",
+    "h1": "Maaltijdservice Avondkom bezorging aan huis",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No declaration for meal-delivery operator; menu/order signals alone correctly do not prove a retail shop.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-038.test",
+    "catalogKey": "software_app",
+    "language": "en",
+    "expectedSector": "saas_b2b",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-038.test/",
+    "title": "Paper Kite document editing application",
+    "description": "Our software application edits documents and synchronises files across devices. Download the app or explore subscription plans.",
+    "h1": "Paper Kite document editing application",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No general software-application declaration; download/subscription evidence not linked to own identity.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-040.test",
+    "catalogKey": "photography",
+    "language": "nl",
+    "expectedSector": "professional_services",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-040.test/",
+    "title": "Fotograaf Zilverveld portretten en reportages",
+    "description": "Onze fotograaf maakt portretfoto's en bedrijfsreportages op locatie. Bekijk het portfolio en vraag een offerte voor een fotosessie.",
+    "h1": "Fotograaf Zilverveld portretten en reportages",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No photographer declaration despite title and own portfolio/quotation description.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-041.test",
+    "catalogKey": "medical_clinic",
+    "language": "fr",
+    "expectedSector": "health_wellness",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-041.test/",
+    "title": "Clinique du Verger consultations médicales",
+    "description": "Notre clinique médicale reçoit les patients en consultation et propose des traitements spécialisés. Prenez rendez-vous avec un médecin.",
+    "h1": "Clinique du Verger consultations médicales",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "French clinique médicale missing; generic medical metadata does not pass existing identity vocabulary.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-044.test",
+    "catalogKey": "childcare",
+    "language": "nl",
+    "expectedSector": "education",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-044.test/",
+    "title": "Kinderopvang Kleine Vlier dagopvang",
+    "description": "Onze kinderopvang biedt dagopvang voor baby's en peuters. Ouders vinden informatie over groepen, pedagogisch beleid en een rondleiding.",
+    "h1": "Kinderopvang Kleine Vlier dagopvang",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No childcare declaration despite own day-care, child groups and pedagogical policy.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-045.test",
+    "catalogKey": "senior_care",
+    "language": "en",
+    "expectedSector": "health_wellness",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-045.test/",
+    "title": "Willow Haven nursing home and elderly care",
+    "description": "Our nursing home provides residential elderly care and nursing support. Families can arrange a visit and discuss care needs.",
+    "h1": "Willow Haven nursing home and elderly care",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No elderly/nursing-home declaration; healthcare identity vocabulary limited to hospitals/practices.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-048.test",
+    "catalogKey": "parking",
+    "language": "nl",
+    "expectedSector": "transport_travel",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-048.test/",
+    "title": "Parkeerbeheerder Havenkade parkeerplaatsen",
+    "description": "Wij beheren parkeerterreinen en parkeergarages voor bezoekers. Bekijk parkeertarieven en reserveer een parkeerplaats.",
+    "h1": "Parkeerbeheerder Havenkade parkeerplaatsen",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No parking-operator declaration despite managed parking and reservation evidence.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-051.test",
+    "catalogKey": "holiday_rental",
+    "language": "fr",
+    "expectedSector": "hospitality",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-051.test/",
+    "title": "Les Chalets Brume locations de vacances",
+    "description": "Nous louons des maisons de vacances pour les familles. Consultez les disponibilités et réservez votre séjour dans un chalet.",
+    "h1": "Les Chalets Brume locations de vacances",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No holiday-rental declaration in declared table; French locations de vacances not anchored by legacy lodging.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-053.test",
+    "catalogKey": "camping",
+    "language": "de",
+    "expectedSector": "hospitality",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-053.test/",
+    "title": "Campingplatz Wiesenufer Stellplätze buchen",
+    "description": "Unser Campingplatz bietet Stellplätze für Zelte und Wohnmobile. Prüfen Sie die Verfügbarkeit und reservieren Sie Ihren Aufenthalt.",
+    "h1": "Campingplatz Wiesenufer Stellplätze buchen",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No campsite declaration in declared table; German Campingplatz not anchored by legacy lodging.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-054.test",
+    "catalogKey": "coworking",
+    "language": "en",
+    "expectedSector": "professional_services",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-054.test/",
+    "title": "Fern Yard coworking and shared offices",
+    "description": "Our coworking space provides shared desks and meeting rooms. Book a tour and explore workspace memberships for professionals.",
+    "h1": "Fern Yard coworking and shared offices",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No coworking declaration despite own desks/meeting rooms/memberships.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-061.test",
+    "catalogKey": "maritime_ports",
+    "language": "en",
+    "expectedSector": "maritime_ports",
+    "actualSector": "government",
+    "actualKey": "government",
+    "confidence": 84,
+    "url": "https://holdout-061.test/",
+    "title": "Estuary Port Authority maritime infrastructure",
+    "description": "Our port authority manages harbour infrastructure and maritime operations. Shipping companies can find berth information and port regulations.",
+    "h1": "Estuary Port Authority maritime infrastructure",
+    "declaredIdentity": {
+      "sector": "maritime_ports",
+      "key": "maritime_ports",
+      "label": "Havenbedrijf & maritieme infrastructuur",
+      "score": 13,
+      "evidence": [
+        "Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden"
+      ]
+    },
+    "euIdentity": {
+      "sector": "government",
+      "key": "government",
+      "label": "Overheid & Publieke sector",
+      "confidence": "high",
+      "confidenceScore": 84,
+      "evidence": [
+        "Overheid: de eigen naam is een toezichthouder/autoriteit en de omschrijving of navigatie beschrijft toezicht"
+      ]
+    },
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "corroborated_homepage_and_pages",
+      "homepageIdentity": "maritime_ports",
+      "supportingPages": 2,
+      "candidates": [
+        {
+          "key": "maritime_ports",
+          "count": 2,
+          "urls": [
+            "https://holdout-061.test/",
+            "https://holdout-061.test/about"
+          ]
+        }
+      ],
+      "applied": false
+    },
+    "finalEvidence": [
+      "Primaire identiteit: Overheid: de eigen naam is een toezichthouder/autoriteit en de omschrijving of navigatie beschrijft toezicht"
+    ],
+    "cause": "Declared maritime identity already corroborated by homepage and /about; acceptance veto prevents refinement of EU generic government authority.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "specific_identity_veto"
+  },
+  {
+    "host": "holdout-063.test",
+    "catalogKey": "agriculture_horticulture",
+    "language": "nl",
+    "expectedSector": "agriculture_horticulture",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-063.test/",
+    "title": "Tuinbouwbedrijf Groene Hoeve teelt en oogst",
+    "description": "Ons tuinbouwbedrijf teelt groenten en sierplanten voor zakelijke afnemers. Lees over onze kassen, gewassen en duurzame teelt.",
+    "h1": "Tuinbouwbedrijf Groene Hoeve teelt en oogst",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "Whole-word tuinbouw does not match compound tuinbouwbedrijf.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-064.test",
+    "catalogKey": "architecture_design",
+    "language": "de",
+    "expectedSector": "professional_services",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-064.test/",
+    "title": "Architekturbüro Steinbogen Planung und Entwurf",
+    "description": "Unser Architekturbüro übernimmt Entwurf und Planung von Wohngebäuden. Entdecken Sie unsere Architekturprojekte und vereinbaren Sie ein Beratungsgespräch.",
+    "h1": "Architekturbüro Steinbogen Planung und Entwurf",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "German architekturbüro missing (architektenbüro present); German planning/design context also missing.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  },
+  {
+    "host": "holdout-068.test",
+    "catalogKey": "manufacturer",
+    "language": "en",
+    "expectedSector": "manufacturing_industrial",
+    "actualSector": "unknown",
+    "actualKey": "unknown",
+    "confidence": 0,
+    "url": "https://holdout-068.test/",
+    "title": "Factory Oakstep equipment manufacturer for builders",
+    "description": "We manufacture equipment in our own factory. Contractors and plumbers buy through our distributors. Find an installer; we do not carry out home installations.",
+    "h1": "Factory Oakstep equipment manufacturer for builders",
+    "declaredIdentity": null,
+    "euIdentity": null,
+    "catalogCandidates": [
+      {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 5,
+        "evidence": [
+          "Sectorspecifieke content gevonden",
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "products",
+          "company",
+          "distributors_or_contact"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "mission",
+          "membership",
+          "contact"
+        ],
+        "optionalCapabilities": [],
+        "forbiddenAssumptions": []
+      },
+      {
+        "key": "wholesale",
+        "label": "Groothandel / B2B handel",
+        "score": 3,
+        "evidence": [
+          "Schema: Organization"
+        ],
+        "expectedCapabilities": [
+          "catalog",
+          "business_customers",
+          "quote_or_order"
+        ],
+        "optionalCapabilities": [
+          "commerce"
+        ],
+        "forbiddenAssumptions": []
+      }
+    ],
+    "extendedEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+    },
+    "finalEvidence": [],
+    "cause": "No general manufacturer declaration; existing rules cover semiconductor and infrastructure specialisms, not generic equipment producers.",
+    "evidenceAssessment": "Sufficient explicit own activity in homepage metadata; recognition/decision rule missing. Additional pages support identity where available; no extra page is invented.",
+    "causeCategory": "missing_identity_or_language_rule"
+  }
+]

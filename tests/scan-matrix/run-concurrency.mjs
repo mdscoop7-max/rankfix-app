@@ -4,8 +4,7 @@
 // same decisions and scores as the same scan run alone.
 import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
 installMatrixFetch2();
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 const saved = [console.info, console.warn, console.log, console.error];
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 

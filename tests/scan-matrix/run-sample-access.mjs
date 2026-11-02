@@ -7,7 +7,6 @@
 //   - botwall.test: refusal only to RankFix, the browser gets the real page →
 //     content is scored, but the HTTP check is never "passed" on a 403.
 //   - multilingual titles of refusal pages are recognised (page gate unit check).
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const nav = Array.from({ length: 40 }, (_, i) => `<a href="/sectie-${i}">Sectie ${i}</a>`).join(" ");
 const doc = ({ title, description = "", h1 = [], body = "" }) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title>${description ? `<meta name="description" content="${description}">` : ""}<meta name="viewport" content="width=device-width, initial-scale=1"></head><body><header><nav>${nav}</nav></header>${h1.map((h) => `<h1>${h}</h1>`).join("")}<main>${body}</main><footer><a href="/privacy">Privacy</a> <a href="/contact">Contact</a></footer></body></html>`;
 const filler = (t) => `<p>${(t + " ").repeat(25)}</p>`;
@@ -37,8 +36,8 @@ globalThis.__RF_RENDER = async (url) => {
   if (!s || u.pathname.replace(/\/$/, "") !== FAQ) throw new Error("RENDER_UNAVAILABLE_IN_TEST");
   return { html: s.faqRender(s.brand), finalUrl: url, elapsedMs: 400, requests: 5, titlePixelWidth: 200, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { classifyNonContentPage } = await import(ROOT + "/lib/page-gate.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { classifyNonContentPage } = await import(new URL("../../lib/page-gate.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

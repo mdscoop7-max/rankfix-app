@@ -42,9 +42,21 @@ const ON_PREMISES_KEYS = new Set(["hotel", "restaurant", "hair_salon", "beauty_s
 const RETAIL_KEYS = new Set(["optician", "pharmacy", "bakery"]);
 const RETAIL_SECTORS = new Set(["ecommerce", "food_local_retail"]);
 
+// A navigation label is a store finder only when the WHOLE label is the finder
+// phrase ("Onze winkels", "Find a store", "Filialen finden"). A headline or
+// teaser that merely contains the word ("Winkels moeten eerder sluiten") is
+// editorial content about other businesses, never the site's own premises.
+const FINDER_TAIL = /(?:\s+(?:zoeken|vinden|bekijken|en openingstijden|& openingstijden|in de buurt|bij (?:jou|u) in de buurt|near (?:you|me)|in ihrer nähe|search|finder|suchen|finden|rechercher|buscar|cerca))?\s*[›»>→]?\s*$/iu;
+export function isStoreFinderLabel(label: string): boolean {
+  const clean = String(label || "").replace(/\s+/g, " ").trim();
+  if (!clean || clean.split(" ").length > 8) return false;
+  const match = STORE_FINDER_LABEL.exec(clean);
+  return Boolean(match && match.index === 0 && FINDER_TAIL.test(clean.slice(match[0].length)) && clean.slice(match[0].length).replace(FINDER_TAIL, "").trim() === "");
+}
+
 export function decideSalesChannel(input: SalesChannelInput): SalesChannelDecision {
   const physical: string[] = [];
-  const finderLabel = input.navLabels.find((label) => STORE_FINDER_LABEL.test(label));
+  const finderLabel = input.navLabels.find((label) => isStoreFinderLabel(label));
   if (finderLabel) physical.push(`Navigatie naar vestigingen/winkels: "${finderLabel.slice(0, 40)}"`);
   const finderPath = input.internalPaths.find((path) => LOCATION_PATH.test(path));
   if (finderPath && !finderLabel) physical.push(`Vestigings-/winkelpagina: ${finderPath.slice(0, 60)}`);

@@ -14,7 +14,6 @@
 // one Shopify-CDN image, WordPress with an inactive WooCommerce plugin, a blog
 // that reviews products, a salon with online booking, a mini-cart script without
 // products, and a real airline that sells tickets.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const ld = (o) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...o })}</script>`;
 const filler = (t, n = 25) => `<p>${(t + " ").repeat(n)}</p>`;
 const doc = ({ lang = "nl", title, description, h1 = [], body = "", head = "", nav = "" }) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><meta name="viewport" content="width=device-width, initial-scale=1">${head}</head><body><header><nav>${nav}</nav></header>${h1.map((h) => `<h1>${h}</h1>`).join("")}<main>${body}</main><footer><a href="/privacy">Privacy</a> <a href="/contact">Contact</a></footer></body></html>`;
@@ -138,7 +137,7 @@ globalThis.fetch = async (input) => {
   return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8", ...(HEADERS[host] || {}) } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const ONLY = (process.env.ONLY || "").split(",").filter(Boolean);
 const problems = [];

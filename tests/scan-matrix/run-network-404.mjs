@@ -9,7 +9,6 @@
 //   bothhang.test       apex and www both time out                         -> 502 FETCH_TIMEOUT, no score
 //   hang404.test        apex times out, www answers 404                    -> no host switch, 502 FETCH_TIMEOUT
 //   apex403.test        apex refuses with HTTP 403, www would answer        -> no host switch (a refusal stays a refusal)
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const nav = Array.from({ length: 12 }, (_, i) => `<a href="/sectie-${i}">Sectie ${i}</a>`).join(" ");
 const site = (title) => `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${title} – Sortiment, Filialen und Service."></head><body><header>${nav}</header><h1>${title}</h1><main><p>${"Sortiment Filialen Service Angebote ".repeat(80)}</p></main></body></html>`;
 const timeoutError = () => { const e = new Error("The operation was aborted due to timeout"); e.name = "TimeoutError"; return e; };
@@ -40,7 +39,7 @@ globalThis.__RF_RENDER = async (url) => {
   if (!html) throw new Error("RENDER_UNAVAILABLE_IN_TEST");
   return { html, finalUrl: url, elapsedMs: 600, requests: 6, titlePixelWidth: 200, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

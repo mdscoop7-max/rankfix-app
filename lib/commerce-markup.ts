@@ -23,9 +23,41 @@ const CART_HOOK = /\bdata-addto\s*=\s*["']cart["']|\bname\s*=\s*["']add-to-cart[
 // A form that posts to a cart-add endpoint (Magento, Shopify, PrestaShop, generic).
 const CART_FORM = /<form\b[^>]{0,400}?\baction\s*=\s*["'][^"']{0,300}?(?:\/checkout\/cart\/add\b|\/cart\/add\b|[?&]add-to-cart=|\/panier\b|\/winkelwagen\/(?:toevoegen|add)\b|\/basket\/add\b|route=checkout\/cart\/add)/i;
 
+// Quote and appointment submissions are lead generation, even when a template
+// calls the form "checkout". Inspect each form/control independently so a real
+// shop next to a quote form remains observable.
+const LEAD_ACTION = /\b(?:offerte|prijsopgave|afspraak|quote|quotation|appointment|devis|rendez-vous|angebot anfordern|termin|presupuesto|cita|preventivo|appuntamento)\b/i;
+function purchaseMarkup(html: string): string {
+  return String(html || "").slice(0, 3_000_000).replace(/<form\b[^>]*>[\s\S]*?<\/form\s*>/gi, form => {
+    const controls = [...form.matchAll(/<button\b[^>]*>[\s\S]*?<\/button\s*>|<input\b[^>]*>/gi)]
+      .map(m => m[0]).filter(control => !/type\s*=\s*["'](?:text|email|tel|hidden|password|search|number)["']/i.test(control));
+    return controls.some(control => LEAD_ACTION.test(control.replace(/<[^>]*>/g, " ")) ||
+      LEAD_ACTION.test(control.match(/\b(?:value|aria-label)\s*=\s*["']([^"']*)/i)?.[1] || "")) ? "" : form;
+  });
+}
+
+/** A checkout destination is a signal, never proof of a working payment flow. */
+export function checkoutActionInHtml(html: string): boolean {
+  const source = purchaseMarkup(html).replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
+  for (const match of source.matchAll(/<(a|form)\b[^>]*>/gi)) {
+    const target = match[0].match(/\b(?:href|action)\s*=\s*["']([^"']*)["']/i)?.[1];
+    if (!target) continue;
+    const tail = source.slice(match.index + match[0].length, match.index + match[0].length + 4000);
+    const label = match[1].toLowerCase() === "a" ? tail.split(/<\/a\s*>/i, 1)[0].replace(/<[^>]*>/g, " ") : "";
+    if (LEAD_ACTION.test(label)) continue;
+    try {
+      const url = new URL(target.replace(/&amp;/g, "&"), "https://markup.invalid");
+      if (!/^https?:$/.test(url.protocol) || /(?:quote|offerte|appointment|afspraak|devis|rendez-vous)/i.test(url.pathname)) continue;
+      if (/\/(?:checkout|afrekenen|kassa|kasse|paiement|pagamento|pago)(?:\/|$)/i.test(url.pathname) &&
+        !/\/checkout\/cart(?:\/|$)/i.test(url.pathname)) return true;
+    } catch { /* malformed targets cannot prove checkout */ }
+  }
+  return false;
+}
+
 /** A purchase control in the markup (not only as visible text). */
 export function purchaseActionInHtml(html: string): boolean {
-  const source = String(html || "").slice(0, 3_000_000);
+  const source = purchaseMarkup(html);
   return CART_FORM.test(source) || CART_HOOK.test(source) || NAMED_CONTROL.test(source);
 }
 

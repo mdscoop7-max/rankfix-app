@@ -11,10 +11,12 @@ export type MotorEvidence = {
   euMarket: boolean;
   // Site-wide product evidence, even if the primary identity remains a service.
   secondaryRetailDetail?: boolean;
+  // Independent product + offer + purchase evidence, not a generic payment link.
+  verifiedSecondaryStorefront?: boolean;
 };
 
 export function decideCommerceModules(e: MotorEvidence): string[] {
-  const retailContext = e.primaryBusinessModel === "retail" || (e.primaryBusinessModel === "unknown" && e.retailProduct && e.cart);
+  const retailContext = e.primaryBusinessModel === "retail" || Boolean(e.verifiedSecondaryStorefront && e.retailProduct && e.cart) || (e.primaryBusinessModel === "unknown" && e.retailProduct && e.cart);
   if (!retailContext) {
     // A provider may sell devices alongside services. Product and price checks
     // can apply to proven items without claiming a verified cart/checkout.
@@ -38,4 +40,10 @@ export function reconcilePrimarySector(primary: {sector: string; confidence: num
   if (!candidate.independentEvidence || candidate.confidence < 75) return primary;
   if (primary.sector !== "unknown" && candidate.confidence <= primary.confidence) return primary;
   return {sector: candidate.sector, confidence: candidate.confidence};
+}
+
+// A non-decision never carries a confirmed confidence, even after reconciliation.
+export function sectorConfidenceGuard(profile: {sector:string; confidence:string; confidenceScore:number}) {
+  if (profile.sector !== "unknown") return {confidence:profile.confidence, confidenceScore:profile.confidenceScore};
+  return {confidence:"low", confidenceScore:Number.isFinite(profile.confidenceScore) ? Math.max(0, Math.min(35, profile.confidenceScore)) : 0};
 }

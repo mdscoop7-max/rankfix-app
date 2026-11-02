@@ -4,7 +4,6 @@
 // (a football federation with a shop on a sub-page, a charity with donation
 // amounts, a restaurant chain running a WooCommerce plugin), plus genuine shops
 // that must stay "ecommerce".
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const doc = ({ lang = "nl", title, description, h1 = [], body = "", head = "", schema = [] }) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="canonical" href="/">${head}${schema.map((t) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": t, name: "Org" })}</script>`).join("")}</head><body><header><nav><a href="/over-ons">Over ons</a> <a href="/contact">Contact</a> <a href="/shop">Shop</a> <a href="/nieuws">Nieuws</a></nav></header>${h1.map((h) => `<h1>${h}</h1>`).join("")}<main>${body}</main><footer><a href="/privacy">Privacy</a></footer></body></html>`;
 const filler = (t) => `<p>${(t + " ").repeat(30)}</p>`;
 const productPage = (name, price) => doc({ title: `${name} | Shop`, description: `${name} kopen.`, h1: [name], body: `<div itemscope itemtype="https://schema.org/Product"><span itemprop="name">${name}</span><span class="price">€ ${price}</span><form action="/cart/add" method="post"><button type="submit">In winkelwagen</button></form></div>`, schema: ["Product"] }).replace("</head>", `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "Product", name, offers: { "@type": "Offer", price, priceCurrency: "EUR", availability: "https://schema.org/InStock" } })}</script></head>`);
@@ -93,7 +92,7 @@ globalThis.fetch = async (input) => {
   return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const rows = [];

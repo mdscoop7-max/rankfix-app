@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 // Full-route replay of the recorded 96-site TestLab run (QA #186).
 //
 // Each recorded site is reconstructed from what the TestLab scan stored: the
@@ -17,12 +18,14 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const fixturePath = process.env.ROUTE_FIXTURE || `${ROOT}/tests/fixtures/testlab-96-replay/route.json.gz`;
+const fixturePath = process.env.ROUTE_FIXTURE || fileURLToPath(new URL("../fixtures/testlab-96-replay/route.json.gz", import.meta.url));
 const raw = readFileSync(fixturePath);
 const fixture = JSON.parse((fixturePath.endsWith(".gz") ? gunzipSync(raw) : raw).toString("utf8"));
 const only = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
-const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+// Recorded fields are sometimes still HTML-encoded (descriptions, nav labels were
+// stored raw): decode once so the reconstructed HTML encodes them exactly once.
+const { decodeHtmlEntities } = await import(new URL("../../lib/html-entities.ts", import.meta.url).href);
+const esc = (v) => decodeHtmlEntities(String(v ?? "")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function commerceMarkup(c) {
   if (!c) return "";
@@ -63,16 +66,26 @@ for (const site of fixture.sites) {
     else routes.set(key, { status: 200, html: pageHtml(p, { lang: site.lang }) });
   }
 }
+// REPLAY_FROM_ROOT=1: scan https://<host>/ like a live TestLab run; the root
+// answers 301 to the recorded landing page (root-redirect landings such as /start).
+const fromRoot = process.env.REPLAY_FROM_ROOT === "1";
+const startUrl = (site) => fromRoot ? `https://${site.host}/` : site.finalUrl;
+if (fromRoot) for (const site of fixture.sites) {
+  if (only && !only.has(site.host)) continue;
+  const root = `https://${site.host}/`;
+  if (new URL(root).toString() !== new URL(site.finalUrl).toString() && !routes.has(`${site.host}/`)) routes.set(`${site.host}/`, { status: 301, location: site.finalUrl, html: "" });
+}
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const hit = routes.get(u.host + u.pathname + u.search) || routes.get(u.host + u.pathname) || routes.get(u.host + u.pathname.replace(/\/$/, "")) || routes.get(u.host + u.pathname + "/");
+  if (hit?.location) return new Response(null, { status: hit.status, headers: { location: hit.location } });
   if (hit) return new Response(hit.html, { status: hit.status, headers: { "content-type": "text/html; charset=utf-8" } });
   return new Response("not found", { status: 404, headers: { "content-type": "text/plain" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_REPLAY"); };
 
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { compareSector } = await import(ROOT + "/scripts/testlab/labels.mjs");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { compareSector } = await import(new URL("../../scripts/testlab/labels.mjs", import.meta.url));
 console.info = () => {}; console.warn = () => {};
 const rows = [];
 for (const site of fixture.sites) {
@@ -80,7 +93,7 @@ for (const site of fixture.sites) {
   const ce = console.error; console.error = () => {};
   let j = {}, status = 0;
   try {
-    const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: site.finalUrl, mode: "both", language: "nl" }) }));
+    const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: startUrl(site), mode: "both", language: "nl" }) }));
     status = res.status; j = await res.json();
   } catch (error) { j = { error: String(error) }; }
   console.error = ce;

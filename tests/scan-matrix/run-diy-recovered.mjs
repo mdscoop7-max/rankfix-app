@@ -2,7 +2,6 @@
 // browser page names the store chain in its title ("De grootste doe-het-zelf
 // winkels van België") and shows category navigation, without prices or cart.
 // Field result: sector unknown. Neutral hosts; NL + FR variants; SaaS control.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const navNl = ["Gereedschap", "Bouwmaterialen", "Tuin", "Verf", "Sanitair", "Verlichting", "Winkels", "Folder", "Klantenservice"].map((t) => `<a href="/${t.toLowerCase()}">${t}</a>`).join(" ");
 const navFr = ["Outillage", "Matériaux", "Jardin", "Peinture", "Sanitaire", "Éclairage", "Magasins", "Dépliant", "Service client"].map((t, i) => `<a href="/fr/c${i}">${t}</a>`).join(" ");
 const page = (lang, title, desc, nav, text) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${title}</title>${desc ? `<meta name="description" content="${desc}">` : ""}</head><body><header><nav>${nav}</nav></header><main><p>${text.repeat(40)}</p></main><footer><a href="/privacy">Privacy</a></footer></body></html>`;
@@ -23,7 +22,7 @@ globalThis.__RF_RENDER = async (url) => {
   if (!SITES[u.host] || u.pathname !== "/") throw new Error("RENDER_UNAVAILABLE_IN_TEST");
   return { html: SITES[u.host], finalUrl: url, elapsedMs: 700, requests: 9, titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
 };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = []; const rows = [];
 for (const [host, expectRetail] of [["klusketen.test", true], ["bricoketen.test", true], ["kassasoft2.test", false]]) {

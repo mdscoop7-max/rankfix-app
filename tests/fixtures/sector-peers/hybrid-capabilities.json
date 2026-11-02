@@ -1,0 +1,321 @@
+{
+  "group": "hybrid-capabilities",
+  "note": "Development regression fixtures, not independent quality evaluation. Sampled product offers beside service identity and quote forms.",
+  "sites": {
+    "ordinary-bouwbedrijfdevries.test": {
+      "lang": "nl",
+      "title": "Bouwbedrijf De Vries | Aannemer voor nieuwbouw en verbouw in Zwolle",
+      "desc": "Aannemer voor nieuwbouw, verbouw en renovatie in Zwolle en omgeving. Vraag vrijblijvend een offerte aan.",
+      "h1": "Uw aannemer in Zwolle",
+      "nav": [
+        "Diensten",
+        "Projecten",
+        "Werkgebied",
+        "Offerte aanvragen",
+        "Contact"
+      ],
+      "body": "<p>Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><form class=\"checkout\" action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "shopChecks": "not_applicable",
+        "type": "services",
+        "schemaType": "GeneralContractor",
+        "noModules": [
+          "ecommerce",
+          "checkout",
+          "merchant"
+        ],
+        "noCheckout": true
+      }
+    },
+    "ordinary-loodgieterjansen.test": {
+      "lang": "nl",
+      "title": "Loodgieter Jansen | Lekkage, ontstopping en cv-ketels in Utrecht",
+      "desc": "Loodgieter in Utrecht voor lekkages, ontstoppingen en cv-onderhoud. 24/7 bereikbaar.",
+      "h1": "Loodgieter in Utrecht",
+      "nav": [
+        "Lekkage",
+        "Ontstopping",
+        "Cv-ketel",
+        "Werkgebied",
+        "Contact"
+      ],
+      "body": "<p>Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><form class=\"checkout\" action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "shopChecks": "not_applicable",
+        "type": "services",
+        "schemaType": "Plumber",
+        "noModules": [
+          "ecommerce",
+          "checkout",
+          "merchant"
+        ],
+        "noCheckout": true
+      }
+    },
+    "ordinary-heizung-schmidt.test": {
+      "lang": "de",
+      "title": "Heizung Schmidt – Heizungsbau, Wärmepumpen und Sanitär in München",
+      "desc": "Ihr Fachbetrieb für Heizung, Wärmepumpen und Sanitär in München. Wartung und Notdienst.",
+      "h1": "Heizung und Sanitär in München",
+      "nav": [
+        "Heizung",
+        "Wärmepumpe",
+        "Sanitär",
+        "Wartung",
+        "Kontakt"
+      ],
+      "body": "<p>Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><form class=\"checkout\" action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "shopChecks": "not_applicable",
+        "type": "services",
+        "schemaType": "HVACBusiness",
+        "noModules": [
+          "ecommerce",
+          "checkout",
+          "merchant"
+        ],
+        "noCheckout": true
+      }
+    },
+    "hybrid-bouwbedrijfdevries.test": {
+      "lang": "nl",
+      "title": "Bouwbedrijf De Vries | Aannemer voor nieuwbouw en verbouw in Zwolle",
+      "desc": "Aannemer voor nieuwbouw, verbouw en renovatie in Zwolle en omgeving. Vraag vrijblijvend een offerte aan.",
+      "h1": "Uw aannemer in Zwolle",
+      "nav": [
+        "Diensten",
+        "Webshop",
+        "Product"
+      ],
+      "body": "<p>Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. Wij bouwen woningen, aanbouwen en dakkapellen en verzorgen complete renovaties in Zwolle, Kampen en Deventer. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><a class=\"product-item-link\" href=\"/products/kraan\">Kraan kopen</a><form action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "type": "services",
+        "modules": [
+          "product",
+          "ecommerce",
+          "checkout"
+        ],
+        "noModules": [
+          "merchant"
+        ],
+        "sampleProduct": true
+      },
+      "navLinks": [
+        "/diensten",
+        "/shop",
+        "/products/kraan"
+      ],
+      "pages": {
+        "/products/kraan": {
+          "title": "Messing kraan kopen | Webshop",
+          "h1": "Messing kraan",
+          "desc": "Messing kraan met keramisch binnenwerk, los verkrijgbaar voor eigen montage.",
+          "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Product\", \"name\": \"Messing kraan\", \"image\": \"https://example.test/kraan.jpg\", \"sku\": \"MK-17\", \"offers\": {\"@type\": \"Offer\", \"price\": \"49.95\", \"priceCurrency\": \"EUR\", \"availability\": \"https://schema.org/InStock\", \"url\": \"/products/kraan\"}}</script>",
+          "body": "<p>Messing kraan € 49,95 EUR. Op voorraad. SKU MK-17. Verzendkosten € 4,95. Inclusief btw.</p><button name=\"add-to-cart\">In winkelwagen</button><a href=\"/cart\">Winkelwagen</a><a href=\"/checkout\">Afrekenen</a>"
+        }
+      }
+    },
+    "hybrid-loodgieterjansen.test": {
+      "lang": "nl",
+      "title": "Loodgieter Jansen | Lekkage, ontstopping en cv-ketels in Utrecht",
+      "desc": "Loodgieter in Utrecht voor lekkages, ontstoppingen en cv-onderhoud. 24/7 bereikbaar.",
+      "h1": "Loodgieter in Utrecht",
+      "nav": [
+        "Diensten",
+        "Webshop",
+        "Product"
+      ],
+      "body": "<p>Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. Onze loodgieters verhelpen lekkages, vervangen leidingen en onderhouden uw cv-ketel. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><a class=\"product-item-link\" href=\"/products/kraan\">Kraan kopen</a><form action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "type": "services",
+        "modules": [
+          "product",
+          "ecommerce",
+          "checkout"
+        ],
+        "noModules": [
+          "merchant"
+        ],
+        "sampleProduct": true
+      },
+      "navLinks": [
+        "/diensten",
+        "/shop",
+        "/products/kraan"
+      ],
+      "pages": {
+        "/products/kraan": {
+          "title": "Messing kraan kopen | Webshop",
+          "h1": "Messing kraan",
+          "desc": "Messing kraan met keramisch binnenwerk, los verkrijgbaar voor eigen montage.",
+          "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Product\", \"name\": \"Messing kraan\", \"image\": \"https://example.test/kraan.jpg\", \"sku\": \"MK-17\", \"offers\": {\"@type\": \"Offer\", \"price\": \"49.95\", \"priceCurrency\": \"EUR\", \"availability\": \"https://schema.org/InStock\", \"url\": \"/products/kraan\"}}</script>",
+          "body": "<p>Messing kraan € 49,95 EUR. Op voorraad. SKU MK-17. Verzendkosten € 4,95. Inclusief btw.</p><button name=\"add-to-cart\">In winkelwagen</button><a href=\"/cart\">Winkelwagen</a><a href=\"/checkout\">Afrekenen</a>"
+        }
+      }
+    },
+    "hybrid-heizung-schmidt.test": {
+      "lang": "de",
+      "title": "Heizung Schmidt – Heizungsbau, Wärmepumpen und Sanitär in München",
+      "desc": "Ihr Fachbetrieb für Heizung, Wärmepumpen und Sanitär in München. Wartung und Notdienst.",
+      "h1": "Heizung und Sanitär in München",
+      "nav": [
+        "Diensten",
+        "Webshop",
+        "Product"
+      ],
+      "body": "<p>Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. Wir installieren und warten Heizungsanlagen, Wärmepumpen und Badezimmer in München. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p><a class=\"product-item-link\" href=\"/products/kraan\">Kraan kopen</a><form action=\"/checkout\"><button>Offerte aanvragen</button></form>",
+      "expect": {
+        "sector": "home_services",
+        "type": "services",
+        "modules": [
+          "product",
+          "ecommerce",
+          "checkout"
+        ],
+        "noModules": [
+          "merchant"
+        ],
+        "sampleProduct": true
+      },
+      "navLinks": [
+        "/diensten",
+        "/shop",
+        "/products/kraan"
+      ],
+      "pages": {
+        "/products/kraan": {
+          "title": "Messing kraan kopen | Webshop",
+          "h1": "Messing kraan",
+          "desc": "Messing kraan met keramisch binnenwerk, los verkrijgbaar voor eigen montage.",
+          "head": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Product\", \"name\": \"Messing kraan\", \"image\": \"https://example.test/kraan.jpg\", \"sku\": \"MK-17\", \"offers\": {\"@type\": \"Offer\", \"price\": \"49.95\", \"priceCurrency\": \"EUR\", \"availability\": \"https://schema.org/InStock\", \"url\": \"/products/kraan\"}}</script>",
+          "body": "<p>Messing kraan € 49,95 EUR. Op voorraad. SKU MK-17. Verzendkosten € 4,95. Inclusief btw.</p><button name=\"add-to-cart\">In winkelwagen</button><a href=\"/cart\">Winkelwagen</a><a href=\"/checkout\">Afrekenen</a>"
+        }
+      }
+    },
+    "control-tegelgroothandel.test": {
+      "lang": "nl",
+      "title": "Tegelgroothandel Holland – Groothandel in wand- en vloertegels",
+      "desc": "Groothandel in wand- en vloertegels voor tegelzetters, aannemers en dealers. Alleen zakelijke levering.",
+      "h1": "Groothandel in tegels",
+      "nav": [
+        "Assortiment",
+        "Dealers",
+        "Zakelijk account",
+        "Contact"
+      ],
+      "body": "<p>Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. Wij leveren wand- en vloertegels uit voorraad aan tegelzetters, aannemers en tegelwinkels in de Benelux. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+      "expect": {
+        "notSector": "home_services"
+      }
+    },
+    "control-warmtepompfabrikant.test": {
+      "lang": "nl",
+      "title": "ThermoTech – Fabrikant van warmtepompen",
+      "desc": "ThermoTech ontwikkelt en produceert warmtepompen voor woningbouw en utiliteit. Vind een installateur bij u in de buurt.",
+      "h1": "Fabrikant van warmtepompen",
+      "nav": [
+        "Producten",
+        "Voor installateurs",
+        "Over ThermoTech",
+        "Vind een installateur",
+        "Contact"
+      ],
+      "body": "<p>Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. Onze warmtepompen worden in eigen fabriek ontwikkeld en geproduceerd en via erkende installateurs geleverd. </p><p>Bel 010 123 45 67 · info@bedrijf.test · Industrieweg 12, 3000 AA</p>",
+      "expect": {
+        "notSector": "home_services",
+        "notSchemaType": "Plumber"
+      }
+    },
+    "control-ikea.test": {
+      "title": "IKEA Nederland | Meubels en woonaccessoires",
+      "desc": "Betaalbare meubels, woonaccessoires en inspiratie voor elke kamer. Bestel online of bezoek een IKEA-woonwarenhuis.",
+      "h1": "Inspiratie voor je hele huis",
+      "nav": [
+        "Producten",
+        "Kamers",
+        "Aanbiedingen",
+        "Woonwarenhuizen",
+        "Klantenservice"
+      ],
+      "body": "<div class=\"product-card\"><a href=\"/p/0\">BILLY boekenkast</a> <span class=\"price\">€ 49,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">KALLAX kast</a> <span class=\"price\">€ 59,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/2\">MALM bed</a> <span class=\"price\">€ 199,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+      "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+      "expect": {
+        "type": "ecommerce_store",
+        "schemaType": "OnlineStore"
+      }
+    },
+    "control-leenbakker.test": {
+      "title": "Leen Bakker | Meubels, bedden en raamdecoratie",
+      "desc": "Leen Bakker is dé woonwinkel voor iedereen. Bestel meubels, boxsprings en gordijnen online of in een van onze winkels.",
+      "h1": "Welkom bij Leen Bakker",
+      "nav": [
+        "Meubels",
+        "Bedden",
+        "Raamdecoratie",
+        "Tuin",
+        "Winkels"
+      ],
+      "body": "<div class=\"product-card\"><a href=\"/p/0\">Boxspring Nice</a> <span class=\"price\">€ 499,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Bank Lisa</a> <span class=\"price\">€ 349,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+      "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+      "expect": {
+        "type": "ecommerce_store",
+        "notKey": "bakery"
+      }
+    },
+    "control-kwantum.test": {
+      "title": "Kwantum | Woonwinkel voor vloeren, gordijnen en meubels",
+      "desc": "Shop vloeren, gordijnen, verf en meubels online bij Kwantum. Gratis bezorging vanaf € 50 of afhalen in de winkel.",
+      "h1": "Mooi wonen voor minder",
+      "nav": [
+        "Vloeren",
+        "Gordijnen",
+        "Meubels",
+        "Verf",
+        "Winkels"
+      ],
+      "body": "<div class=\"product-card\"><a href=\"/p/0\">Laminaat eiken</a> <span class=\"price\">€ 12,99</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Rolgordijn wit</a> <span class=\"price\">€ 19,99</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+      "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+      "expect": {
+        "type": "ecommerce_store"
+      }
+    },
+    "control-enerco.test": {
+      "title": "Enerco | Industriële componenten en systemen",
+      "desc": "Enerco ontwikkelt en levert industriële componenten, pompen en regelsystemen voor de procesindustrie.",
+      "h1": "Industriële oplossingen",
+      "nav": [
+        "Brands",
+        "Applications",
+        "Over ons",
+        "Contact"
+      ],
+      "expect": {
+        "shopChecks": "not_applicable",
+        "platform": "WordPress",
+        "schemaType": "Organization"
+      },
+      "head": "<meta name=\"generator\" content=\"WordPress 6.6\"><link rel=\"stylesheet\" href=\"/wp-content/themes/enerco/style.css\"><script src=\"/wp-includes/js/jquery/jquery.min.js\"></script>"
+    },
+    "control-pompfabriek.test": {
+      "title": "Van Rijn Pompen | Fabrikant van industriële pompen",
+      "desc": "Van Rijn Pompen is fabrikant van centrifugaalpompen en pompsystemen voor water, chemie en voedingsmiddelenindustrie.",
+      "h1": "Industriële pompen sinds 1952",
+      "nav": [
+        "Producten",
+        "Toepassingen",
+        "Service",
+        "Over ons",
+        "Contact"
+      ],
+      "expect": {
+        "sector": "manufacturing_industrial",
+        "shopChecks": "not_applicable"
+      }
+    }
+  }
+}

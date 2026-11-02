@@ -9,10 +9,9 @@
 //  2. the scan insert is idempotent and repeated after a transient error, so a
 //     deadlock victim or a broken connection still results in exactly one row.
 // Run: RF_REAL_DB=1 DATABASE_URL=postgres://... node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-save-race-pg.mjs
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { getDb, withDbRetry } = await import(ROOT + "/lib/db.ts");
-const { ensureDatabase, schemaFingerprint } = await import(ROOT + "/lib/db-init.ts");
-const pg = (await import(ROOT + "/node_modules/pg/lib/index.js")).default;
+const { getDb, withDbRetry } = await import(new URL("../../lib/db.ts", import.meta.url));
+const { ensureDatabase, schemaFingerprint } = await import(new URL("../../lib/db-init.ts", import.meta.url));
+const pg = (await import(new URL("../../node_modules/pg/lib/index.js", import.meta.url))).default;
 const problems = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); };
 const db = getDb();
@@ -26,7 +25,7 @@ const holder = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await holder.connect();
 await holder.query("BEGIN");
 await holder.query("LOCK TABLE scans IN ROW EXCLUSIVE MODE"); // what an INSERT holds
-const fresh = await import(ROOT + "/lib/db-init.ts?fresh=" + Date.now());
+const fresh = await import(new URL("../../lib/db-init.ts?fresh=" + Date.now(), import.meta.url));
 const t0 = Date.now();
 const outcome = await Promise.race([
   fresh.ensureDatabase().then(() => "ok", (e) => `error ${e.code || e.message}`),

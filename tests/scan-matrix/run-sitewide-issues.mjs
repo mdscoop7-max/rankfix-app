@@ -6,7 +6,6 @@
 //     (may be client-rendered) → listed, but "to be confirmed"
 // Expect: every point listed with URL, check, evidence and fix; the entered
 // page's score unchanged by them; a caution next to a high score.
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const HOST = "werkplek.test";
 const links = ["/job-alert", "/privacy", "/veelgestelde-vragen", "/overview/categories", "/over-ons", "/contact"];
 const nav = links.map((h) => `<a href="${h}">${h.slice(1)}</a>`).join(" ");
@@ -28,7 +27,7 @@ globalThis.fetch = async (input) => {
   return new Response(html.replaceAll("__URL__", u.origin + u.pathname), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 };
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_TEST"); };
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${HOST}/`, mode: "both", language: "nl" }) }));
