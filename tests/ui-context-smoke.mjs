@@ -81,7 +81,20 @@ try {
 
   await page.goto(origin+"/",{waitUntil:"networkidle0"});
   assert.equal(await page.evaluate(()=>localStorage.getItem("rankfix-free-scan-test-sites-v1")),JSON.stringify(history));
-  assert.ok(await page.evaluate(()=>document.body.innerText.includes("saved.example")),"saved history visible");
+  // History is deliberately collapsed in <details>; exercise the disclosure first.
+  const summaries=await page.$$("details > summary");
+  let opened=false;
+  for(const summary of summaries){
+    if(await summary.evaluate(el=>/scangeschiedenis|scan history/i.test(el.textContent))){await summary.click();opened=true;break;}
+  }
+  assert.ok(opened,"history disclosure present");
+  await page.waitForFunction(()=>document.body.innerText.includes("saved.example"));
+  await page.evaluate(()=>{
+    const entry=Array.from(document.querySelectorAll("#scan button")).find(button=>button.textContent.includes("https://saved.example/"));
+    if(!entry)throw new Error("Saved history entry is missing");
+    entry.click();
+  });
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll("#scan input")).some(input=>input.value==="https://saved.example/"));
   assert.deepEqual(errors,[],"no hydration failures, render loops or browser exceptions");
   console.log("UI PASS: saved history preserved; no hydration errors or render loops");
 } finally {
