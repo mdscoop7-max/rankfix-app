@@ -1,3 +1,4 @@
+import { mergeVerifiedPullRequest } from "@/lib/autofix-merge-gate";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
@@ -724,10 +725,11 @@ export async function POST(request:Request){
     let merged=false;
     if(pr.number){
       try{
-        const merge=await githubFetch<{merged?:boolean;message?:string}>(token,"/repos/"+repo+"/pulls/"+Number(pr.number)+"/merge",{
-          method:"PUT",
-          body:JSON.stringify({merge_method:"squash",commit_title:"RankFix: "+generated.summary.slice(0,70)})
-        });
+        const merge=await mergeVerifiedPullRequest(
+          <T>(apiPath:string, init?:RequestInit)=>githubFetch<T>(token,apiPath,init),
+          {repo,prNumber:Number(pr.number),baseBranch:effectiveBaseBranch,branch,path,approvedBlobSha:written.sha,
+            title:"RankFix: "+generated.summary.slice(0,70)}
+        );
         merged=merge?.merged===true;
         if(merged) mergeState="AWAITING_VERIFICATION";
         else mergeError=String(merge?.message||"GitHub heeft de merge nog niet toegestaan.");
