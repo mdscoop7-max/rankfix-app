@@ -1,7 +1,7 @@
 "use client";
 import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import SpeedAudit from "@/components/speed-audit";

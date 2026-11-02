@@ -2132,9 +2132,9 @@ async function runScan(request: Request) {
     // local, trust) but may never turn an incidental topic into another sector.
     const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","accommodation","marketplace"]);
     sectorProfile.applicableModules = [...new Set([
-      ...sectorProfile.applicableModules.filter((activeModule)=>!sectorDefiningModules.has(activeModule)),
+      ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module)),
       ...(primarySectorModules[sectorProfile.sector] || []),
-      ...capabilityModules.filter((activeModule)=>!sectorDefiningModules.has(activeModule)),
+      ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module)),
     ])];
 
     const masterEvidence = {
@@ -4914,8 +4914,8 @@ async function runScan(request: Request) {
       technologyProfile.isCommerce = false;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
     }
-    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((activeModule)=>!allCommerceModules.has(activeModule) || allowedCommerceModules.has(activeModule));
-    masterEvidence.activeModules = masterEvidence.activeModules.filter((activeModule)=>!allCommerceModules.has(activeModule) || allowedCommerceModules.has(activeModule));
+    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
+    masterEvidence.modules = masterEvidence.modules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     if (finalCommerceDecision.confirmed) {
       for (const activeModule of commerceModules) {
         if (!allowedCommerceModules.has(activeModule)) continue;
@@ -4927,8 +4927,8 @@ async function runScan(request: Request) {
         if (!masterEvidence.activeModules.includes("eu_consumer")) masterEvidence.activeModules.push("eu_consumer");
       }
     } else {
-      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((activeModule)=>!allCommerceModules.has(activeModule));
-      masterEvidence.activeModules = masterEvidence.activeModules.filter((activeModule)=>!allCommerceModules.has(activeModule));
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
+      masterEvidence.modules = masterEvidence.modules.filter((module)=>!allCommerceModules.has(module));
       // A telecom/service identity does not erase independently proven Product
       // metadata; it only prevents claims about an unverified retail checkout.
       if (verifiedRepresentativeProductDetail) {
@@ -5560,7 +5560,7 @@ async function runScan(request: Request) {
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
         );
-        const rememberedByRule = new Map(rememberedFixes.rows.map((row: {rule_id:string;file_path:string|null;repository:string|null;pr_number:number|null;fix_summary:string|null;evidence:unknown;last_confirmed_at:string|null;recurrence_count:number;recurrence_open:boolean;last_recurred_at:string|null})=>[String(row.rule_id),row]));
+        const rememberedByRule = new Map(rememberedFixes.rows.map((row: {rule_id:string;file_path:string|null;repository:string|null;pr_number:number|null;fix_summary:string|null;evidence:unknown;last_confirmed_at:string|Date;recurrence_count:number;recurrence_open:boolean;last_recurred_at:string|null})=>[String(row.rule_id),row]));
 
         for (const item of checks) {
           const issueId = String(item.issue_id || item.rule_id || item.key);
