@@ -1,0 +1,40 @@
+{
+  "baseline": {
+    "@typescript-eslint/no-require-imports": 1,
+    "typescript/no-explicit-any": 58,
+    "react-hooks/set-state-in-effect": 17,
+    "prefer-const": 1,
+    "next/no-assign-module-variable": 6
+  },
+  "after": {
+    "@typescript-eslint/no-require-imports": 1,
+    "typescript/no-explicit-any": 57,
+    "react-hooks/set-state-in-effect": 17,
+    "prefer-const": 1,
+    "next/no-assign-module-variable": 6
+  },
+  "files": {
+    ".puppeteerrc.cjs": 1,
+    "app/[locale]/public-header.tsx": 1,
+    "app/[locale]/scan/scan-client.tsx": 1,
+    "app/account/forgot-password/page.tsx": 1,
+    "app/account/page.tsx": 1,
+    "app/account/reset-password/page.tsx": 1,
+    "app/api/assistant/route.ts": 2,
+    "app/api/fixes/status/route.ts": 2,
+    "app/api/scan/route.ts": 27,
+    "app/dashboard/audit/[id]/page.tsx": 1,
+    "app/dashboard/audit/[id]/report/page.tsx": 18,
+    "app/dashboard/competitor/page.tsx": 1,
+    "app/dashboard/github/page.tsx": 8,
+    "app/dashboard/health/page.tsx": 1,
+    "app/dashboard/local-seo/page.tsx": 1,
+    "app/dashboard/review-admin/page.tsx": 1,
+    "app/dashboard/reviews/page.tsx": 1,
+    "app/dashboard/scan/page.tsx": 1,
+    "app/page.tsx": 4,
+    "components/ai-assistant.tsx": 6,
+    "lib/sector-catalog.ts": 1,
+    "tests/sector-identity.test.mjs": 1
+  }
+}
