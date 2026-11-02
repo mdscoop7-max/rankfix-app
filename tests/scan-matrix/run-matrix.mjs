@@ -68,6 +68,7 @@ for (const p of PROFILES) {
       if (allowed.includes("__absent__")) { if (c && c.status === "pass") problems.push(`${k} should not pass (${c.message.slice(0, 80)})`); continue; }
       if (!c) { if ((process.env.MODE || "both") === "both") problems.push(`check ${k} missing`); } else if (!allowed.includes(c.status)) problems.push(`${k}=${c.status} not in ${allowed}: ${c.message.slice(0, 140)}`);
     }
+    for (const k of p.absentChecks || []) { const c = byKey(k); if (c) problems.push(`check ${k} must be absent but is ${c.status}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
     for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!types.length) { if (a) problems.push(`sample ${path} must not be sampled (personal utility page)`); continue; } if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }

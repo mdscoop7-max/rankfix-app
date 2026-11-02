@@ -34,6 +34,6 @@ export async function githubFetch<T>(token: string, path: string, init: RequestI
   const text=await response.text();
   let data:unknown=null; try{data=text?JSON.parse(text):null;}catch{data={message:text};}
   const message=data&&typeof data==="object"&&"message" in data?String((data as {message?:unknown}).message||""):"";
-  if(!response.ok) throw new Error(message || ("GitHub API error " + response.status));
+  if(!response.ok) throw Object.assign(new Error(message || ("GitHub API error " + response.status)), {status:response.status});
   return data as T;
 }

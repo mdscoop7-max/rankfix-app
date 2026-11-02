@@ -15,8 +15,17 @@ export function commerceApplicability(input: {
   marketSelector: boolean;
   auditedRepresentativePages: number;
   verifiedSecondaryCommerce?: boolean;
+  /** The primary sector could not be established. */
+  sectorUnknown?: boolean;
+  /** Cart link/API, add-to-cart, price + order button or payment logos were found. */
+  hardCommerceSignals?: boolean;
 }): CommerceApplicability {
   if (input.confirmed) return { state: "confirmed" };
+  // Unknown sector and no hard store signal: store checks are N.v.t. instead of a pile of
+  // "unconfirmed" items. A JS shell or country picker still cannot prove absence.
+  if (input.sectorUnknown && !input.hardCommerceSignals && !input.marketSelector && !input.thinShell) {
+    return { state: "absent", reason: "no_commerce_evidence" };
+  }
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
   // A primary service identity may also sell real products (e.g. phones at a
@@ -105,7 +114,9 @@ export function confirmedRetailEvidenceForService(input: {
   productDetailSchema: boolean;
   addToCart: boolean;
   productAndPrice: boolean;
+  /** Hard store signals: cart link/API together with add-to-cart, price + order button or payment logos. */
+  storefrontProven?: boolean;
 }): boolean {
-  return input.representativePurchase ||
+  return input.representativePurchase || Boolean(input.storefrontProven) ||
     (input.productDetailSchema && input.addToCart && input.productAndPrice);
 }

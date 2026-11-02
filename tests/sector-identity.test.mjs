@@ -166,7 +166,7 @@ test("every module the scanner can activate has a report label in every locale",
   for (const locale of ["nl", "en", "de", "fr", "it", "es"]) {
     const line = report.split("\n").find((l) => l.trimStart().startsWith(`${locale}:{`) && l.includes("core_seo:"));
     assert.ok(line, `labels for ${locale}`);
-    for (const module of modules) assert.ok(line.includes(`${module}:"`), `${locale} label for ${module}`);
+    for (const activeModule of modules) assert.ok(line.includes(`${activeModule}:"`), `${locale} label for ${activeModule}`);
   }
 });
 
@@ -217,7 +217,7 @@ test("one page type cannot crowd out the representative sample", async () => {
   // Without a ceiling the previous behaviour is unchanged.
   assert.equal(selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u).filter((p) => p.type === "other").length, 25);
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\), \{ key: sectionKey, limit: 5, exemptTypes: \["product"\] \}\)/);
+  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\), \{ key: sectionKey, limit: 5, exemptTypes: \["product"\] \}, 2\)/);
   // Slug-with-id product nomination applies to retail sites only.
   assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
 });

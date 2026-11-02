@@ -1,0 +1,22 @@
+✔ H1: an empty extra H1 is not reported as exactly one H1 (0.79799ms)
+✔ H1: multiple H1 elements are not automatically hard SEO failures (0.111708ms)
+✔ images: a decorative image with empty alt gets no missing-alt error (1.022919ms)
+✔ images: one affected image among two is not counted twice (0.103846ms)
+✔ links: refused content is unconfirmed rather than verified OK (0.132329ms)
+✔ links: explicit HTTP 404 remains broken (0.084908ms)
+✔ indexing: googlebot noindex cannot pass as no noindex found (0.062323ms)
+✔ indexing: later robots noindex must not be lost (0.043576ms)
+✔ canonical: conflicting declarations cannot be fully confirmed (0.065919ms)
+✔ metadata: dental metadata on explicit plumbing content needs mismatch assessment (0.117116ms)
+✔ redirect security: a host-only cookie never crosses unrelated co.uk hosts (0.05365ms)
+✔ coverage: one audited page among four must get insufficient sample evidence (0.054812ms)
+✔ schema: company and product ratings cannot be compared as the same entity (0.03985ms)
+✔ schema: bestRating=7 must be normalised before comparison (0.036565ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 82.151402

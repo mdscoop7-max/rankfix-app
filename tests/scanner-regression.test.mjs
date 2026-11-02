@@ -266,7 +266,8 @@ test("score engine keeps independent penalties independent", async () => {
 test("advisory evidence does not become a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
+  assert.match(source, /Mediaan van \$\{responseSamples\.length\} metingen/);
+  assert.match(source, /medianResponseTime <= 3000/);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
   assert.match(source, /schema:\s*"structured_data_context"/);
@@ -1727,4 +1728,13 @@ test("a sampled link that redirects to an account or personal page leaves the sa
   const { isNonContentUrl } = await import("../lib/report-quality.ts");
   for (const u of ["https://x.it/recupero-credenziali/", "https://x.pl/plus/kontynuuj-odtwarzanie", "https://x.pl/plus/preferencje-tresci", "https://x.de/passwort-vergessen"]) assert.equal(isNonContentUrl(u), true, u);
   assert.equal(isNonContentUrl("https://x.it/servizi-online-area-personale"), false, "a content page about the personal area stays");
+});
+
+test("empty alt on a linked image and generic alt texts count as missing, decorative empty alt does not", () => {
+  const decorative = extractImageMetrics('<img src="/a.jpg" alt=""><a href="/x">Meer <img src="/b.jpg" alt=""></a>');
+  assert.equal(decorative.unnamedLinkImages, 0);
+  const linked = extractImageMetrics('<a href="/product"><img src="/a.jpg" alt=""></a><a href="/c" aria-label="Contact"><img src="/c.jpg" alt=""></a>');
+  assert.equal(linked.unnamedLinkImages, 1);
+  const generic = extractImageMetrics('<img src="/a.jpg" alt="IMG_1234.jpg"><img src="/b.jpg" alt="image"><img src="/c.jpg" alt="Hand wassen met zeep">');
+  assert.equal(generic.genericAlt, 2);
 });

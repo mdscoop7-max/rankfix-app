@@ -20,6 +20,9 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
   // Optional ceiling per site section (first path segment) in the fill phase, so
   // one section such as customer service cannot fill the whole sample.
   sectionCap?: { key: (url: string) => string; limit: number; exemptTypes?: string[] },
+  // Optional ceiling per page template (type + structural key): at most N pages
+  // that look alike, so near-identical detail pages never fill the sample.
+  perTemplateLimit?: number,
 ): T[] {
   const selected: T[] = [];
   const seenTemplates = new Set<string>();
@@ -41,6 +44,11 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
     const seenUrls = new Set(selected.map((item) => normalizeUrl(item.url)));
     const typeCounts = new Map<string, number>();
     const sectionCounts = new Map<string, number>();
+    const templateCounts = new Map<string, number>();
+    for (const item of selected) {
+      const key = `${item.type}:${templateKey(normalizeUrl(item.url))}`;
+      templateCounts.set(key, (templateCounts.get(key) || 0) + 1);
+    }
     const sectionOf = (item: T) => (sectionCap && !(sectionCap.exemptTypes || []).includes(item.type)) ? sectionCap.key(item.url) : null;
     for (const item of selected) {
       typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
@@ -52,10 +60,13 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
       if (seenUrls.has(normalized)) continue;
       if (overCap(normalized)) continue;
       if (perTypeLimit && (typeCounts.get(item.type) || 0) >= perTypeLimit) continue;
+      const templateId = `${item.type}:${templateKey(normalized)}`;
+      if (perTemplateLimit && (templateCounts.get(templateId) || 0) >= perTemplateLimit) continue;
       const section = sectionOf(item);
       if (section && section !== "/" && sectionCap && (sectionCounts.get(section) || 0) >= sectionCap.limit) continue;
       if (section && section !== "/") sectionCounts.set(section, (sectionCounts.get(section) || 0) + 1);
       typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
+      templateCounts.set(templateId, (templateCounts.get(templateId) || 0) + 1);
       countCap(normalized);
       seenUrls.add(normalized);
       selected.push(item);

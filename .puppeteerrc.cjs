@@ -1,5 +1,4 @@
-const { join } = require("path");
-
+const { join } = process.getBuiltinModule("node:path");
 // Keep the downloaded Chrome inside the project directory. Hosts such as Render
 // build in one environment and run in another: the default ~/.cache/puppeteer is
 // not carried over, which made every render fail with "Could not find Chrome".
