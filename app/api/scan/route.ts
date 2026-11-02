@@ -4915,7 +4915,7 @@ async function runScan(request: Request) {
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
     }
     sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
-    masterEvidence.modules = masterEvidence.modules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
+    masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     if (finalCommerceDecision.confirmed) {
       for (const activeModule of commerceModules) {
         if (!allowedCommerceModules.has(activeModule)) continue;
@@ -4928,7 +4928,7 @@ async function runScan(request: Request) {
       }
     } else {
       sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
-      masterEvidence.modules = masterEvidence.modules.filter((module)=>!allCommerceModules.has(module));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module));
       // A telecom/service identity does not erase independently proven Product
       // metadata; it only prevents claims about an unverified retail checkout.
       if (verifiedRepresentativeProductDetail) {
