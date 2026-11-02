@@ -34,7 +34,7 @@ function imageReference(value: string): string | null {
 }
 
 function attr(tag: string, name: string): string {
-  const match = tag.match(new RegExp(name + "\\s*=\\s*[\\\"']([^\\\"']*)[\\\"']", "i"));
+  const match = tag.match(new RegExp("(?:^|\\s)" + name + "\\s*=\\s*[\\\"']([^\\\"']*)[\\\"']", "i"));
   return match?.[1] ?? "";
 }
 
