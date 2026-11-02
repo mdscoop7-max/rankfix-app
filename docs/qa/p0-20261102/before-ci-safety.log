@@ -1,0 +1,123 @@
+✖ CI audit and lint failures are blocking and installation uses the lockfile (1.583552ms)
+✖ known critical Next and browser dependency advisories are addressed by pinned versions (0.389055ms)
+✖ lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy (2.684398ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11.773343
+
+✖ failing tests:
+
+test at tests/ci-safety-gates.test.mjs:4:1
+✖ CI audit and lint failures are blocking and installation uses the lockfile (1.583552ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /continue-on-error:\s*true/. Input:
+  
+  'name: RankFix CI\n' +
+    '\n' +
+    'on:\n' +
+    '  pull_request:\n' +
+    '    branches: [main]\n' +
+    '  push:\n' +
+    '    branches: [main]\n' +
+    '  workflow_dispatch:\n' +
+    '\n' +
+    'concurrency:\n' +
+    '  group: rankfix-ci-${{ github.ref }}\n' +
+    '  cancel-in-progress: true\n' +
+    '\n' +
+    'permissions:\n' +
+    '  contents: read\n' +
+    '\n' +
+    'jobs:\n' +
+    '  verify:\n' +
+    '    name: Test, lint and build\n' +
+    '    runs-on: ubuntu-latest\n' +
+    '    timeout-minutes: 20\n' +
+    '    env:\n' +
+    '      CI: "true"\n' +
+    '      DATABASE_URL: "postgresql://rankfix:rankfix@127.0.0.1:5432/rankfix_ci"\n' +
+    '      SESSION_SECRET: "ci-only-session-secret-not-for-production"\n' +
+    '    steps:\n' +
+    '      - name: Checkout\n' +
+    '        uses: actions/checkout@v4\n' +
+    '\n' +
+    '      - name: Node 24\n' +
+    '        uses: actions/setup-node@v4\n' +
+    '        with:\n' +
+    '          node-version: 24\n' +
+    '          cache: npm\n' +
+    '\n' +
+    '      - name: Install dependencies\n' +
+    '        run: npm install --no-audit --no-fund\n' +
+    '\n' +
+    '      - name: Production dependency audit\n' +
+    '        continue-on-error: true\n' +
+    '        run: npm audit --omit=dev --audit-level=high\n' +
+    '\n' +
+    '      - name: Tests\n' +
+    '        run: npm test\n' +
+    '\n' +
+    '      - name: Lint (legacy debt report)\n' +
+    '        if: ${{ !cancelled() }}\n' +
+    '        continue-on-error: true\n' +
+    '        run: npm run lint\n' +
+    '\n' +
+    '      - name: Production build\n' +
+    '        if: ${{ !cancelled() }}\n' +
+    '        run: npm run build\n'
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/ci-safety-gates.test.mjs:4:136)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'name: RankFix CI\n\non:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main]\n  workflow_dispatch:\n\nconcurrency:\n...',
+    expected: /continue-on-error:\s*true/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at tests/ci-safety-gates.test.mjs:5:1
+✖ known critical Next and browser dependency advisories are addressed by pinned versions (0.389055ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '16.3.8' !== '16.4.3'
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/ci-safety-gates.test.mjs:5:148)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '16.3.8',
+    expected: '16.4.3',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci-safety-gates.test.mjs:6:1
+✖ lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy (2.684398ms)
+  AssertionError [ERR_ASSERTION]: node_modules/zod
+      at TestContext.<anonymous> (file:///workspace/rankfix-pr219-p0/tests/ci-safety-gates.test.mjs:6:415)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
