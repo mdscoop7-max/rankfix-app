@@ -1,0 +1,18 @@
+{
+  "id": "supplemental-beauty-20261102",
+  "description": "Supplemental candidate for future TestLab expansion; original fresh144 remains unchanged. Not included in the 144-run until runner/catalog integration.",
+  "reviewStatus": "proposed_not_independently_verified",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Luvyza Beauty & Care Shop",
+      "hosts": [
+        "luvyza.alwaysdata.net"
+      ],
+      "group": "beauty_care_webshop",
+      "expected": "ecommerce",
+      "round": "supplemental-20261102",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}
