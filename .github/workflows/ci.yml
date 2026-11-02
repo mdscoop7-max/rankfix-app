@@ -36,8 +36,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
+      - name: Dependency audit (production and development)
+        run: npm audit --audit-level=high
 
       - name: Tests
         run: npm test
@@ -49,6 +49,10 @@ jobs:
       - name: Production build
         if: ${{ !cancelled() }}
         run: npm run build
+
+      - name: Browser context regression (local production build, mocked APIs)
+        if: ${{ success() }}
+        run: node tests/ui-context-smoke.mjs
 
   testlab-catalog:
     name: Required 144-site catalog and baseline evidence

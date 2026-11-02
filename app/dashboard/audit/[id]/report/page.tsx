@@ -12,7 +12,7 @@ import { headlineDisplay } from "@/lib/score-qualifier";
 type Check={key?:string;category?:string;title:string;status:string;severity?:string;message:string;fix?:string;rule_id?:string;issue_id?:string;confidence?:string;evidence?:{details?:string;found?:unknown};points?:number;maxPoints?:number;reasonCode?:"cap_absent"|"needs_js"|"insufficient_pages"|"weak_evidence"|"type_uncertain";impactClaim?:"proven_impact"|"best_practice"|"hygiene";formKind?:"contact"|"appointment"|"booking"|"quote"|"checkout"|"newsletter"|"login"|"search"};
 type PageAudit = {url:string;type:string;status?:string;score?:number|null;title?:string|null;httpStatus?:number|null;partialHead?:boolean;evidenceChecks?:Array<{key:string;status:string;details?:string}>};
 type SitewideCheck = {key:string;status:string;unconfirmedPages:number;provenPages:number;checkedPages:number;affectedCount?:number;affectedUrls?:string[];highlights?:string[];templatePattern?:{suffix:string;pages:number;overLimit:number}};
-type ReportResult = {
+type ReportResult = import("@/lib/score-qualifier").QualifiableResult & {
  finalUrl?:string;overallScore?:number;seo?:{score?:number;checks?:Check[]};geo?:{score?:number;checks?:Check[]};
  security?:{score?:number;note?:string;checks:Check[]};accessibility?:{score?:number;note?:string;mode?:string;checks:Check[]};
  websiteSpeed?:import("@/lib/pagespeed").WebsiteSpeed|null;
