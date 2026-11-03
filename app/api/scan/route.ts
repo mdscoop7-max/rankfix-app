@@ -43,7 +43,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
-import { classifyScanInfrastructureFailure } from "@/lib/scan-runtime-errors";
+import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
 import { explainCoreScore } from "@/lib/score-reconciliation";
 import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
 import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
@@ -8112,9 +8112,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         charged: infrastructure.charged,
       }, { status: infrastructure.httpStatus });
     }
-    const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
+    // Website time-out, database time-out and RankFix's own limit are separate outcomes.
+    const technicalCode = uncaughtScanErrorCode(error);
     console.error("RankFix scan failed:", { code: technicalCode, message: error instanceof Error ? error.message : "unknown error", name: error instanceof Error ? error.name : "unknown", stack: error instanceof Error ? error.stack : undefined });
     const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
-    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: 500 });
+    if (technicalCode === "FETCH_TIMEOUT") {
+      const siteTimeout: Record<string,string> = {
+        nl:"De onderzochte website antwoordde niet op tijd tijdens het ophalen of weergeven van een pagina. Dit is geen storing van RankFix en geen bewezen fout van de website; er is niets in rekening gebracht. Probeer het later opnieuw.",
+        en:"The website did not answer in time while a page was fetched or rendered. This is not a RankFix outage and not a proven website error; you were not charged. Try again later.",
+        de:"Die untersuchte Website hat beim Abrufen oder Darstellen einer Seite nicht rechtzeitig geantwortet. Das ist keine RankFix-Störung und kein bewiesener Website-Fehler; es wurde nichts berechnet.",
+        fr:"Le site analysé n'a pas répondu à temps lors du chargement ou de l'affichage d'une page. Ce n'est pas une panne de RankFix ni une erreur prouvée du site ; aucun frais.",
+        it:"Il sito non ha risposto in tempo durante il caricamento o la visualizzazione di una pagina. Non è un guasto di RankFix né un errore provato del sito; nessun addebito.",
+        es:"El sitio no respondió a tiempo al cargar o mostrar una página. No es una avería de RankFix ni un error probado del sitio; sin cargos.",
+      };
+      return NextResponse.json({ error: siteTimeout[fallbackLanguage] || siteTimeout.en, code: technicalCode, retryable: true, charged: false }, { status: 502 });
+    }
+    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: technicalCode === "DATABASE_TIMEOUT" ? 503 : 500 });
   }
 }

@@ -40,3 +40,22 @@ export function classifyScanInfrastructureFailure(error:unknown):ScanInfrastruct
     }
   };
 }
+
+/**
+ * 3 Nov 2026: stable code for an error that escaped the scan. Keeps three
+ * different things apart instead of calling every "timeout" a RankFix problem:
+ * - a database time-out is RankFix infrastructure (DATABASE_TIMEOUT);
+ * - the target website (fetch or browser navigation) not answering in time is a
+ *   website/network outcome (FETCH_TIMEOUT), never a RankFix outage;
+ * - any other time-out stays SCAN_TIMEOUT (RankFix's own limit).
+ */
+export function uncaughtScanErrorCode(error: unknown): "SCAN_URL_DECODE_ERROR" | "DATABASE_TIMEOUT" | "FETCH_TIMEOUT" | "SCAN_TIMEOUT" | "SCAN_INTERNAL_ERROR" {
+  if (error instanceof URIError) return "SCAN_URL_DECODE_ERROR";
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  const name = error instanceof Error ? error.name : "";
+  const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  if (code === "57014" || /timeout exceeded when trying to connect|connection terminated (?:due to connection timeout|unexpectedly)|canceling statement due to statement timeout|query read timeout/i.test(message)) return "DATABASE_TIMEOUT";
+  if (name === "TimeoutError" || /navigation timeout of \d+ ?ms exceeded|operation was aborted due to timeout|ETIMEDOUT|UND_ERR_(?:CONNECT|HEADERS|BODY)_TIMEOUT/i.test(message)) return "FETCH_TIMEOUT";
+  if (/timeout|abort/i.test(message) || name === "AbortError") return "SCAN_TIMEOUT";
+  return "SCAN_INTERNAL_ERROR";
+}
