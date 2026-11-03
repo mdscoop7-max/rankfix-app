@@ -55,6 +55,8 @@ const BRANCH={
  construction:{keys:['construction_infrastructure']},
  manufacturing:{exclude:['construction_infrastructure']},
  industry:{exclude:['construction_infrastructure']},
+ // A passenger carrier is transport, but not logistics (goods); ports and postal stay.
+ logistics:{exclude:['passenger_transport']},
 };
 /**
  * Does the observed profile show the expected BRANCH, beyond the main sector?

@@ -12,6 +12,7 @@ test("same main sector with another specific branch is a mismatch, not equivalen
   assert.equal(sectorVerdict("engineering", { sector: "professional_services", key: "legal" }).verdict, "mismatch");
   assert.equal(sectorVerdict("manufacturing", { sector: "manufacturing_industrial", key: "construction_infrastructure" }).verdict, "mismatch");
   assert.equal(sectorVerdict("veterinary_animal_care", { sector: "health_wellness", key: "pharmacy" }).verdict, "mismatch");
+  assert.equal(sectorVerdict("logistics", { sector: "transport_travel", key: "passenger_transport" }).verdict, "mismatch");
   assert.match(sectorVerdict("payments", { sector: "financial_services", key: "financial_insurance" }).reason, /branche wijkt af/);
 });
 
@@ -41,6 +42,11 @@ test("real parent/child and family relations stay equivalent", () => {
   assert.equal(sectorVerdict("manufacturing", { sector: "manufacturing_industrial", key: "semiconductors_electronics" }).verdict, "equivalent");
   assert.equal(sectorVerdict("manufacturing", { sector: "manufacturing_industrial", key: "manufacturing_industrial" }).verdict, "equivalent");
   assert.equal(sectorVerdict("culture", { sector: "events_culture", key: "events_culture" }).verdict, "equivalent");
+  assert.equal(sectorVerdict("logistics", { sector: "transport_travel", key: "postal_logistics" }).verdict, "equivalent");
+  assert.equal(sectorVerdict("logistics", { sector: "maritime_ports", key: "maritime_ports" }).verdict, "equivalent");
+  assert.equal(sectorVerdict("insurance", { sector: "financial_services", key: "financial_insurance" }).verdict, "equivalent");
+  assert.equal(sectorVerdict("healthcare", { sector: "health_wellness", key: "veterinary" }).verdict, "equivalent");
+  assert.equal(sectorVerdict("transport", { sector: "transport_travel", key: "passenger_transport" }).verdict, "equivalent");
   // Local retail family stays as before.
   assert.equal(sectorVerdict("retail", { sector: "health_wellness", key: "optician" }).verdict, "equivalent");
 });
