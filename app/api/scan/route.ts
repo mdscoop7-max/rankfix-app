@@ -7179,6 +7179,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     };
     // Same ranked choice as the product diagnostics: the best-evidenced real product page.
     const representativeProductPage = productSamplePage;
+    // An audited product page in the sample is found even without Product data:
+    // missing structured data is a schema defect, not "no product page".
+    const auditedProductPages = auditedMultiPages.filter((item)=>item.type==="product");
+    if (finalCommerceDecision.confirmed && auditedProductPages.length && !isProductPage) {
+      checkoutFunnelEvidence.productPage = true;
+      if (auditedProductPages.some((item)=>item.commerceEvidence?.strongCommerceAction)) checkoutFunnelEvidence.addToCart = true;
+    }
     if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product && !isProductPage) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
