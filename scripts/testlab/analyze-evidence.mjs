@@ -24,14 +24,14 @@ export function analyzeRun({ evidence, audits, baseline }) {
     const sectorBefore = b.sector ? `${b.sector}/${b.sectorKey}` : null; const sectorAfter = r.evidence?.sectorProfile ? `${r.evidence.sectorProfile.sector}/${r.evidence.sectorProfile.key}` : null;
     if (before !== after || sectorBefore !== sectorAfter) changes.push({ host: r.host, expected: r.expected, before, after, sectorBefore, sectorAfter });
   }
-  const rank = { exact: 3, equivalent: 3, unconfirmed: 1, mismatch: 0 };
+  const rank = { exact: 3, equivalent: 3, partial: 2, unconfirmed: 1, mismatch: 0 };
   const better = changes.filter((c) => (rank[c.after] ?? -1) > (rank[c.before] ?? -1));
   const worse = changes.filter((c) => (rank[c.after] ?? -1) < (rank[c.before] ?? -1));
   const violations = {};
   for (const [host, report] of audits) for (const v of auditReportClaims(report)) (violations[v.code] ||= []).push(`${host}: ${v.detail}`);
   const sampleH1 = { pass: 0, warning: 0, unconfirmed: 0 };
   for (const r of ok) for (const p of r.evidence?.sample?.pages || []) for (const c of p.checks || []) if (c.key === "h1") sampleH1[c.status === "PASS" ? "pass" : c.status === "WARNING" ? "warning" : "unconfirmed"]++;
-  const review = ok.filter((r) => r.verdict === "mismatch" || r.verdict === "unconfirmed").map((r) => ({ host: r.host, expected: r.expected, verdict: r.verdict, got: `${r.evidence?.sectorProfile?.sector}/${r.evidence?.sectorProfile?.key} ${r.evidence?.sectorProfile?.confidenceScore ?? ""}`, title: r.evidence?.page?.title, description: r.evidence?.page?.description, h1: (r.evidence?.page?.h1s || []).slice(0, 2), nav: (r.evidence?.page?.navigationLabels || []).slice(0, 15), schema: r.evidence?.page?.schemaTypes, evidence: (r.evidence?.sectorProfile?.evidence || []).slice(0, 2) }));
+  const review = ok.filter((r) => r.verdict === "mismatch" || r.verdict === "partial" || r.verdict === "unconfirmed").map((r) => ({ host: r.host, expected: r.expected, verdict: r.verdict, got: `${r.evidence?.sectorProfile?.sector}/${r.evidence?.sectorProfile?.key} ${r.evidence?.sectorProfile?.confidenceScore ?? ""}`, title: r.evidence?.page?.title, description: r.evidence?.page?.description, h1: (r.evidence?.page?.h1s || []).slice(0, 2), nav: (r.evidence?.page?.navigationLabels || []).slice(0, 15), schema: r.evidence?.page?.schemaTypes, evidence: (r.evidence?.sectorProfile?.evidence || []).slice(0, 2) }));
   const levels = {}; for (const r of ok) { const l = r.evidence?.score?.evidenceLevel || "?"; levels[l] = (levels[l] || 0) + 1; }
   // 1 Nov: missing data is never silent. A site without a baseline, without a run
   // or only in the baseline is listed, and the comparison is marked incomplete.

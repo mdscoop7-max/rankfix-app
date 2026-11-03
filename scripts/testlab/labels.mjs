@@ -43,6 +43,35 @@ export function compareSector(expected,profile={}) {
   expectedSubtype:key||null,observedSubtype:profile.key||profile.subtype||null,
   subtypeMatch:key?profile.key===key:null,labelStatus:'proposed_not_independently_verified'};
 }
+// 3 Nov 2026: a matching MAIN sector does not prove the BRANCH. Labels whose main
+// sector holds several unrelated branches (an engineering firm and a law firm are
+// both professional_services) need an engine subtype that shows the branch.
+// keys: subtypes that prove the branch; exclude: subtypes that disprove it.
+// Without such a rule, a label carrying a subtype (payments → financial_payments)
+// requires exactly that subtype.
+const BRANCH={
+ engineering:{keys:['engineering','engineering_consultancy']},
+ research:{keys:['research','research_institute']},
+ construction:{keys:['construction_infrastructure']},
+ manufacturing:{exclude:['construction_infrastructure']},
+ industry:{exclude:['construction_infrastructure']},
+};
+/**
+ * Does the observed profile show the expected BRANCH, beyond the main sector?
+ * match: an allowed subtype (or the label has no branch requirement);
+ * generic: only the main sector is known (key missing or equal to the sector);
+ * different: another specific subtype of the same main sector.
+ */
+export function branchComparison(expected,profile={}) {
+ const [,labelKey]=labels[expected]||[expected];
+ const rule=BRANCH[expected]||(labelKey?{keys:[labelKey]}:{});
+ const key=profile.key||profile.subtype||null;
+ const generic=!key||key===profile.sector||key==='unknown';
+ if(rule.exclude&&key&&rule.exclude.includes(key))return 'different';
+ if(!rule.keys)return 'match';
+ if(key&&rule.keys.includes(key))return 'match';
+ return generic?'generic':'different';
+}
 /**
  * QA #204: one verdict per scanned site so a literal label difference is never
  * counted as a sector bug. exact: same label; equivalent: parent/child or niche
@@ -50,12 +79,20 @@ export function compareSector(expected,profile={}) {
  * or a retail label on a confirmed webshop whose sector is a goods-retail
  * family; unconfirmed: no primary sector; mismatch: probably a real error, to
  * be reviewed by hand (also when the webshop is confirmed but the branch is not).
+ * 3 Nov: equivalent also requires the branch (branchComparison). Main sector
+ * right but branch unknown is "partial" and never counts as a correct branch;
+ * main sector right with another specific branch is a mismatch.
  */
 export function sectorVerdict(expected,profile={}) {
  const c=compareSector(expected,profile);
  if(!profile.sector||profile.sector==='unknown')return {...c,verdict:'unconfirmed',reason:'Geen hoofdsector vastgesteld'};
  if(profile.sector===expected||profile.key===expected)return {...c,verdict:'exact',reason:''};
- if(c.sectorMatch)return {...c,verdict:'equivalent',reason:'Taxonomisch equivalent (ouder/kind- of nichelabel van dezelfde familie)'};
+ if(c.sectorMatch){
+  const branch=branchComparison(expected,profile);
+  if(branch==='generic')return {...c,branch,verdict:'partial',reason:'Hoofdsector juist, branche niet bevestigd (geen subtype dat de branche aantoont)'};
+  if(branch==='different')return {...c,branch,verdict:'mismatch',reason:'Hoofdsector juist, maar de branche wijkt af: handmatig beoordelen'};
+  return {...c,branch,verdict:'equivalent',reason:'Taxonomisch equivalent (ouder/kind- of nichelabel van dezelfde familie, branche bevestigd)'};
+ }
  const retailLabel=expected==='retail'||expected==='ecommerce';
  if(retailLabel&&profile.websiteType==='ecommerce_store'){
   if(isGoodsRetailSector(profile))return {...c,verdict:'equivalent',reason:'Bevestigde webshop; sector toont de niche van het assortiment'};
