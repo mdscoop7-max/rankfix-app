@@ -8,7 +8,10 @@
 // - product_availability: one unambiguous visible stock state = Offer availability.
 // Every verdict names the page(s) and the evidence. Missing evidence stays
 // "unable_to_confirm"; a proven defect on a product page is a warning. Absence on
-// raw (not rendered) HTML is never a defect: JavaScript may add the data.
+// raw (not rendered) HTML is only a defect on a server-rendered product page: the
+// server delivers name, visible price and purchase action as HTML (no JavaScript
+// shell) and no Product markup at all (JSON-LD, microdata or RDFa), or a Product
+// without any Offer. Crawlers that do not run JavaScript then see no product data.
 
 export type SampleVisibleOffer = {
   priceCandidates: number[];
@@ -16,6 +19,9 @@ export type SampleVisibleOffer = {
   currencies: string[];
   availabilityState: "out_of_stock" | "preorder" | "backorder" | "in_stock" | null;
   availabilityAmbiguous: boolean;
+  availabilityScope?: "product_zone" | "page" | "none";
+  availabilityPhrases?: string[];
+  purchaseButton?: "enabled" | "disabled" | null;
 };
 
 export type SampleProductPage = {
@@ -24,7 +30,20 @@ export type SampleProductPage = {
   productSchema: boolean;
   product: { name: string | null; image: string | null; sku?: string | null; price: string | null; currency: string | null; availability: string | null; offerKind?: "offer" | "aggregate" | "list" | "none" } | null;
   visibleOffer?: SampleVisibleOffer | null;
+  /** Raw HTML that is a full server-rendered page (not a JavaScript shell). */
+  serverRendered?: boolean;
+  /** Purchase action (add-to-cart) present on the page. */
+  purchaseAction?: boolean;
+  /** No Product in JSON-LD, microdata or RDFa anywhere in the page HTML. */
+  productMarkupAbsent?: boolean;
 };
+
+/** A confirmed product page whose own HTML proves what is (not) published. */
+export function provenServerProductPage(page: SampleProductPage): boolean {
+  const v = page.visibleOffer;
+  return page.evidenceSource !== "rendered_html" && page.serverRendered === true && page.purchaseAction === true
+    && Boolean(v && v.priceCandidates.length);
+}
 
 export type SampleCheckStatus = "pass" | "warning" | "unable_to_confirm";
 export type SampleCheckVerdict = {
@@ -65,6 +84,12 @@ export function missingOfferFields(product: SampleProductPage["product"]): strin
   return missing;
 }
 
+function noOfferPrice(page: SampleProductPage, field: "prijs" | "valuta" = "prijs"): string {
+  if (!page.productSchema) return `geen Product-data met ${field}`;
+  if (page.product?.offerKind === "none") return `Product-data zonder Offer (geen ${field})`;
+  return `Offer zonder ${field === "prijs" ? "prijs" : "valuta"}`;
+}
+
 type PageVerdict = { status: SampleCheckStatus; credit: number; detail: string };
 
 function judgePage(key: SampleProductCheckKey, page: SampleProductPage): PageVerdict {
@@ -77,14 +102,21 @@ function judgePage(key: SampleProductCheckKey, page: SampleProductPage): PageVer
     // A missing field is a proven defect only when one plain Offer was read
     // completely; an AggregateOffer or a list of offers may hold it deeper.
     if (page.productSchema && p?.offerKind === "offer") return { status: "warning", credit: 0.5, detail: `Product structured data is aanwezig, maar mist: ${missing.join(", ")}.` };
+    // Product without any Offer on a page that visibly sells: price, currency and
+    // availability are provably not published as product data.
+    if (page.productSchema && p && p.offerKind === "none" && (rendered || provenServerProductPage(page))) return { status: "warning", credit: 0.5, detail: `Product structured data zonder Offer, terwijl de pagina een zichtbare prijs en bestelknop heeft; ontbreekt: ${missing.join(", ")}.` };
     if (page.productSchema) return { status: "unable_to_confirm", credit: 0, detail: `Product structured data is aanwezig; ${missing.join(", ")} niet gevonden in de uitgelezen aanbieding (${p?.offerKind || "vorm onbekend"}), dus niet bewezen dat het ontbreekt.` };
-    return rendered
-      ? { status: "warning", credit: key === "product_schema" ? 3 / 8 : 0.5, detail: "Productpagina na browserweergave zonder Product structured data." }
-      : { status: "unable_to_confirm", credit: 0, detail: "Geen Product structured data in de ruwe HTML; zonder browserweergave is niet bewezen dat die ontbreekt." };
+    if (rendered) return { status: "warning", credit: key === "product_schema" ? 3 / 8 : 0.5, detail: "Productpagina na browserweergave zonder Product structured data." };
+    if (page.productMarkupAbsent && provenServerProductPage(page)) return { status: "warning", credit: key === "product_schema" ? 3 / 8 : 0.5,
+      detail: "De server levert deze productpagina volledig als HTML (zichtbare prijs en bestelknop), maar zonder Product structured data (geen JSON-LD, microdata of RDFa); productnaam, prijs, valuta en beschikbaarheid ontbreken als productgegevens." };
+    if (page.serverRendered === false) return { status: "unable_to_confirm", credit: 0, detail: "Pagina wordt pas met JavaScript opgebouwd en is niet in een browser weergegeven; niet bewezen dat Product structured data ontbreekt." };
+    return { status: "unable_to_confirm", credit: 0, detail: "Geen Product structured data in de ruwe HTML, maar zichtbare prijs of bestelknop ontbreekt in die HTML; zonder browserweergave is niet bewezen dat de productgegevens ontbreken." };
   }
   if (key === "product_price_consistency") {
     const schemaPrice = priceNumber(p?.price);
-    if (!v || !v.priceCandidates.length || schemaPrice === null) return { status: "unable_to_confirm", credit: 0, detail: "Geen betrouwbare zichtbare productprijs én structured-data prijs om te vergelijken." };
+    if (!v) return { status: "unable_to_confirm", credit: 0, detail: "Zichtbare prijs van deze pagina is niet vastgelegd." };
+    if (!v.priceCandidates.length) return { status: "unable_to_confirm", credit: 0, detail: rendered ? "Geen zichtbare prijs gevonden na browserweergave." : "Geen zichtbare prijs in de ruwe HTML (mogelijk pas via JavaScript geladen); niet te vergelijken." };
+    if (schemaPrice === null) return { status: "unable_to_confirm", credit: 0, detail: `Zichtbare prijs gevonden (${v.priceCandidates[0]}), maar ${noOfferPrice(page)}; vergelijking niet mogelijk (het ontbreken staat bij Product structured data).` };
     const match = v.priceCandidates.some((visible) => Math.abs(visible - schemaPrice) < 0.005);
     if (v.priceStrength === "explicit_product_markup") {
       if (match) return { status: "pass", credit: 1, detail: `Gemarkeerde productprijs komt overeen met de Offer-prijs (${schemaPrice}).` };
@@ -99,13 +131,15 @@ function judgePage(key: SampleProductCheckKey, page: SampleProductPage): PageVer
       }
       return { status: "warning", credit: 2 / 6, detail: `Gemarkeerde productprijs (${v.priceCandidates[0]}) wijkt af van de Offer-prijs (${schemaPrice}).` };
     }
-    return { status: "unable_to_confirm", credit: 0, detail: "Bedragen in de paginatekst zijn niet als productprijs gemarkeerd; geen betrouwbare vergelijking." };
+    return { status: "unable_to_confirm", credit: 0, detail: `Zichtbare prijs gevonden (${v.priceCandidates.slice(0, 3).join(", ")}), maar niet als productprijs gemarkeerd; geen betrouwbare vergelijking met de Offer-prijs (${schemaPrice}).` };
   }
   if (key === "price_currency_consistency") {
     const structured = /^[A-Z]{3}$/.test(String(p?.currency || "")) ? String(p!.currency) : null;
-    if (!v || !structured) return { status: "unable_to_confirm", credit: 0, detail: "Geen zichtbare valuta én Offer-valuta om te vergelijken." };
+    if (!v) return { status: "unable_to_confirm", credit: 0, detail: "Zichtbare valuta van deze pagina is niet vastgelegd." };
+    if (!structured) return { status: "unable_to_confirm", credit: 0, detail: v.currencies.length ? `Zichtbare valuta (${v.currencies.join(", ")}) gevonden, maar ${noOfferPrice(page, "valuta")}.` : `Geen zichtbare valuta en ${noOfferPrice(page, "valuta")}.` };
     if (v.currencies.length > 1) return { status: "unable_to_confirm", credit: 0, detail: `Meerdere zichtbare valuta (${v.currencies.join(", ")}); dat kan een valutakeuze zijn.` };
-    if (v.priceStrength !== "explicit_product_markup" || v.currencies.length !== 1) return { status: "unable_to_confirm", credit: 0, detail: "Geen expliciet gemarkeerde productprijs met één valuta." };
+    if (!v.currencies.length) return { status: "unable_to_confirm", credit: 0, detail: rendered ? "Geen zichtbare valuta bij een prijs na browserweergave." : "Geen zichtbare valuta bij een prijs in de ruwe HTML (mogelijk pas via JavaScript geladen)." };
+    if (v.priceStrength !== "explicit_product_markup") return { status: "unable_to_confirm", credit: 0, detail: `Zichtbare valuta (${v.currencies[0]}) staat bij bedragen die niet als productprijs gemarkeerd zijn; geen betrouwbare vergelijking.` };
     return v.currencies[0] === structured
       ? { status: "pass", credit: 1, detail: `Gemarkeerde productprijs en Offer-data gebruiken dezelfde valuta: ${structured}.` }
       : { status: "warning", credit: 2 / 6, detail: `Zichtbare valuta (${v.currencies[0]}) wijkt af van de Offer-valuta (${structured}).` };
@@ -113,14 +147,21 @@ function judgePage(key: SampleProductCheckKey, page: SampleProductPage): PageVer
   // product_availability
   const structured = availabilityState(p?.availability);
   if (!v) return { status: "unable_to_confirm", credit: 0, detail: "Zichtbare voorraadstatus is voor deze pagina niet vastgelegd." };
-  if (v.availabilityAmbiguous) return { status: "unable_to_confirm", credit: 0, detail: "Meerdere zichtbare voorraadstatussen op de pagina; geen eenduidige vergelijking." };
+  const where = v.availabilityScope === "product_zone" ? "bij het product" : "op de pagina";
+  const phrase = (v.availabilityPhrases || []).length ? ` ("${(v.availabilityPhrases || []).join('", "')}")` : "";
+  if (v.availabilityAmbiguous) return { status: "unable_to_confirm", credit: 0, detail: `Meerdere zichtbare voorraadstatussen ${where}${phrase}; geen eenduidige vergelijking.` };
   if (structured && v.availabilityState) {
     return structured === v.availabilityState
-      ? { status: "pass", credit: 1, detail: `Zichtbare voorraadstatus (${v.availabilityState}) en Offer availability zijn consistent.` }
-      : { status: "warning", credit: 2 / 5, detail: `Zichtbare voorraadstatus (${v.availabilityState}) spreekt de Offer availability (${p?.availability}) tegen.` };
+      ? { status: "pass", credit: 1, detail: `Zichtbare voorraadstatus ${where}${phrase} en Offer availability (${p?.availability}) zijn consistent.` }
+      : { status: "warning", credit: 2 / 5, detail: `Zichtbare voorraadstatus ${where}${phrase} spreekt de Offer availability (${p?.availability}) tegen.` };
   }
-  if (!structured && v.availabilityState && page.productSchema) return { status: "warning", credit: 2 / 5, detail: `Zichtbare voorraadstatus (${v.availabilityState}) zonder Offer availability in de Product-data.` };
-  return { status: "unable_to_confirm", credit: 0, detail: structured ? "Offer availability gevonden, maar geen eenduidige zichtbare voorraadstatus." : "Geen voorraadstatus in Product-data of zichtbare tekst." };
+  // An enabled purchase button is weak evidence: it confirms InStock, nothing else
+  // (a pre-order or backorder can also be bought).
+  if (structured === "in_stock" && !v.availabilityState && v.purchaseButton === "enabled") return { status: "pass", credit: 1, detail: `Offer availability (${p?.availability}) en een actieve bestelknop; geen voorraadtekst, dus zwak maar consistent bewijs.` };
+  if (!structured && v.availabilityState && page.productSchema) return { status: "warning", credit: 2 / 5, detail: `Zichtbare voorraadstatus ${where}${phrase} zonder Offer availability in de Product-data.` };
+  if (structured) return { status: "unable_to_confirm", credit: 0, detail: `Offer availability (${p?.availability}) gevonden, maar geen zichtbare voorraadtekst${v.purchaseButton === "disabled" ? " en de bestelknop is uitgeschakeld" : v.purchaseButton ? "" : " en geen bestelknop in de HTML"}.` };
+  if (!page.productSchema) return { status: "unable_to_confirm", credit: 0, detail: `Geen Product/Offer-data om de voorraad${v.availabilityState ? phrase : ""} mee te vergelijken; het ontbreken zelf staat bij Product structured data.` };
+  return { status: "unable_to_confirm", credit: 0, detail: v.availabilityState ? `Zichtbare voorraadstatus${phrase}, maar de Offer-vorm (${p?.offerKind || "onbekend"}) is niet volledig uitgelezen.` : "Geen voorraadstatus in de Offer-data en geen zichtbare voorraadtekst." };
 }
 
 const TITLES: Record<SampleProductCheckKey, string> = {
@@ -146,9 +187,11 @@ export function settleSampleProductCheck(key: SampleProductCheckKey, pages: Samp
     message: `${TITLES[key]}: op ${judged.filter((j) => j.verdict.status === "warning").length} van ${n} geauditeerde productpagina('s) aantoonbaar onjuist of onvolledig. ${warn.verdict.detail} Pagina: ${warn.page.url}` };
   if (pass) return { key, status: "pass", credit: 1, url: pass.page.url, pages: rows,
     message: `${TITLES[key]}: bevestigd op ${judged.filter((j) => j.verdict.status === "pass").length} van ${n} geauditeerde productpagina('s). ${pass.verdict.detail} Pagina: ${pass.page.url}` };
-  const reason = judged[0]?.verdict.detail || "Geen geauditeerde productpagina in de steekproef.";
+  // Name every page with its own reason (max 3), not only the first page.
+  const perPage = judged.slice(0, 3).map(({ page, verdict }) => `${page.url}: ${verdict.detail}`).join(" | ");
+  const more = n > 3 ? ` (+${n - 3} pagina's)` : "";
   return { key, status: "unable_to_confirm", credit: 0, url: judged[0]?.page.url || null, pages: rows,
-    message: n ? `${TITLES[key]}: op ${n} geauditeerde productpagina('s) niet te bevestigen. ${reason}` : `${TITLES[key]}: geen geauditeerde productpagina in de steekproef; niet te bevestigen.` };
+    message: n ? `${TITLES[key]}: op ${n} geauditeerde productpagina('s) niet te bevestigen. ${perPage}${more}` : `${TITLES[key]}: geen geauditeerde productpagina in de steekproef; niet te bevestigen.` };
 }
 
 // Financial services published as Product/Offer data (insurance modules, loans,

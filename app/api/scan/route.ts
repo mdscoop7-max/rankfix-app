@@ -5197,7 +5197,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5662,7 +5662,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // product information; a retail page needs an offer: price + currency,
           // stock status, a visible price or a buy action (live QA scan 2627bab0).
           // Visible price/currency/stock of this page, same rules as the scanned page.
-          visibleOffer: (() => { const o = visibleOfferEvidence(pageHtml, stripHtml(pageHtml)); return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous }; })(),
+          visibleOffer: (() => { const o = visibleOfferEvidence(pageHtml, stripHtml(pageHtml)); return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous, availabilityScope: o.visibleAvailabilityScope, availabilityPhrases: o.visibleAvailabilityPhrases.slice(0, 3), purchaseButton: o.purchaseButton }; })(),
+          // No Product anywhere in the markup: JSON-LD @type, microdata itemtype or RDFa typeof.
+          productMarkupAbsent: !pageProductSchema && !pageFinancial
+            && !/itemtype\s*=\s*["'][^"']*schema\.org\/(?:Product|IndividualProduct|ProductModel|ProductGroup)\b/i.test(pageHtml)
+            && !/\btypeof\s*=\s*["'][^"']*\b(?:schema:)?Product\b/i.test(pageHtml),
+          // Set below once the page is known not to be a JavaScript shell.
+          serverRendered: false as boolean,
           confirmedRetailPage: !pageFinancial && ((pageProductSchema && hasProductOffer({ product: pageProductEvidence, priceSignals: pagePriceSignals, strongCommerceAction: pageStrongCommerceAction })) || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2)),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
@@ -5671,6 +5677,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
+        pageCommerceEvidence.serverRendered = representativeEvidenceSource !== "rendered_html" && !pageClientShell && pageH1s.length > 0;
         const sampleIncompleteHead = representativeEvidenceSource !== "rendered_html"
           && Boolean(pageQualityTitle) && /<meta\b[^>]+(?:property|name)\s*=\s*["'](?:og:|twitter:)/i.test(pageHtml)
           && !pageHead.evidence.description && !pageHead.evidence.canonical
@@ -7126,13 +7133,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const sampleProductPages: SampleProductPage[] = auditedMultiPages
         .filter((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer)
         .slice(0, 8)
-        .map((item)=>({ url:item.url, evidenceSource:item.evidenceSource, productSchema:Boolean(item.commerceEvidence?.productSchema), product:item.commerceEvidence?.product || null, visibleOffer:item.commerceEvidence?.visibleOffer || null }));
+        .map((item)=>({ url:item.url, evidenceSource:item.evidenceSource, productSchema:Boolean(item.commerceEvidence?.productSchema), product:item.commerceEvidence?.product || null, visibleOffer:item.commerceEvidence?.visibleOffer || null,
+          serverRendered:Boolean(item.commerceEvidence?.serverRendered), purchaseAction:Boolean(item.commerceEvidence?.strongCommerceAction), productMarkupAbsent:Boolean(item.commerceEvidence?.productMarkupAbsent) }));
       for (const item of [...seoChecks,...geoChecks]) {
         if (!(SAMPLE_PRODUCT_CHECK_KEYS as readonly string[]).includes(item.key)) continue;
         const verdict = settleSampleProductCheck(item.key as (typeof SAMPLE_PRODUCT_CHECK_KEYS)[number], sampleProductPages);
         if (verdict.status === "unable_to_confirm" && item.status !== "pass") {
-          // Keep it unconfirmed, but say exactly why (no product page / no evidence).
-          if (item.status === "unable_to_confirm") { item.message = verdict.message; item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: verdict.message }; }
+          // Keep it unconfirmed, but say exactly why, per page (no product page / no evidence).
+          if (item.status === "unable_to_confirm") { item.message = verdict.message; item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: verdict.message, pages: verdict.pages } as Check["evidence"]; }
           continue;
         }
         if (verdict.status === "unable_to_confirm") continue;
