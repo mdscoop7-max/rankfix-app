@@ -50,7 +50,9 @@ export function compareSector(expected,profile={}) {
 // Without such a rule, a label carrying a subtype (payments → financial_payments)
 // requires exactly that subtype.
 const BRANCH={
- engineering:{keys:['engineering','engineering_consultancy']},
+ // 3 Nov (owner): an engineering firm typed as "architecture & design" is decided
+ // by the engine's own sector evidence, never automatically approved or rejected.
+ engineering:{keys:['engineering','engineering_consultancy'],byEvidence:{architecture_design:'engineering'}},
  research:{keys:['research','research_institute']},
  construction:{keys:['construction_infrastructure']},
  manufacturing:{exclude:['construction_infrastructure']},
@@ -64,10 +66,32 @@ const BRANCH={
  * generic: only the main sector is known (key missing or equal to the sector);
  * different: another specific subtype of the same main sector.
  */
+// Multilingual evidence vocabulary for evidence-dependent neighbour branches.
+const BRANCH_EVIDENCE={
+ engineering:{
+  confirm:/(?<![\p{L}])(?:ingenieur\w*|engineer\w*|ingénierie|ingeniería|ingegneria|civiele techniek|civil engineering|bauingenieur\w*|tiefbau|waterbouw|water management|watermanagement|infrastructu\w*|infrastruktur\w*|technisch advies\w*|technical consult\w*|projectmanagement|project management)(?![\p{L}])/iu,
+  reject:/(?<![\p{L}])(?:architect\w*|architekt\w*|architecte\w*|arquitect\w*|architett\w*|interieur\w*|interior design\w*|binnenhuisarchitect\w*|landschapsarchitect\w*)(?![\p{L}])/iu,
+ },
+};
+function evidenceText(profile){
+ const ev=profile.evidence;
+ // Only the engine's evidence lines: the subtype label merely restates the key.
+ return (Array.isArray(ev)?ev:ev?[ev]:[]).filter(Boolean).map(String).join(' · ');
+}
 export function branchComparison(expected,profile={}) {
  const [,labelKey]=labels[expected]||[expected];
  const rule=BRANCH[expected]||(labelKey?{keys:[labelKey]}:{});
  const key=profile.key||profile.subtype||null;
+ const viaEvidence=rule.byEvidence&&key?rule.byEvidence[key]:null;
+ if(viaEvidence){
+  const vocab=BRANCH_EVIDENCE[viaEvidence];const text=evidenceText(profile);
+  const confirms=vocab.confirm.test(text),rejects=vocab.reject.test(text);
+  // Engineering named in the engine's evidence: the expected branch is shown.
+  // Only architecture/interior wording: another branch. Neither or both: not proven.
+  if(confirms&&!rejects)return 'match';
+  if(rejects&&!confirms)return 'different';
+  return 'generic';
+ }
  const generic=!key||key===profile.sector||key==='unknown';
  if(rule.exclude&&key&&rule.exclude.includes(key))return 'different';
  if(!rule.keys)return 'match';
@@ -91,7 +115,7 @@ export function sectorVerdict(expected,profile={}) {
  if(profile.sector===expected||profile.key===expected)return {...c,verdict:'exact',reason:''};
  if(c.sectorMatch){
   const branch=branchComparison(expected,profile);
-  if(branch==='generic')return {...c,branch,verdict:'partial',reason:'Hoofdsector juist, branche niet bevestigd (geen subtype dat de branche aantoont)'};
+  if(branch==='generic')return {...c,branch,verdict:'partial',reason:'Hoofdsector juist, branche niet bevestigd (geen subtype of bewijs dat de branche aantoont)'};
   if(branch==='different')return {...c,branch,verdict:'mismatch',reason:'Hoofdsector juist, maar de branche wijkt af: handmatig beoordelen'};
   return {...c,branch,verdict:'equivalent',reason:'Taxonomisch equivalent (ouder/kind- of nichelabel van dezelfde familie, branche bevestigd)'};
  }

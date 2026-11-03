@@ -45,7 +45,7 @@ const writeEvidence=()=>{
   if(r&&existsSync(auditFile(site.host))){try{audit=JSON.parse(gunzipSync(readFileSync(auditFile(site.host))).toString('utf8'))}catch{}}
   const ok=r?.status==='success'&&audit?.success===true;
   return {host:site.host,name:site.name??null,expected:site.expected,run:r?{status:r.status,apiStatus:r.apiStatus??null,reason:r.reason??null,elapsedMs:r.elapsedMs,at:r.at}:null,
-   verdict:ok?sectorVerdict(site.expected,{sector:audit.sectorProfile?.sector,key:audit.sectorProfile?.key,websiteType:audit.websiteProfile?.websiteType?.value}).verdict:null,
+   verdict:ok?sectorVerdict(site.expected,{sector:audit.sectorProfile?.sector,key:audit.sectorProfile?.key,label:audit.sectorProfile?.label,evidence:audit.sectorProfile?.evidence,websiteType:audit.websiteProfile?.websiteType?.value}).verdict:null,
    evidenceState:!r?'not_tested':ok?'available':audit?'scan_not_successful':'no_audit',
    failure:!ok&&audit?{code:audit.code??null,error:String(audit.error||'').slice(0,300),httpStatus:audit.httpStatus??null,incident:audit.incident??null,access:audit.access??null,traceId:audit.traceId??null}:null,
    evidence:ok?summarizeScanResponse(audit):null};

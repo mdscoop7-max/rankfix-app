@@ -10,12 +10,12 @@ import {scoreEvidenceFields, scoreEvidenceCsvValues, scoreDisplay, SCORE_EVIDENC
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
-type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;evidenceLevel?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;qaAuditId?:string|null;at:string;pending?:boolean;incident?:Incident|null;scoreEvidence?:ScoreEvidenceFields|null};
+type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;sectorLabel?:string|null;sectorEvidence?:string[]|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;evidenceLevel?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;qaAuditId?:string|null;at:string;pending?:boolean;incident?:Incident|null;scoreEvidence?:ScoreEvidenceFields|null};
 type Catalog={sites:Site[];count:number;catalogId:string;categoryCounts:{webshops:number;other:number};runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 // One verdict per site (exact / equivalent / partial / unconfirmed / mismatch), shared with
 // scripts/testlab: a literal label difference is not a sector error (QA #204).
-const verdictOf=(s:Site,r:SiteResult)=>r.status==="succes"?sectorVerdict(s.expected,{sector:r.sector,key:r.sectorKey,websiteType:r.websiteType}).verdict as string:null;
+const verdictOf=(s:Site,r:SiteResult)=>r.status==="succes"?sectorVerdict(s.expected,{sector:r.sector,key:r.sectorKey,websiteType:r.websiteType,label:r.sectorLabel,evidence:r.sectorEvidence}).verdict as string:null;
 const VERDICT_LABEL:Record<string,string>={exact:"exact",equivalent:"taxonomisch equivalent (branche bevestigd)",partial:"hoofdsector juist, branche niet bevestigd",unconfirmed:"sector onbevestigd",mismatch:"waarschijnlijk fout"};
 // Preserve all baseline results under their original key; isolate the new catalog.
 const storageKey=(sha:string,catalogId:string)=>catalogId==="baseline"?"rankfix-qa-testlab-144:"+sha:"rankfix-qa-testlab-144:"+catalogId+":"+sha;
@@ -159,7 +159,9 @@ export default function TestLab144() {
        }
       }
       row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
-       sectorKey:success?(data.sectorProfile?.key||null):null,websiteType:success?(data.websiteProfile?.websiteType?.value||null):null,
+       sectorKey:success?(data.sectorProfile?.key||null):null,
+       sectorLabel:success?(data.sectorProfile?.label||null):null,
+       sectorEvidence:success&&Array.isArray(data.sectorProfile?.evidence)?data.sectorProfile.evidence.slice(0,6).map((e:unknown)=>String(e).slice(0,240)):null,websiteType:success?(data.websiteProfile?.websiteType?.value||null):null,
        commercePlatform:success?(data.websiteProfile?.commercePlatform?.label||data.technologyProfile?.commercePlatform||null):null,
        industryVertical:success?(data.websiteProfile?.industryVertical?.value||null):null,
        evidenceLevel:success?(data.scoreModel?.evidenceLevel||null):null,

@@ -66,8 +66,11 @@ export default function QaEvidenceExport(){
     const rows=[...hosts].map(h=>{
      const result=run.rows.find(r=>r.host===h)||null;
      const site:CatalogSite=siteByHost.get(h)||(result?{host:h,expected:result.expected}:{host:h});
-     const verdict=result&&result.status==="succes"&&site.expected?sectorVerdict(site.expected,{sector:result.sector,key:result.sectorKey,websiteType:result.websiteType}).verdict:null;
-     return buildEvidenceRow({site,result,audit:result?.qaAuditId?byId.get(result.qaAuditId)||null:null,verdict});
+     const audit=result?.qaAuditId?byId.get(result.qaAuditId)||null:null;
+     // The stored audit carries the engine's own sector evidence (label + evidence lines).
+     const profile=(audit?.result as {sectorProfile?:{label?:string;evidence?:string[]}}|undefined)?.sectorProfile;
+     const verdict=result&&result.status==="succes"&&site.expected?sectorVerdict(site.expected,{sector:result.sector,key:result.sectorKey,websiteType:result.websiteType,label:profile?.label,evidence:profile?.evidence}).verdict:null;
+     return buildEvidenceRow({site,result,audit,verdict});
     });
     return {storageKey:run.key,commitSha:run.sha,summary:summarizeExport(rows),rows};
    });
