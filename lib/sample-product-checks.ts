@@ -36,6 +36,8 @@ export type SampleCheckVerdict = {
   url: string | null;
   pages: Array<{ url: string; status: SampleCheckStatus; detail: string }>;
 };
+const VAT_FACTORS = [1.06, 1.07, 1.09, 1.1, 1.19, 1.2, 1.21, 1.22, 1.23, 1.25];
+
 export const SAMPLE_PRODUCT_CHECK_KEYS = ["product_schema", "merchant_product_readiness", "product_price_consistency", "price_currency_consistency", "product_availability"] as const;
 export type SampleProductCheckKey = (typeof SAMPLE_PRODUCT_CHECK_KEYS)[number];
 
@@ -85,9 +87,17 @@ function judgePage(key: SampleProductCheckKey, page: SampleProductPage): PageVer
     if (!v || !v.priceCandidates.length || schemaPrice === null) return { status: "unable_to_confirm", credit: 0, detail: "Geen betrouwbare zichtbare productprijs én structured-data prijs om te vergelijken." };
     const match = v.priceCandidates.some((visible) => Math.abs(visible - schemaPrice) < 0.005);
     if (v.priceStrength === "explicit_product_markup") {
-      return match
-        ? { status: "pass", credit: 1, detail: `Gemarkeerde productprijs komt overeen met de Offer-prijs (${schemaPrice}).` }
-        : { status: "warning", credit: 2 / 6, detail: `Gemarkeerde productprijs (${v.priceCandidates.slice(0, 4).join(", ")}) wijkt af van de Offer-prijs (${schemaPrice}).` };
+      if (match) return { status: "pass", credit: 1, detail: `Gemarkeerde productprijs komt overeen met de Offer-prijs (${schemaPrice}).` };
+      // A mismatch is only a proven defect when the page shows one unambiguous
+      // product price. Excl./incl. VAT pairs, split euro/cent fragments or several
+      // different amounts (related products, bundles) are not proof of a defect.
+      const vatPair = v.priceCandidates.some((visible) => VAT_FACTORS.some((f) => Math.abs(visible * f - schemaPrice) <= 0.02 || Math.abs(schemaPrice * f - visible) <= 0.02));
+      const fragment = v.priceCandidates.some((visible) => Number.isInteger(visible) && visible === Math.trunc(schemaPrice) && schemaPrice !== visible);
+      const distinct = new Set(v.priceCandidates.map((n) => n.toFixed(2))).size;
+      if (vatPair || fragment || distinct > 1) {
+        return { status: "unable_to_confirm", credit: 0, detail: `Zichtbare bedragen (${v.priceCandidates.slice(0, 4).join(", ")}) zijn niet eenduidig één productprijs (btw-variant, afgesplitste prijsdelen of meerdere producten); geen bewezen afwijking van de Offer-prijs (${schemaPrice}).` };
+      }
+      return { status: "warning", credit: 2 / 6, detail: `Gemarkeerde productprijs (${v.priceCandidates[0]}) wijkt af van de Offer-prijs (${schemaPrice}).` };
     }
     return { status: "unable_to_confirm", credit: 0, detail: "Bedragen in de paginatekst zijn niet als productprijs gemarkeerd; geen betrouwbare vergelijking." };
   }

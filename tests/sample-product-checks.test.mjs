@@ -86,3 +86,14 @@ test("the scan route uses one settlement for the five product checks and no leni
   assert.doesNotMatch(route, /find\(\(item\)=>item\.key==="product_availability_consistency"\)/);
   assert.match(route, /visibleOffer: \(\(\) => \{ const o = visibleOfferEvidence\(pageHtml/);
 });
+
+test("price mismatch is only a defect for one unambiguous visible product price", () => {
+  const withPrices = (priceCandidates, price = "14.95") => page({ product: { ...complete, price }, visibleOffer: { ...page().visibleOffer, priceCandidates } });
+  // excl./incl. VAT pair, split euro fragment and related-product prices (obramat-shape, generic)
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([14, 12.36, 18, 15.29])]).status, "unable_to_confirm");
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([12.36])]).status, "unable_to_confirm", "excl. VAT price is not a mismatch");
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([14])]).status, "unable_to_confirm", "euro fragment is not a mismatch");
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([19.99, 24.99])]).status, "unable_to_confirm", "several amounts are ambiguous");
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([19.99])]).status, "warning", "one clear different price stays a proven defect");
+  assert.equal(settleSampleProductCheck("product_price_consistency", [withPrices([12.36, 14.95])]).status, "pass");
+});
