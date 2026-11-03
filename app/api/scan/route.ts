@@ -42,6 +42,8 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
+import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
 import { explainCoreScore } from "@/lib/score-reconciliation";
@@ -3488,93 +3490,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
-    const parseVisiblePrice = (value: string) => {
-      const compact = value.replace(/\s/g, "").replace(/[^0-9.,-]/g, "");
-      if (!compact) return null;
-      const lastDot = compact.lastIndexOf(".");
-      const lastComma = compact.lastIndexOf(",");
-      const separator = lastDot > lastComma ? "." : lastComma > lastDot ? "," : "";
-      let normalized = compact;
-      if (separator) {
-        const separatorIndex = Math.max(lastDot, lastComma);
-        const decimals = compact.length - separatorIndex - 1;
-        const other = separator === "." ? "," : ".";
-        if (decimals === 3 && !compact.slice(separatorIndex + 1).includes(other)) {
-          // 2.699 / 2,699 is a thousands-group price, not 2.69.
-          normalized = compact.replace(/[.,]/g, "");
-        } else {
-          normalized = compact.replace(new RegExp("\\" + other, "g"), "");
-          if (separator === ",") normalized = normalized.replace(",", ".");
-        }
-      }
-      const numeric = Number(normalized);
-      return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
-    };
-    const explicitProductPriceCandidates = [...new Set(
-      [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
-        .flatMap((match) => {
-          const tag = String(match[0] || "");
-          const raw = String(match[1] || match[2] || "");
-          const rawPrice = raw.match(/(\d{1,9}(?:[.,]\d{2})?)/)?.[1];
-          if (!rawPrice) return [];
-          // Schema-style/meta price attributes use a machine-readable decimal value.
-          // Visible class text follows locale formatting. Treating "21850" from a
-          // content attribute as 21.85 created false product-price mismatches.
-          const machineReadable = /(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["'])/i.test(tag) && /content\s*=/i.test(tag);
-          const parsed = machineReadable ? Number(rawPrice.replace(",", ".")) : parseVisiblePrice(rawPrice);
-          return parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
-        })
-    )].slice(0, 20);
-    // Broad price evidence is intentionally currency-aware. It remains weaker
-    // than explicit product markup, but should not silently exclude non-EUR shops.
-    const broadVisiblePriceCandidates = [...new Set(
-      [...text.matchAll(/(?:€\s*|£\s*|\$\s*|(?:EUR|GBP|USD)\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
-        .flatMap((match) => {
-          const parsed = parseVisiblePrice(String(match[1]));
-          return parsed === null ? [] : [parsed];
-        })
-    )].slice(0, 20);
-    // Platform price markup nests the amount (WooCommerce: <p class="price"><span
-    // class="woocommerce-Price-amount"><bdi><span>&euro;</span>&nbsp;13,95</bdi>;
-    // Shopify: <span class="price-item price-item--regular">€13,95</span>). Read
-    // the text right after a price-classed element, with a currency in it.
-    const nestedPriceSnippets: string[] = [];
-    const nestedProductPriceCandidates = explicitProductPriceCandidates.length ? [] : [...new Set(
-      [...html.matchAll(/<(?:p|span|div|ins|bdi|strong)\b[^>]*class\s*=\s*["'][^"']*(?:woocommerce-Price-amount|price-item|price__regular|price__sale|product[-_ ]?price|\bprice\b)[^"']*["'][^>]*>([\s\S]{0,260})/gi)]
-        .flatMap((match) => {
-          const snippet = decodeHtmlEntities(String(match[1] || "").replace(/<(?:del|s)\b[\s\S]*?<\/(?:del|s)>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim().slice(0, 60);
-          const m = snippet.match(/^(?:(?:€|£|\$|EUR|GBP|USD)\s*(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)|(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:€|£|\$|EUR|GBP|USD))/i);
-          const parsed = m ? parseVisiblePrice(m[1] || m[2]) : null;
-          if (parsed !== null && m) nestedPriceSnippets.push(m[0]);
-          return parsed === null ? [] : [parsed];
-        })
-    )].slice(0, 20);
-    const markedProductPriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : nestedProductPriceCandidates;
-    const visiblePriceCandidates = markedProductPriceCandidates.length ? markedProductPriceCandidates : broadVisiblePriceCandidates;
-    const visiblePriceEvidenceStrength = markedProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
-    const explicitPriceMarkupText = explicitProductPriceCandidates.length
-      ? [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:(?:amount|currency)["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
-          .map((match) => String(match[0] || "")).join(" ")
-      : nestedPriceSnippets.join(" ");
-    const explicitVisibleCurrencyCodes = [...new Set([
-      ...(explicitPriceMarkupText.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
-      ...(explicitPriceMarkupText.includes("€") ? ["EUR"] : []),
-      ...(explicitPriceMarkupText.includes("£") ? ["GBP"] : []),
-      ...(explicitPriceMarkupText.includes("$") ? ["USD"] : []),
-    ])];
-    const pageCurrencyCodes = [...new Set([
-      ...(text.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
-      ...(text.includes("€") ? ["EUR"] : []),
-      ...(text.includes("£") ? ["GBP"] : []),
-      ...(text.includes("$") ? ["USD"] : []),
-    ])];
-    // QA #203: a currency counts as a visible PRICE currency only when it is
-    // attached to an amount. "United Kingdom (£ GBP)" in a region selector is a
-    // choice of market, reported separately, and never a mixed-currency price.
-    const currencyCode = (symbol: string) => symbol === "€" ? "EUR" : symbol === "£" ? "GBP" : symbol === "$" ? "USD" : symbol.toUpperCase();
-    const priceAttachedCurrencyCodes = [...new Set([...text.matchAll(/(€|£|\$|\b(?:EUR|GBP|USD)\b)\s?\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,2})?\s?(€|£|\$|\b(?:EUR|GBP|USD)\b)/gi)]
-      .map((m) => currencyCode(String(m[1] || m[2] || ""))))];
-    const visibleCurrencyCodes = explicitVisibleCurrencyCodes.length ? explicitVisibleCurrencyCodes : priceAttachedCurrencyCodes;
+    // Visible price, currency and stock evidence (shared with the sample pages).
+    const { visiblePriceCandidates, visiblePriceEvidenceStrength, pageCurrencyCodes, visibleCurrencyCodes, visibleAvailabilityStates, visibleAvailabilityState, visibleAvailabilityAmbiguous } = visibleOfferEvidence(html, text);
     const selectorCurrencyCodes = pageCurrencyCodes.filter((code) => !visibleCurrencyCodes.includes(code));
     const structuredCurrencyCodes = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.currency).filter((currency) => /^[A-Z]{3}$/.test(currency))))];
     // A currency mismatch is actionable only when the visible price is tied to
@@ -3603,19 +3520,6 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
     const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|agotado|sin stock|no disponible|preventa)\b/i.test(text);
-    // Availability must be unambiguous before comparing it with Product/Offer schema.
-    // Global navigation, recommendations and hidden variant text can contain several states.
-    const visibleAvailabilityMatches = {
-      out_of_stock: text.match(/\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/gi) || [],
-      preorder: text.match(/\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/gi) || [],
-      backorder: text.match(/\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/gi) || [],
-      in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/gi) || [],
-    };
-    type AvailabilityState = "out_of_stock" | "preorder" | "backorder" | "in_stock";
-    const visibleAvailabilityStates: AvailabilityState[] = (Object.keys(visibleAvailabilityMatches) as AvailabilityState[])
-      .filter((state) => visibleAvailabilityMatches[state].length > 0);
-    const visibleAvailabilityState = visibleAvailabilityStates.length === 1 ? visibleAvailabilityStates[0] : null;
-    const visibleAvailabilityAmbiguous = visibleAvailabilityStates.length > 1;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
     const structuredAvailabilityStates = [...new Set(structuredAvailabilityValues.map((value) =>
       /OutOfStock|SoldOut|Discontinued/i.test(value) ? "out_of_stock" :
@@ -5293,7 +5197,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5681,6 +5585,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // Visible text, or a purchase control in the markup (icon-only buttons named by
         // aria-label/title, cart-add forms, platform hooks): commerce 72/72 QA.
         const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText) || purchaseActionInHtml(pageHtml);
+        // Insurance modules, loans or accounts published as Product/Offer data are a
+        // financial service, not merchandise (own URL/title/H1, no purchase action).
+        const pageFinancialServicePage = !pageFinancialOffer && financialServiceOfferPage({ url: finalCandidate.toString(), title: pageTitle, h1s: pageH1s, purchaseAction: pageStrongCommerceAction, checkout: checkoutActionInHtml(pageHtml) });
+        const pageFinancial = pageFinancialOffer || pageFinancialServicePage;
         // Product links by URL shape (multilingual product segments, product ids)
         // or by structure: the link inside a product card/tile of a grid, as
         // WooCommerce, Shopify, Magento, PrestaShop and OpenCart print them
@@ -5724,7 +5632,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         })();
         const pageOffer = schemaRecord(pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null);
         const pageImageValue = pageProductJson?.image;
-        const pageProductEvidence = pageProductJson && !pageFinancialOffer ? {
+        const pageProductEvidence = pageProductJson && !pageFinancial ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
           // image may be a URL, an ImageObject, an array or an @id reference in the @graph.
           image: resolveSchemaImage(pageImageValue, indexJsonLdIds(pageJsonLdRoots)),
@@ -5732,13 +5640,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           price: offerPrice(pageOffer).price != null ? String(offerPrice(pageOffer).price) : null,
           currency: offerPrice(pageOffer).currency || null,
           availability: typeof pageOffer?.availability==="string" ? pageOffer.availability : null,
+          // Shape of the Offer that was read: missing fields are only a proven defect
+          // when ONE plain Offer was read completely (not an AggregateOffer or a list).
+          offerKind: (Array.isArray(pageProductJson.offers) ? "list" : !pageOffer ? "none" : /aggregateoffer/i.test(schemaTypesOf(pageOffer).join(" ")) ? "aggregate" : "offer") as "offer" | "aggregate" | "list" | "none",
         } : null;
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
           // Product objects that are not nested in another Product: related or
           // accessory products inside a product's own data do not make a grid.
-          productSchemaCount: pageFinancialOffer ? 0 : countIndependentProducts(pageHtml),
-          financialOffer: pageFinancialOffer,
+          productSchemaCount: pageFinancial ? 0 : countIndependentProducts(pageHtml),
+          financialOffer: pageFinancial,
           eventSchema: pageSchemaTypes.some((type)=>/^(?:event|educationevent|businessevent|socialevent|exhibitionevent|musicevent|theaterevent)$/i.test(type)),
           itemListSchema: pageItemListSchema,
           storeSchema: pageStoreSchema,
@@ -5750,7 +5661,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // Product schema with only a name (software, a manufacturer's model page) is
           // product information; a retail page needs an offer: price + currency,
           // stock status, a visible price or a buy action (live QA scan 2627bab0).
-          confirmedRetailPage: (pageProductSchema && hasProductOffer({ product: pageProductEvidence, priceSignals: pagePriceSignals, strongCommerceAction: pageStrongCommerceAction })) || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
+          // Visible price/currency/stock of this page, same rules as the scanned page.
+          visibleOffer: (() => { const o = visibleOfferEvidence(pageHtml, stripHtml(pageHtml)); return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous }; })(),
+          confirmedRetailPage: !pageFinancial && ((pageProductSchema && hasProductOffer({ product: pageProductEvidence, priceSignals: pagePriceSignals, strongCommerceAction: pageStrongCommerceAction })) || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2)),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
         const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth, finalCandidate.pathname);
@@ -5827,7 +5740,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             && (!homepageArticleTemplate || /"datePublished"\s*:/i.test(pageHtml)),
           breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
-          financialOffer: pageFinancialOffer,
+          financialOffer: pageFinancial,
           // Wired from the page's own evidence (these inputs were defined but never passed).
           productSchemaCount: pageCommerceEvidence.productSchemaCount,
           eventSchema: pageCommerceEvidence.eventSchema,
@@ -6894,17 +6807,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // a sibling product from the sample never overwrites its product checks.
     if (finalCommerceDecision.confirmed && representativeProduct && !isProductPage) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
-      const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
-      if (productSchemaCheck && auditedMultiPages.some((item)=>item.type==="product" && item.commerceEvidence?.productSchema)) Object.assign(productSchemaCheck, check("pass","product_schema","seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",6,6));
       const optimizerCheck = seoChecks.find((item)=>item.key==="product_optimizer");
       if (optimizerCheck && productEvidenceCount>=3) Object.assign(optimizerCheck, check("pass","product_optimizer","seo","AI Product Copy & Metadata","Een representatieve productpagina levert voldoende productbewijs voor productoptimalisatie.","Gebruik alleen aantoonbare productgegevens voor optimalisaties.",5,5));
-      const availabilityCheck = seoChecks.find((item)=>item.key==="product_availability_consistency");
-      if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
-      const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
-      // Merchant Center needs an image: no merchant pass without a resolvable product image.
-      if (merchantCheck && productEvidenceCount>=4 && representativeProduct.image) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
       // Each promoted product check points at the product page that proved it.
-      for (const item of [productSchemaCheck, optimizerCheck, availabilityCheck, merchantCheck]) {
+      // Product schema, Merchant basis, prices and stock: see the webshop evidence chain below.
+      for (const item of [optimizerCheck]) {
         if (item && item.status === "pass" && productSamplePage) item.evidence = { url: productSamplePage.url, found: true, details: item.message };
       }
     }
@@ -7211,6 +7118,32 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
 
+    // Webshop evidence chain (lib/sample-product-checks.ts): on a confirmed webshop,
+    // scanned from a non-product page, the five product checks are judged on the
+    // audited product pages of the sample with the product-page criteria. Each
+    // verdict names its page; no product page or no evidence stays unconfirmed.
+    if (finalCommerceApplicability.state === "confirmed" && !isProductPage) {
+      const sampleProductPages: SampleProductPage[] = auditedMultiPages
+        .filter((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer)
+        .slice(0, 8)
+        .map((item)=>({ url:item.url, evidenceSource:item.evidenceSource, productSchema:Boolean(item.commerceEvidence?.productSchema), product:item.commerceEvidence?.product || null, visibleOffer:item.commerceEvidence?.visibleOffer || null }));
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (!(SAMPLE_PRODUCT_CHECK_KEYS as readonly string[]).includes(item.key)) continue;
+        const verdict = settleSampleProductCheck(item.key as (typeof SAMPLE_PRODUCT_CHECK_KEYS)[number], sampleProductPages);
+        if (verdict.status === "unable_to_confirm" && item.status !== "pass") {
+          // Keep it unconfirmed, but say exactly why (no product page / no evidence).
+          if (item.status === "unable_to_confirm") { item.message = verdict.message; item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: verdict.message }; }
+          continue;
+        }
+        if (verdict.status === "unable_to_confirm") continue;
+        const points = Math.round(item.maxPoints * verdict.credit);
+        Object.assign(item, check(verdict.status, item.key, item.category==="geo"?"geo":"seo", item.title, verdict.message,
+          verdict.status === "pass" ? "Houd productdata, zichtbare prijs en voorraad op alle productpagina's consistent." : "Herstel de genoemde productpagina en controleer daarna dezelfde productsjabloon op andere producten.",
+          points, item.maxPoints));
+        item.evidence = { url: verdict.url || finalUrl.toString(), found: verdict.status === "pass", details: verdict.message, pages: verdict.pages } as Check["evidence"];
+      }
+    }
+
     // Wording that assumes a shop follows the final decision, not early page hints.
     if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity))) {
       for (const item of [...seoChecks,...geoChecks]) {
@@ -7262,17 +7195,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
 
       for (const item of [...seoChecks,...geoChecks]) {
-        if (item.key==="product_schema" && representativeProductPage.commerceEvidence.productSchema) {
-          Object.assign(item, check("pass","product_schema",item.category==="geo"?"geo":"seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",item.maxPoints,item.maxPoints));
-        }
         if ((item.key==="product_optimizer" || item.key==="product_copy_optimizer") && sourceCount>=3) {
           Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","AI Product Copy & Metadata",`Een representatieve productpagina levert ${sourceCount} controleerbare productvelden voor veilige optimalisatie.`,"Gebruik alleen aantoonbare productgegevens voor optimalisaties.",item.maxPoints,item.maxPoints));
-        }
-        if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
-          Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
-        }
-        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4 && product.image) {
-          Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
         }
         // Promoted from the representative product page: that page is the evidence.
         if (item.status==="pass" && ["product_schema","product_optimizer","product_copy_optimizer","product_availability","product_availability_consistency","merchant_product_readiness"].includes(item.key) && (item.evidence?.found===null || item.evidence?.found===undefined)) {

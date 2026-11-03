@@ -80,5 +80,5 @@ test("sample pages read array-valued @type and pass their schema counts into pag
   assert.match(route, /"@type"\\s\*:\\s\*\(\?:"\(\[\^"\]\+\)"\|\\\[/);
   assert.match(route, /const pageProductSchema = !pageFinancialOffer &&/);
   assert.match(route, /productSchemaCount: pageCommerceEvidence\.productSchemaCount,\s*eventSchema: pageCommerceEvidence\.eventSchema,/);
-  assert.match(route, /const pageProductEvidence = pageProductJson && !pageFinancialOffer/);
+  assert.match(route, /const pageProductEvidence = pageProductJson && !pageFinancial/);
 });
