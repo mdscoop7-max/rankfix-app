@@ -72,6 +72,7 @@ import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
 import { pageIdentityType } from "@/lib/page-identity";
+import { nominateProductCards } from "@/lib/product-nomination";
 import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
@@ -5344,6 +5345,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       }
     }
+    // Product cards on the scanned page nominate product candidates for the FIRST
+    // sample (inside the same page budget), whatever their URL shape. A rendered or
+    // slow shop otherwise ran out of time before the later product hunt.
+    let productCardNominations = 0;
+    if (masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal) {
+      const cardLinks = [...productCardLinks(neutralizeTemplateBindings(html), finalUrl.toString(), siteHost, 12), ...extractProductDetailLinks(html, finalUrl.toString(), siteHost, 12)];
+      productCardNominations = nominateProductCards(discoveredMultiPage, cardLinks, normalizeScanUrl, classifyMultiPageCandidate, 6);
+    }
     // Evidence-first representative selection. URL shape is only a weak fallback;
     // structural link context from the scanned page is the primary signal. This keeps
     // narrative/news/history pages from outranking pages that expose services,
@@ -7507,7 +7516,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       sampleRateLimit,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, productCardNominations, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
