@@ -2,7 +2,7 @@ name: Windows and Linux test portability
 
 on:
   push:
-    branches: [fix/engine-reliability-20261101]
+    branches: [fix/engine-reliability-20261101, qa/integration-mkb-144-20261102]
   pull_request:
     branches: [main, qa/engine-144-reliability-20261028]
   workflow_dispatch:

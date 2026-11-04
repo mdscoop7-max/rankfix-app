@@ -7,7 +7,7 @@ import {gzipSync,gunzipSync} from 'node:zlib';
 import {summarizeScanResponse,EVIDENCE_EXPORT_VERSION} from '../../lib/testlab-evidence-export.mjs';
 import {sectorVerdict} from './labels.mjs';
 import {dimensionDisplayOf} from '../../lib/dimension-score-display.mjs';
-import {classifyScanAnswer,stopsRun} from '../../lib/testlab-outcome.mjs';
+import {classifyScanAnswer,settleRepeatedScanTimeout,stopsRun} from '../../lib/testlab-outcome.mjs';
 const base='http://127.0.0.1:3002';
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const tokenPath=join(process.env.LOCALAPPDATA||'', 'RankFix-QA','local-session-token.txt');
@@ -64,7 +64,7 @@ for(const [index,site] of catalog.data.sites.entries()){
   const success=response.status===200&&d.success===true;
   // Website outcomes (blocked, timeout, not found) are final results for that site;
   // only RankFix-side problems (session, quota, infrastructure) are retried/stop the run.
-  const outcome=classifyScanAnswer({ok:response.status>=200&&response.status<300,status:response.status,data:d});
+  const outcome=settleRepeatedScanTimeout(report.results.find(x=>x.host===site.host),classifyScanAnswer({ok:response.status>=200&&response.status<300,status:response.status,data:d}),String(d.code||d.errorCode||''));
   const runnerSide=!success&&stopsRun(outcome);
   try{writeFileSync(auditFile(site.host),gzipSync(JSON.stringify(d)))}catch{}
   row={commitSha:sha,host:site.host,expected:site.expected,status:success?'success':runnerSide?'api_error':'website_outcome',apiStatus:response.status,reason:success?null:(d.code||d.error||'UNKNOWN'),outcome,scanId:d.scanId||null,sector:d.sectorProfile?.primarySector||d.sectorProfile?.sector||null,score:d.overallScore??null,seo:d.seo?.score??null,geo:d.geo?.score??null,seoDisplay:d.seo?.score==null?null:dimensionDisplayOf(d,'seo').text,geoDisplay:d.geo?.score==null?null:dimensionDisplayOf(d,'geo').text,elapsedMs:Date.now()-started,at:new Date().toISOString(),pending:runnerSide};
@@ -90,5 +90,6 @@ for(const [index,site] of catalog.data.sites.entries()){
  await new Promise(r=>setTimeout(r,Number(process.env.RF_QA_PAUSE_MS??8000)));
 }
 try{writeEvidence()}catch{}
+if(report.results.some(x=>x.pending))process.exitCode=1;
 console.log('Resultaten: '+file);
 console.log('Bewijs (voeg dit bestand toe in de chat): '+join(output,'fresh144-evidence-'+sha.slice(0,12)+'.json'));
