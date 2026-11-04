@@ -9,6 +9,7 @@ import e from "@/tests/fixtures/testlab-144/round-e-service-retail.json";
 import f from "@/tests/fixtures/testlab-144/round-f-service-retail.json";
 import commerce from "@/tests/fixtures/testlab-144/catalog-commerce-diverse-20261026.json";
 import fresh from "@/tests/fixtures/testlab-144/catalog-fresh-144-20261029.json";
+import mkb48 from "@/tests/fixtures/testlab-144/catalog-mkb-48-20261104.json";
 import {hasLocalQaSession,localQaEnabled,loopbackRequest,localQaCookieName} from "@/lib/local-qa";
 import {scanRuntime} from "@/lib/scan-runtime";
 import {cookies} from "next/headers";
@@ -25,10 +26,12 @@ export async function GET(request:NextRequest) {
   }
   if (!localQa && (!user || !isInternalTester(user.id))) return NextResponse.json({error:"INTERNAL_TESTER_REQUIRED"},{status:403});
   const catalogId=request.nextUrl.searchParams.get("catalog") || "baseline";
-  if(!["baseline","commerce","fresh144"].includes(catalogId))
+  if(!["baseline","commerce","fresh144","mkb48"].includes(catalogId))
     return NextResponse.json({error:"UNKNOWN_TESTLAB_CATALOG"},{status:400});
   const rounds=[a,b,c,d,e,f];
-  const sites=catalogId==="fresh144"
+  const sites=catalogId==="mkb48"
+    ? mkb48.sites.map(site=>({host:site.hosts[0],name:site.name,country:site.country,expected:site.expected,group:site.group,round:site.round}))
+    : catalogId==="fresh144"
     ? fresh.sites.map(site=>({host:site.hosts[0],name:site.name,country:site.country,expected:site.expected,group:site.group,round:site.round}))
     : catalogId==="commerce"
     ? commerce.sites.map(site=>({
@@ -41,7 +44,7 @@ export async function GET(request:NextRequest) {
       })));
   const keys=new Set(sites.map(site=>site.host.toLowerCase().replace(/^www\./,"")));
   const ecommerceCount=sites.filter(site=>site.expected==="ecommerce").length;
-  if(sites.length!==144 || keys.size!==144 || (catalogId==="commerce"&&ecommerceCount!==72))
+  if(sites.length!==(catalogId==="mkb48"?48:144) || keys.size!==sites.length || (catalogId==="commerce"&&ecommerceCount!==72) || (catalogId==="mkb48" && (new Set(sites.map(s=>s.group)).size!==12 || [...new Set(sites.map(s=>s.group))].some(g=>sites.filter(s=>s.group===g).length!==4))))
     return NextResponse.json({error:"CATALOG_INTEGRITY_FAILED"},{status:503});
   return NextResponse.json({
     sites, count:sites.length, catalogId,
