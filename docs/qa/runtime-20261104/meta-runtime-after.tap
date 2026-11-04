@@ -1,0 +1,62 @@
+TAP version 13
+# (node:18878) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/html-head-evidence.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Vesteda-type head detects description, canonical, viewport and language independent of attribute order
+ok 1 - Vesteda-type head detects description, canonical, viewport and language independent of attribute order
+  ---
+  duration_ms: 2.158533
+  type: 'test'
+  ...
+# Subtest: quoted, unquoted and mixed-case attributes are parsed without rel/href order rules
+ok 2 - quoted, unquoted and mixed-case attributes are parsed without rel/href order rules
+  ---
+  duration_ms: 0.136122
+  type: 'test'
+  ...
+# Subtest: empty, missing and body-only meta are never treated as proven head metadata
+ok 3 - empty, missing and body-only meta are never treated as proven head metadata
+  ---
+  duration_ms: 0.301406
+  type: 'test'
+  ...
+# Subtest: source fallback without a closed head stops at body, not arbitrary rest of document
+ok 4 - source fallback without a closed head stops at body, not arbitrary rest of document
+  ---
+  duration_ms: 0.362706
+  type: 'test'
+  ...
+# Subtest: scan metadata: missing description cannot backtrack across a large quoted script
+ok 5 - scan metadata: missing description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 928.478361
+  type: 'test'
+  ...
+# Subtest: scan metadata: empty description cannot backtrack across a large quoted script
+ok 6 - scan metadata: empty description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 1005.290446
+  type: 'test'
+  ...
+# Subtest: scan metadata: reversed description cannot backtrack across a large quoted script
+ok 7 - scan metadata: reversed description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 932.111026
+  type: 'test'
+  ...
+# Subtest: scan metadata: outside-head description cannot backtrack across a large quoted script
+ok 8 - scan metadata: outside-head description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 923.875567
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3931.846548

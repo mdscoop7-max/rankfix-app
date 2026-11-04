@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-04T12:49:02.375013+00:00",
+  "host": "vdlgroep.com",
+  "healthUrl": "http://127.0.0.1:3002/api/scan/version",
+  "healthError": "curl timeout 5003ms; no bytes",
+  "serverPid": 17902,
+  "serverCpuPercent": 68.7,
+  "lastPhase": "redirect resolution; final https://www.vdlgroep.com/nl",
+  "action": "stop owned runner; profile unresponsive server; no website absence asserted"
+}

@@ -1406,9 +1406,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
-    const qualityDescription =
-      firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
+    // Use the same tag-scoped parser as the report. A document-wide quoted
+    // capture can backtrack across large SSR scripts and block the event loop,
+    // preventing even the hard scan timeout from firing (live VDL regression).
+    const headMetadata = extractHeadMetadata(html);
+    const qualityDescription = decode(headMetadata.description || headMetadata.outsideHead.description || "");
     const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityTitle);
     const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
@@ -1467,7 +1469,6 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
     // Source-order-independent head extraction; only tags inside <head> count.
-    const headMetadata = extractHeadMetadata(html);
     // Attribute values are HTML-encoded ("Nederland&#x27;s", "eten &amp; drinken"):
     // decode once, like a browser and a search engine do, before counting
     // characters or reading identity words.

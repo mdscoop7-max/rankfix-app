@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-04T12:42:13.557Z",
+  "proxy": "proxy",
+  "rows": [
+    {
+      "url": "https://example.com/",
+      "status": 200,
+      "finalUrl": "https://example.com/",
+      "title": "Example Domain",
+      "elapsedMs": 144,
+      "tlsValidation": "enabled"
+    },
+    {
+      "url": "https://www.nxp.com/",
+      "status": 200,
+      "finalUrl": "https://www.nxp.com/",
+      "title": "Automotive, IoT & Industrial Solutions | NXP Semiconductors",
+      "elapsedMs": 3031,
+      "tlsValidation": "enabled"
+    },
+    {
+      "url": "https://www.cbs.nl/",
+      "status": 200,
+      "finalUrl": "https://www.cbs.nl/",
+      "title": "Centraal Bureau voor de Statistiek | CBS",
+      "elapsedMs": 1541,
+      "tlsValidation": "enabled"
+    }
+  ]
+}

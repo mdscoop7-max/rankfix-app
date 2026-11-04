@@ -1,0 +1,92 @@
+TAP version 13
+# Subtest: scan metadata: missing description cannot backtrack across a large quoted script
+not ok 1 - scan metadata: missing description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 12011.806295
+  type: 'test'
+  location: '/workspace/rankfix-app/tests/meta-description-runtime.test.mjs:15:3'
+  failureType: 'testCodeFailure'
+  error: 'ifError got unwanted exception: spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node ETIMEDOUT'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual:
+  error: 'spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node ETIMEDOUT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1191:20)
+    spawnSync (node:child_process:929:24)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:36:17)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  operator: 'ifError'
+  stack: |-
+    readProcessResult (file:///workspace/rankfix-app/tests/helpers/process-result.mjs:6:10)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:39:20)
+    Object.spawnSync (node:internal/child_process:1191:20)
+    spawnSync (node:child_process:929:24)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:36:17)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: scan metadata: empty description cannot backtrack across a large quoted script
+not ok 2 - scan metadata: empty description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 12022.17104
+  type: 'test'
+  location: '/workspace/rankfix-app/tests/meta-description-runtime.test.mjs:15:3'
+  failureType: 'testCodeFailure'
+  error: 'ifError got unwanted exception: spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node ETIMEDOUT'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual:
+  error: 'spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node ETIMEDOUT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1191:20)
+    spawnSync (node:child_process:929:24)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:36:17)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  operator: 'ifError'
+  stack: |-
+    readProcessResult (file:///workspace/rankfix-app/tests/helpers/process-result.mjs:6:10)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:39:20)
+    Object.spawnSync (node:internal/child_process:1191:20)
+    spawnSync (node:child_process:929:24)
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/meta-description-runtime.test.mjs:36:17)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: scan metadata: reversed description cannot backtrack across a large quoted script
+ok 3 - scan metadata: reversed description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 926.662829
+  type: 'test'
+  ...
+# Subtest: scan metadata: outside-head description cannot backtrack across a large quoted script
+ok 4 - scan metadata: outside-head description cannot backtrack across a large quoted script
+  ---
+  duration_ms: 916.599554
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 2
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 25931.481024

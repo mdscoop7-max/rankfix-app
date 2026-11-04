@@ -1,0 +1,23 @@
+[
+  {
+    "id": 3,
+    "fn": "firstMatch",
+    "url": "file:///workspace/rankfix-app/.next/dev/server/chunks/app_api_scan_route_ts_208rcdbva24r9._.js",
+    "line": 317,
+    "samples": 4625
+  },
+  {
+    "id": 1,
+    "fn": "(root)",
+    "url": "",
+    "line": 0,
+    "samples": 0
+  },
+  {
+    "id": 2,
+    "fn": "runScan",
+    "url": "file:///workspace/rankfix-app/.next/dev/server/chunks/app_api_scan_route_ts_208rcdbva24r9._.js",
+    "line": 1101,
+    "samples": 0
+  }
+]
