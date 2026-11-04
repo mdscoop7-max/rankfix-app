@@ -88,7 +88,7 @@ export default function TestLab144() {
  const scoped=useMemo(()=>sites.filter(s=>(
   scope==="all" || scope==="webshops"&&s.expected==="ecommerce" || scope==="other"&&s.expected!=="ecommerce" || scope==="new48" && /round-[ef]-/.test(s.round) ||
   scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
-  scope===s.country || scope===s.round
+  scope===s.country || scope===s.round || (catalog?.catalogId==="mkb48" && scope===s.group)
  )),[scope,sites]);
  // Alphabetical display only: preserve catalog order for the scan queue and stored results.
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,"nl",{sensitivity:"base"})||a.host.localeCompare(b.host,"nl",{sensitivity:"base"})),[scoped,query]);
