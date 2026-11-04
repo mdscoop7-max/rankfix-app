@@ -1,0 +1,12 @@
+✔ scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect (3026.754003ms)
+✔ scan persistence on real PostgreSQL: emoji cut by text limits and NUL never fail the save (1609.564023ms)
+✔ scan persistence on real PostgreSQL: schema init never blocks a running save; insert retry stores exactly one row (303.77682ms)
+✔ full chain on real PostgreSQL: free scan, dashboard scan → stored → history → full audit (1285.010619ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6370.250948

@@ -4,15 +4,26 @@
  * A quota failure is not a website SEO/GEO problem and is not retryable now.
  */
 export type ScanInfrastructureFailure = {
-  code:"DATABASE_QUOTA_EXCEEDED"|"SCAN_DATABASE_UNCONFIGURED";
+  code:"DATABASE_QUOTA_EXCEEDED"|"SCAN_DATABASE_UNCONFIGURED"|"SCAN_INFRASTRUCTURE_EGRESS";
   httpStatus:503;
-  retryable:false;
+  retryable:boolean;
   charged:false;
   message:Record<"nl"|"en"|"de"|"fr"|"it"|"es",string>;
 };
 
 export function classifyScanInfrastructureFailure(error:unknown):ScanInfrastructureFailure|null {
   const message=error instanceof Error ? error.message : typeof error==="string"?error:"";
+  if (message === "SCAN_INFRASTRUCTURE_EGRESS") return {
+    code:"SCAN_INFRASTRUCTURE_EGRESS",httpStatus:503,retryable:true,charged:false,
+    message:{
+      nl:"RankFix kan de website nu niet bereiken door een storing in de uitgaande verbinding van de scanomgeving. Dit is geen vastgestelde fout van de website. Er is geen score berekend en niets in rekening gebracht. Probeer opnieuw wanneer de verbinding is hersteld.",
+      en:"RankFix cannot reach the website because this scan environment's outbound connection is unavailable. This is not a confirmed website error. No score was calculated and you were not charged. Retry after the connection is restored.",
+      de:"Die ausgehende Verbindung der RankFix-Scanumgebung ist gestört. Das ist kein bestätigter Website-Fehler. Kein Score und keine Berechnung; nach Wiederherstellung erneut versuchen.",
+      fr:"La connexion sortante de l'environnement RankFix est indisponible. Ce n'est pas une erreur confirmée du site. Aucun score ni frais ; réessayez après rétablissement.",
+      it:"La connessione in uscita dell'ambiente RankFix non è disponibile. Non è un errore confermato del sito. Nessun punteggio o addebito; riprovare dopo il ripristino.",
+      es:"La conexión saliente del entorno RankFix no está disponible. No es un error confirmado del sitio. Sin puntuación ni cargos; vuelve a intentarlo cuando se restablezca.",
+    }
+  };
   const missing=/\bDATABASE_URL\b.*(?:ontbreekt|missing|not set|undefined)|(?:missing|ontbreekt)\s+\bDATABASE_URL\b/i.test(message);
   const databaseErrorCode = error && typeof error === "object" && "code" in error ? String(error.code || "") : "";
   const quota = databaseErrorCode === "53000" || /(?:neondberror|neon(?:\s|db)|postgres|database|db\.query)[\s\S]{0,400}(?:exceeded (?:the )?quota|quota exceeded|quota limit|HTTP status 402|SQLSTATE\s*53000)|(?:exceeded (?:the )?quota|quota exceeded)[\s\S]{0,400}(?:neon|postgres|database)/i.test(message);

@@ -1,0 +1,856 @@
+{
+  "scannerCommit": "6b741e96bc4541e1c0645c5c09139469c0f8b2c5",
+  "attempted": 124,
+  "apiReports": 29,
+  "acceptedAsFull144LiveQa": false,
+  "remainingNotAttempted": 20,
+  "uncertainTransportResults": [
+    {
+      "url": "https://kuleuven.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://cbs.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://acm.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://dnb.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://afm.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://triodos.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://asnbank.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://vanlanschotkempen.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://asr.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://unive.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://zilverenkruis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://vgz.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://radboudumc.nl/",
+      "recordedApiStatus": 502,
+      "recordedCode": "FETCH_TIMEOUT",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://longfonds.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://kwf.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://aap.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://vogelbescherming.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://milieudefensie.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://humanitas.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://rodekruis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://legerdesheils.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://tue.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://utwente.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://universiteitleiden.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://uu.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://rug.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://eur.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://ou.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://hogeschoolrotterdam.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://fontys.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://avans.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://han.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://akzonobel.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://dsm-firmenich.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://signify.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://vanderlande.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://damen.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://royalihc.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://heijmans.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://bam.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://volkerwessels.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://ballast-nedam.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://arcadis.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://haskoning.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://sweco.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://tennet.eu/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://enexis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://liander.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://stedin.net/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://gasunie.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://portofrotterdam.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://schiphol.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://ret.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://gvb.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://htm.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://arriva.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://connexxion.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://dhl.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://dpd.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://boijmans.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://rijksmuseum.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://vangoghmuseum.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://nemosciencemuseum.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://naturalis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://krollermuller.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://paleishetloo.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://efteling.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://walibi.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://artis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://burgerszoo.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://diergaardeblijdorp.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://beeksebergen.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://roompot.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://landal.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://centerparcs.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://valk.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://fletcher.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://bastionhotels.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://nh-hotels.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://delijn.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://uza.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://uzgent.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://ugent.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://uantwerpen.be/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://fraunhofer.de/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://mpg.de/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://bosch.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://henkel.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://telekom.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://allianz.com/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://dille-kamille.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://wehkamp.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://hema.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    },
+    {
+      "url": "https://praxis.nl/",
+      "recordedApiStatus": 422,
+      "recordedCode": "HTTP_SERVER_ERROR",
+      "assessment": "unverified during a confirmed scan-environment egress outage; not a proven website fault",
+      "severity": "scan validity blocked",
+      "referringPage": null,
+      "solution": "restore the scan environment outbound connection and rescan the exact URL; do not prescribe a website change from this result alone"
+    }
+  ],
+  "note": "Original responses remain unchanged; these derived assessments supersede website attribution during the outage. Exact outage start is unknown."
+}

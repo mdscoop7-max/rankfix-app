@@ -1002,6 +1002,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // A stable cause code (timeout, DNS, TLS, connection, redirect loop) so failed
       // scans can be counted and explained; the raw message stays in the log only.
       const code = fetchFailureCode(fetchError);
+      if (code === "SCAN_INFRASTRUCTURE_EGRESS") throw fetchError;
       console.info("RankFix primary fetch failed", { url: target.toString(), code, message: fetchError instanceof Error ? fetchError.message.slice(0, 200) : String(fetchError) });
       // Some sites never answer a plain HTTP client but do serve a real browser
       // (QA #186: two sites timed out on both attempts). Give a timeout or a dropped

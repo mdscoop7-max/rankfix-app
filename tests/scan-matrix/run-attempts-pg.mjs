@@ -35,6 +35,7 @@ globalThis.fetch = async (input, init) => {
   if (u.host === "missing.test") return html('<html><head><title>404 - Page not found</title></head><body><h1>Page not found</h1><p>The page you requested does not exist.</p></body></html>', 404);
   if (u.host === "uncertain404.test") return html("not found", 404);
   if (u.host === "blocked.test") return html("<html><head><title>Access denied</title></head><body>Access denied</body></html>", 403);
+  if (u.host === "egress.test") return new Response('upstream connect error or disconnect/reset before headers. reset reason: remote connection failure|remote address:envoy://cloudflare_https_tunnel/', {status:503,headers:{'content-type':'text/plain'}});
   if (u.host === "slow.test") { const e = new Error("This operation was aborted"); e.name = "AbortError"; throw e; }
   // Consent redirect loop that only ends when the cookie is sent back.
   if (u.host === "cookie.test") {
@@ -54,6 +55,7 @@ const cases = [
   { url: "https://missing.test/", status: 422, outcome: "failed", category: "site_unavailable", code: "HTTP_NOT_FOUND" },
   { url: "https://uncertain404.test/", status: 422, outcome: "failed", category: "site_blocked", code: "UNVERIFIED_NOT_FOUND" },
   { url: "https://blocked.test/", status: 422, outcome: "failed", category: "site_blocked", code: "HTTP_BLOCKED" },
+  { url: "https://egress.test/", status: 503, outcome: "failed", category: "infrastructure", code: "SCAN_INFRASTRUCTURE_EGRESS" },
   { url: "https://slow.test/", status: 502, outcome: "failed", category: "network", code: "FETCH_TIMEOUT" },
   { url: "nonsense url with spaces", status: 400, outcome: "failed", category: "input" },
 ];

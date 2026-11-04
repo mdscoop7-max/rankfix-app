@@ -1,4 +1,5 @@
 import { RedirectCookieJar } from "./redirect-cookies.ts";
+import { assertScanEgressAvailable } from "./scan-egress.ts";
 import { URL } from "node:url";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
@@ -90,6 +91,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
     } finally {
       clearTimeout(timer);
     }
+    await assertScanEgressAvailable(response);
     if (response.status >= 300 && response.status < 400) {
       const setCookies = typeof (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie === "function"
         ? (response.headers as Headers & { getSetCookie: () => string[] }).getSetCookie() : [];

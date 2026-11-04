@@ -1,0 +1,72 @@
+[
+  {
+    "url": "https://example.com/",
+    "curlCode": 0,
+    "status": "503 https://example.com/",
+    "headers": [
+      "HTTP/1.1 200 OK",
+      "server: envoy",
+      "HTTP/2 503 ",
+      "content-type: text/plain",
+      "server: envoy"
+    ],
+    "bodyPrefix": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure, transport failure reason: immediate connect error: Invalid argument|remote address:envoy://cloudflare_https_tunnel/",
+    "error": ""
+  },
+  {
+    "url": "https://www.nxp.com/",
+    "curlCode": 0,
+    "status": "503 https://www.nxp.com/",
+    "headers": [
+      "HTTP/1.1 200 OK",
+      "server: envoy",
+      "HTTP/2 503 ",
+      "content-type: text/plain",
+      "server: envoy"
+    ],
+    "bodyPrefix": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure, transport failure reason: immediate connect error: Invalid argument|remote address:envoy://cloudflare_https_tunnel/",
+    "error": ""
+  },
+  {
+    "url": "https://www.cbs.nl/",
+    "curlCode": 0,
+    "status": "503 https://www.cbs.nl/",
+    "headers": [
+      "HTTP/1.1 200 OK",
+      "server: envoy",
+      "HTTP/2 503 ",
+      "content-type: text/plain",
+      "server: envoy"
+    ],
+    "bodyPrefix": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure, transport failure reason: immediate connect error: Invalid argument|remote address:envoy://cloudflare_https_tunnel/",
+    "error": ""
+  },
+  {
+    "url": "https://vanderlande.com/",
+    "curlCode": 0,
+    "status": "503 https://vanderlande.com/",
+    "headers": [
+      "HTTP/1.1 200 OK",
+      "server: envoy",
+      "HTTP/2 503 ",
+      "content-type: text/plain",
+      "server: envoy"
+    ],
+    "bodyPrefix": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure, transport failure reason: immediate connect error: Invalid argument|remote address:envoy://cloudflare_https_tunnel/",
+    "error": ""
+  },
+  {
+    "url": "https://www.vanderlande.com/",
+    "curlCode": 0,
+    "status": "503 https://www.vanderlande.com/",
+    "headers": [
+      "HTTP/1.1 200 OK",
+      "server: envoy",
+      "HTTP/2 503 ",
+      "content-type: text/plain",
+      "server: envoy"
+    ],
+    "bodyPrefix": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure, transport failure reason: immediate connect error: Invalid argument|remote address:envoy://cloudflare_https_tunnel/",
+    "error": ""
+  }
+]

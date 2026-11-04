@@ -18,6 +18,7 @@ export type ScanAttemptCategory =
 
 /** Network failure → stable code. Never contains raw runtime text. */
 export function fetchFailureCode(error: unknown): string {
+  if (error instanceof Error && error.message === "SCAN_INFRASTRUCTURE_EGRESS") return "SCAN_INFRASTRUCTURE_EGRESS";
   const text = `${error instanceof Error ? `${error.name} ${error.message}` : String(error)} ${(error as { cause?: { code?: string; message?: string } })?.cause?.code || ""} ${(error as { cause?: { message?: string } })?.cause?.message || ""}`;
   if (/REDIRECT_LOOP/.test(text)) return "REDIRECT_LOOP";
   if (/REDIRECT_LIMIT/.test(text)) return "REDIRECT_LIMIT";
@@ -35,7 +36,7 @@ export function classifyScanOutcome(httpStatus: number, code: string | null | un
   const c = String(code || "");
   if (httpStatus === 200) return "success";
   if (/SITE_RATE_LIMITED/.test(c)) return "site_blocked";
-  if (/AUTH_LOOKUP_UNAVAILABLE|DATABASE_QUOTA|SCAN_DATABASE/.test(c)) return "infrastructure";
+  if (/AUTH_LOOKUP_UNAVAILABLE|DATABASE_QUOTA|SCAN_DATABASE|SCAN_INFRASTRUCTURE_EGRESS/.test(c)) return "infrastructure";
   if (/WEBSITE_LIMIT|SCAN_LIMIT|RATE_LIMIT/.test(c)) return "quota";
   if (/INVALID_URL|UNSAFE_URL|SESSION|SHARE_LINK/.test(c)) return "input";
   if (/HTTP_BLOCKED|HTTP_AUTH_REQUIRED|CHALLENGE|SITE_RATE_LIMITED|UNVERIFIED_NOT_FOUND/.test(c)) return "site_blocked";
