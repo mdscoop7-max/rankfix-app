@@ -111,7 +111,10 @@ export function visibleOfferEvidence(html: string, text: string) {
   const visibleAvailabilityScope: "product_zone" | "page" | "none" = !visibleAvailabilityStates.length ? "none" : useZone ? "product_zone" : "page";
   const visibleAvailabilityPhrases = visibleAvailabilityStates.map((state) => String(visibleAvailabilityMatches[state][0]).trim().toLowerCase());
   const purchaseButton = purchaseButtonState(html);
-  return { parseVisiblePrice, explicitProductPriceCandidates, broadVisiblePriceCandidates, nestedPriceSnippets, nestedProductPriceCandidates, markedProductPriceCandidates, visiblePriceCandidates, visiblePriceEvidenceStrength, explicitPriceMarkupText, explicitVisibleCurrencyCodes, pageCurrencyCodes, priceAttachedCurrencyCodes, visibleCurrencyCodes, visibleAvailabilityMatches, visibleAvailabilityStates, visibleAvailabilityState, visibleAvailabilityAmbiguous, visibleAvailabilityScope, visibleAvailabilityPhrases, purchaseButton };
+  // Prices next to the H1, before related products (sale + regular = 2 values).
+  const zonePriceCandidates = [...new Set([...zone.matchAll(/(?:€|£|\$|\b(?:EUR|GBP|USD)\b)\s?(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,2}|,-)?)|(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,2}))\s?(?:€|£|\$|\b(?:EUR|GBP|USD)\b)/gi)]
+    .flatMap((m) => { const n = parseVisiblePrice(String(m[1] || m[2] || "").replace(/,-$/, "")); return n === null || n === 0 ? [] : [n]; }))];
+  return { parseVisiblePrice, explicitProductPriceCandidates, broadVisiblePriceCandidates, nestedPriceSnippets, nestedProductPriceCandidates, markedProductPriceCandidates, visiblePriceCandidates, visiblePriceEvidenceStrength, explicitPriceMarkupText, explicitVisibleCurrencyCodes, pageCurrencyCodes, priceAttachedCurrencyCodes, visibleCurrencyCodes, visibleAvailabilityMatches, visibleAvailabilityStates, visibleAvailabilityState, visibleAvailabilityAmbiguous, visibleAvailabilityScope, visibleAvailabilityPhrases, purchaseButton, zonePriceCandidates };
 }
 
 // Negated phrases come first and are removed before the positive ones are read:

@@ -47,6 +47,12 @@ export function refineSamplePageType(input: {
    * support, a branch overview a location, a price list a service page.
    */
   identity?: { type: "legal" | "support" | "contact" | "location" | "pricing"; reason: string } | null;
+  /**
+   * Content proof of ONE product, independent of the URL: one H1, one or two
+   * prices (regular/sale) next to it before any related-products block, and an
+   * enabled purchase button.
+   */
+  singleProductZone?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   // Legal, FAQ and contact headings decide at once; a price or branch heading only
@@ -83,6 +89,8 @@ export function refineSamplePageType(input: {
   // Several independent Product objects make a collection. Related or accessory
   // products nested inside the page's own Product are not counted (see
   // countIndependentProducts), so a product detail page stays a product page.
+  // One product on the page itself beats a category-like URL and a related grid.
+  if (input.singleProductZone && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return "product";
   const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
   // A product detail page with a "related products" grid (QA #207).
@@ -136,9 +144,11 @@ export const SERVICE_INTENT = /(?<![\p{L}])(?:\p{L}*lessen|lessons?|(?:personal 
  */
 export function countIndependentProducts(html: string): number {
   let count = 0;
+  // A ProductGroup (hasVariant) is ONE product: its variants are sizes/colours of
+  // the same article, not a grid (QA10: variant pages typed "category").
   const isProduct = (value: Record<string, unknown>) => {
     const types = schemaTypesOf(value);
-    return types.some((type) => String(type || "").toLowerCase() === "product");
+    return types.some((type) => /^(?:product|productgroup)$/.test(String(type || "").toLowerCase()));
   };
   const walk = (value: unknown, insideProduct: boolean, depth: number) => {
     if (!value || typeof value !== "object" || depth > 12) return;

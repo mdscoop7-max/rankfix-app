@@ -5645,6 +5645,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // when ONE plain Offer was read completely (not an AggregateOffer or a list).
           offerKind: (Array.isArray(pageProductJson.offers) ? "list" : !pageOffer ? "none" : /aggregateoffer/i.test(schemaTypesOf(pageOffer).join(" ")) ? "aggregate" : "offer") as "offer" | "aggregate" | "list" | "none",
         } : null;
+        // Visible price/currency/stock/buy-button evidence of this page, read once.
+        const pageVisibleOffer = visibleOfferEvidence(pageHtml, stripHtml(pageHtml));
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
           // Product objects that are not nested in another Product: related or
@@ -5663,7 +5665,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // product information; a retail page needs an offer: price + currency,
           // stock status, a visible price or a buy action (live QA scan 2627bab0).
           // Visible price/currency/stock of this page, same rules as the scanned page.
-          visibleOffer: (() => { const o = visibleOfferEvidence(pageHtml, stripHtml(pageHtml)); return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous, availabilityScope: o.visibleAvailabilityScope, availabilityPhrases: o.visibleAvailabilityPhrases.slice(0, 3), purchaseButton: o.purchaseButton }; })(),
+          visibleOffer: (() => { const o = pageVisibleOffer; return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous, availabilityScope: o.visibleAvailabilityScope, availabilityPhrases: o.visibleAvailabilityPhrases.slice(0, 3), purchaseButton: o.purchaseButton }; })(),
           // No Product anywhere in the markup: JSON-LD @type, microdata itemtype or RDFa typeof.
           productMarkupAbsent: !pageProductSchema && !pageFinancial
             && !/itemtype\s*=\s*["'][^"']*schema\.org\/(?:Product|IndividualProduct|ProductModel|ProductGroup)\b/i.test(pageHtml)
@@ -5769,6 +5771,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // Magento product-info-main, Shopify product form): a detail page with a
           // "related products" grid stays a product page (QA #207).
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
+          singleProductZone: (() => { const o = pageVisibleOffer; return pageH1s.length === 1 && o.purchaseButton === "enabled" && o.zonePriceCandidates.length >= 1 && o.zonePriceCandidates.length <= 2; })(),
           singleProductMarkup: Boolean(/class\s*=\s*["'][^"']*(?<![\w-])(?:single-product|product-info-main|product-single|product__info-wrapper|product-detail(?:s)?-main)(?![\w-])|single_add_to_cart_button|id\s*=\s*["']product-addtocart-button["']/i.test(pageHtml.slice(0,600000))),
         });
         // Concrete business details on this sampled page (address, phone, e-mail, registration).

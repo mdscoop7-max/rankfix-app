@@ -84,7 +84,7 @@ test("the scan route uses one settlement for the five product checks and no leni
   assert.match(route, /confirmedRetailPage: !pageFinancial && \(/);
   assert.doesNotMatch(route, /Een representatieve productpagina bevat een expliciet structured availability-signaal/);
   assert.doesNotMatch(route, /find\(\(item\)=>item\.key==="product_availability_consistency"\)/);
-  assert.match(route, /visibleOffer: \(\(\) => \{ const o = visibleOfferEvidence\(pageHtml/);
+  assert.match(route, /const pageVisibleOffer = visibleOfferEvidence\(pageHtml, stripHtml\(pageHtml\)\)[\s\S]{0,4000}visibleOffer: \(\(\) => \{ const o = pageVisibleOffer;/);
 });
 
 test("price mismatch is only a defect for one unambiguous visible product price", () => {
