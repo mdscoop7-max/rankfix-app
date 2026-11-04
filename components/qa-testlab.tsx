@@ -226,6 +226,7 @@ export default function TestLab144() {
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
     <h1>TestLab — {catalog?.catalogId==="mkb48"?"48 nieuwe mkb-websites":"144 websites"}</h1>
+    <p><a href="/dashboard/testlab?catalog=mkb48">Alleen 48 mkb-websites</a> · <a href="/dashboard/testlab">Bestaande 144</a></p>
     <p>{catalog?.catalogId==="mkb48"?"Gerichte test: 12 sectoren met elk 4 kandidaten. De bestaande 144 worden niet gescand.":catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">{scoped.length}<span>websites in selectie</span></div>
   </header>
@@ -235,7 +236,7 @@ export default function TestLab144() {
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
       <option value="all">Alle websites ({sites.length})</option>
-      {isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Nieuwe 48 websites</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
+      {catalog?.catalogId==="mkb48"?<optgroup label="Sector">{[...new Set(sites.map(s=>s.group))].map(x=><option key={x} value={x}>{x} (4)</option>)}</optgroup>:isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Bestaande ronde E/F (48)</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
      </select>
