@@ -60,3 +60,16 @@ Zie `acceptance-20261104/provenance.json` voor catalogus-SHA256, Node-versie en 
 De definitieve lokale testsuite heeft 1012 tests: **1004 geslaagd, 0 mislukt, 8 overgeslagen**. Zie `acceptance-20261104/full-tests-final.log`. Typecheck, lint en build zijn geslaagd. De reparatiecommit is `1c3798429e73b1effb55b5ce88c07b5b33585ef9`. De live meting blijft expliciet een gedeeltelijke run van de hierboven genoemde scannercommit, niet een volledige run van de nieuwe HEAD.
 
 Repository-rulesets waren leeg. Het uitlezen van branch protection voor main werd door GitHub geweigerd met HTTP 403 (`Resource not accessible by integration`), zowel via de connector als de geconfigureerde CLI. Verplichte mergevoorwaarden zijn daardoor niet volledig bevestigd; geen merge toegestaan op basis van deze controle. De nieuwe PR blijft concept voor acceptatie.
+
+## Vereiste GitHub-checks: concrete blokkades
+
+De PR-check **Required 144-site catalog and baseline evidence** faalt terecht met `REQUIRED_INPUT_MISSING`. Twee verplichte invoerbestanden ontbreken:
+
+- `tests/fixtures/testlab-mkb/catalog.json`
+- `qa-input/rankfix-testlab-144-fresh144-20f1effd.json`
+
+De vereisten staan al in `tests/fixtures/testlab-mkb/requirements.json`, met `blocked_pending_real_catalog_and_original_baseline` en `activationAllowed: false`. Een controle van alle opgehaalde Git-geschiedenissen leverde geen eerdere versie van deze twee bestanden op. De bestaande fresh144-catalogus uit 2026-10-29 is een andere, voorlopige catalogus en vervangt deze verplichte mkb-invoer niet. De gedeeltelijke live run hierboven is uitsluitend op die bestaande fresh144-catalogus uitgevoerd. Er is geen verzonnen catalogus of nulmeting aangemaakt en de check is niet uitgezet.
+
+GitHub rapporteert voor de Vercel-check **Account is blocked**. Dit is een externe accountblokkade, geen bewijs van een geslaagde deployment; accountinstellingen zijn niet gewijzigd.
+
+Check op de eerste gepushte bewijscommit: https://github.com/mdscoop7-max/rankfix-app/actions/runs/41826507059/job/126562471658 . De PR blijft concept: https://github.com/mdscoop7-max/rankfix-app/pull/221 .

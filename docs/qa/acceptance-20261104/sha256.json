@@ -33,6 +33,7 @@
   "provenance.json": "e43355f0aaf9a89766adf65a0061d9797176f4db884c02c6a2e689a518ceb70b",
   "regressions-after.tap": "0bef2f6dd668a1ff43af74839e97f3fd041d90cddfaacd07963ea977d8ab2b96",
   "regressions-before.tap": "8c1c9b7aeb681adde3fe7e919202a176e49004c836432a956a733c6f655008a6",
+  "required-catalog-result.log": "cdac7eac4c0923896f6e31b6b964bfdc3bff48735340e40ea4c7f0058e2d9483",
   "restricted-sandbox-test-attempt.log": "8c51af74181de11c829d493d965c8d1ae48622797121c8bef04fdcc07c0188a2",
   "typecheck.log": "bb1cadce65c400079b0e36a2457859725f6e885f7827c7732894d902eb2518fb"
 }
