@@ -94,3 +94,15 @@ test("unconfirmed verdicts name every page with its own concrete reason", () => 
   assert.match(v.message, /shop\.test\/c: .*Offer zonder prijs/);
   assert.equal(v.pages.length, 3);
 });
+
+test("Product structured data and Merchant Center basis never contradict each other on the same pages", () => {
+  const variants = [
+    rawPage(), rawPage({ productSchema: false, product: null, productMarkupAbsent: true }),
+    rawPage({ productSchema: false, product: null, productMarkupAbsent: true, serverRendered: false }),
+    rawPage({ product: { ...complete, availability: null } }), rawPage({ product: { ...complete, price: null, offerKind: "aggregate" } }),
+    rawPage({ product: { ...complete, price: null, currency: null, availability: null, offerKind: "none" } }),
+  ];
+  for (const page of variants) {
+    assert.equal(settleSampleProductCheck("product_schema", [page]).status, settleSampleProductCheck("merchant_product_readiness", [page]).status, JSON.stringify(page.product));
+  }
+});

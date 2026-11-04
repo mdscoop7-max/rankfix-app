@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "testlab:144:check": "node --test tests/testlab-144.test.mjs",
     "testlab:144:dry": "node scripts/testlab/run.mjs --phase lab144 --dry-run",
