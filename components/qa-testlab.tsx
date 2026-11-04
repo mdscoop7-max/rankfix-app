@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useMemo, useRef, useState} from "react";
+import Link from "next/link";
 import DashboardNav from "@/app/dashboard/nav";
 import {saveQaAudit} from "@/lib/testlab-audit-store";
 import {classifyScanAnswer, isFinalResult, resumeQueue, settleRepeatedScanTimeout, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
@@ -31,7 +32,7 @@ function saveDownload(name:string,type:string,content:string){
  window.setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
-export default function TestLab144() {
+export default function TestLab144({requestedCatalog}: {requestedCatalog: string}) {
  const [catalog,setCatalog]=useState<Catalog|null>(null);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("Toegang en QA-versie controleren…");
@@ -48,7 +49,6 @@ export default function TestLab144() {
  const runKey=(sha:string,catalogId:string)=>"rankfix-qa-testlab-run:"+catalogId+":"+sha;
  useEffect(()=>{
   mounted.current=true;
-  const requestedCatalog=new URLSearchParams(window.location.search).get("catalog");
   const catalogId=["commerce","fresh144","mkb48"].includes(requestedCatalog||"")?requestedCatalog:"baseline";
   Promise.all([
    fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)}).then(async r=>({ok:r.ok,status:r.status,data:await r.json()})),
@@ -82,7 +82,7 @@ export default function TestLab144() {
     setNotice("Klaar: "+next.sites.length+" websites geselecteerd. Klik Start test om alleen deze selectie te scannen; houd het tabblad open.");
   }).catch((cause)=>{if(mounted.current){setError("TestLab kon niet laden: "+(cause instanceof Error ? cause.message : "server niet bereikbaar")+". Controleer de lokale QA-aanmelding en herlaad de pagina.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
- },[]);
+ },[requestedCatalog]);
  const sites=catalog?.sites||[];
  const isCommerceCatalog=catalog?.catalogId==="commerce";
  const scoped=useMemo(()=>sites.filter(s=>(
@@ -226,7 +226,7 @@ export default function TestLab144() {
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
     <h1>TestLab — {catalog?.catalogId==="mkb48"?"48 nieuwe mkb-websites":"144 websites"}</h1>
-    <p><a href="/dashboard/testlab?catalog=mkb48">Alleen 48 mkb-websites</a> · <a href="/dashboard/testlab">Bestaande 144</a></p>
+    <p><Link href="/dashboard/testlab?catalog=mkb48">Alleen 48 mkb-websites</Link> · <Link href="/dashboard/testlab">Bestaande 144</Link></p>
     <p>{catalog?.catalogId==="mkb48"?"Gerichte test: 12 sectoren met elk 4 kandidaten. De bestaande 144 worden niet gescand.":catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">{scoped.length}<span>websites in selectie</span></div>
   </header>

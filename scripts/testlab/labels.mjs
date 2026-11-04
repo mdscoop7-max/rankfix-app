@@ -1,6 +1,13 @@
 // TestLab labels describe subtypes; the engine returns broader primary sectors.
 // Keep both comparisons visible. A broad match never proves a subtype.
 const labels={
+ // MKB-48 vocabulary: branch proof is checked separately below.
+ garage:['automotive','car_repair'],realtor:['real_estate','real_estate'],
+ law:['professional_services','legal'],training:['education','course_training'],
+ gym:['fitness_sports','fitness'],plumber:['home_services','plumber'],
+ gardener:['home_services','gardener'],hotel:['hospitality','hotel'],
+ beauty:['beauty'],
+
  payments:['financial_services','financial_payments'],banking:['financial_services','financial_banking'],insurance:['financial_services','financial_insurance'],financial_services:['financial_services'],
  healthcare:['health_wellness'],veterinary_animal_care:['health_wellness','veterinary'],
  energy:['energy_utilities'],telecom:['telecom_technology'],logistics:['transport_travel'],travel:['transport_travel','passenger_transport'],retail:['ecommerce'],ecommerce:['ecommerce'],software:['saas_b2b'],
@@ -50,6 +57,12 @@ export function compareSector(expected,profile={}) {
 // Without such a rule, a label carrying a subtype (payments → financial_payments)
 // requires exactly that subtype.
 const BRANCH={
+ garage:{keys:['car_repair']}, law:{keys:['legal']}, realtor:{keys:['real_estate']},
+ training:{keys:['course_training']}, gym:{keys:['fitness']}, hotel:{keys:['hotel']},
+ plumber:{keys:['plumber'],byEvidence:{home_services:'plumber'}},
+ gardener:{keys:['gardener'],byEvidence:{home_services:'gardener'}},
+ beauty:{keys:['beauty','beauty_salon','hair_salon']},
+
  // 3 Nov (owner): an engineering firm typed as "architecture & design" is decided
  // by the engine's own sector evidence, never automatically approved or rejected.
  engineering:{keys:['engineering','engineering_consultancy'],byEvidence:{architecture_design:'engineering'}},
@@ -68,6 +81,9 @@ const BRANCH={
  */
 // Multilingual evidence vocabulary for evidence-dependent neighbour branches.
 const BRANCH_EVIDENCE={
+ plumber:{confirm:/\b(?:loodgieter\w*|plumb(?:er|ing)|installatiebedrijf|sanitair|ontstopp\w*)\b/iu,reject:/\b(?:hovenier\w*|gardener|landscap\w*)\b/iu},
+ gardener:{confirm:/\b(?:hovenier\w*|tuinaanleg|tuinonderhoud|gardener|landscap\w*)\b/iu,reject:/\b(?:loodgieter\w*|plumb(?:er|ing)|installatiebedrijf)\b/iu},
+
  engineering:{
   confirm:/(?<![\p{L}])(?:ingenieur\w*|engineer\w*|ingénierie|ingeniería|ingegneria|civiele techniek|civil engineering|bauingenieur\w*|tiefbau|waterbouw|water management|watermanagement|infrastructu\w*|infrastruktur\w*|technisch advies\w*|technical consult\w*|projectmanagement|project management)(?![\p{L}])/iu,
   reject:/(?<![\p{L}])(?:architect\w*|architekt\w*|architecte\w*|arquitect\w*|architett\w*|interieur\w*|interior design\w*|binnenhuisarchitect\w*|landschapsarchitect\w*)(?![\p{L}])/iu,
@@ -112,6 +128,13 @@ export function branchComparison(expected,profile={}) {
 export function sectorVerdict(expected,profile={}) {
  const c=compareSector(expected,profile);
  if(!profile.sector||profile.sector==='unknown')return {...c,verdict:'unconfirmed',reason:'Geen hoofdsector vastgesteld'};
+ // A platform's subject matter is not its own service trade.
+ if(['beauty','plumber','gardener','garage','hotel','dentist','restaurant','realtor','law','gym','training'].includes(expected)
+   && ['marketplace','service_marketplace','booking_platform','comparison_platform'].includes(profile.websiteType))
+  return {...c,verdict:'mismatch',reason:'Platform voor aanbod van derden bewijst geen eigen dienstverlening'};
+ // A known parent family without the required branch is partial, not wrong.
+ if(expected==='beauty'&&profile.sector==='health_wellness'&&(!profile.key||profile.key==='health_wellness'))
+  return {...c,branch:'generic',verdict:'partial',reason:'Brede zorg-/welzijnssector bewijst geen beautybedrijf'};
  if(profile.sector===expected||profile.key===expected)return {...c,verdict:'exact',reason:''};
  if(c.sectorMatch){
   const branch=branchComparison(expected,profile);

@@ -1,0 +1,91 @@
+{
+  "baselineCommit": "8751558db59573059df880d3fb2bbb12af826e20",
+  "suite": {
+    "tests": 1060,
+    "passed": 1052,
+    "failed": 0,
+    "skipped": 8
+  },
+  "additionalPostgres": {
+    "passed": 4,
+    "failed": 0
+  },
+  "additionalStoredReplays": {
+    "passed": 3,
+    "failed": 0,
+    "live": false
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 59
+  },
+  "typecheck": "passed",
+  "build": "passed",
+  "browser": "real-local-auth-and-catalogs; simulated-scan-answers",
+  "productionBrowser": "stop-resume A-E passed; simulated APIs",
+  "requiredCatalogGate": "REQUIRED_INPUT_MISSING; activationAllowed=false",
+  "codeSha256": {
+    ".github/workflows/ci.yml": "cf9e16264a1eb704585c86cddd30f65dd7e8310438804e970c9efd87fcb587c0",
+    "AGENTS.md": "063098f6cb31bb44c6f8fbea25b3876de7ee1e5f7d00a50dbab506f6415eb7f0",
+    "app/api/scan/route.ts": "aa7696d14eb778cea2befa274a5ff74686f7200319f273624b67293b2f3c087f",
+    "app/dashboard/testlab/page.tsx": "dfdd8c1766d8787e373a08ad45abf30b7481f68a56875fdd84f8ad7731fe3213",
+    "components/qa-testlab.tsx": "e71452a99b440cf43e8f85bae9b877182c57b0a90ffc3b1292b1b48de507a1aa",
+    "lib/dimension-score-display.mjs": "1d880300f39585ca2777b7580ba8d1c18778f1273ac6c9c2eb291dc04a99850e",
+    "lib/report-quality.ts": "93e13860333f7aa05424fd9c82b3032bc5e491d4a5e593cdf1dcf7f0cb3a4f5c",
+    "lib/site-sector-corroboration.mjs": "830a04015963aa3cde5dcd32c27ad1c789f466c9e19488f9abbf3544cbfe427c",
+    "lib/website-profile.ts": "8f1e68c6a935b179b53bf92c88b2bf99f5c2b5c3cc883a12a599c9baadafeb28",
+    "scripts/testlab/labels.mjs": "46df22cf062e1a8b72c8a762bbbc059a6543f80e2a7bbd044a4f4144259e07e8",
+    "tests/manual/testlab-stop-resume.browser.mjs": "11812312b5f6fad16183ee317159313181ebf2d0e5e9591a1227f7eeea2bb325",
+    "tests/fixtures/sector-peers/booking-mediation.json": "3ac892faa5b06e767d1c9bd8aaf66dc3885eeac9aae9c9a015a6056dee5ea43f",
+    "tests/heating-service-identity.test.mjs": "f89b7d2a87bf99980748c810fba97deb74254a5231220451d074da9e5b071c4e",
+    "tests/manual/run-local-qa-browser.mjs": "df4154ff6e3a88b79554b644505e62ec745d919cbab69095c9e6120e06eeccf6",
+    "tests/manual/testlab-local-catalogs.browser.mjs": "32711d86049df7dfd33e0969582613d9e6d23744dc22cd6f864be44115564c47",
+    "tests/mkb48-sector-verdict.test.mjs": "8a81de01ca1e90c395505563603c0ec26a859b90763674c1ebb86c8cf0c86dcf",
+    "tests/render-network-attribution.test.mjs": "438271e5f41a9631830cb8b3352233895e7ab7570337503b84ef2dd3e42aeda8",
+    "tests/score-page-coverage.test.mjs": "896a032fe609b569603a3c0d696bb575f2550b334992a854fbba4545752a6487",
+    "tests/service-booking-mediation.test.mjs": "7fbd4a5f5209f64746ee7b7e53ebf86ccc4024d9b50ef474fa2df7e83484b0ab"
+  },
+  "logs": {
+    "suite": {
+      "artifact": "suite.log.gz",
+      "sha256": "38a54ec700d69b696d5ef34b08b7cc832430a5ae7b5cf6b745a287f73c9273b3"
+    },
+    "lint": {
+      "artifact": "lint.log.gz",
+      "sha256": "643a7086bb45c329cde86fcd5276eca5fb525660d278dde1d5a74045593d9109"
+    },
+    "typecheck": {
+      "artifact": "typecheck.log.gz",
+      "sha256": "bb1cadce65c400079b0e36a2457859725f6e885f7827c7732894d902eb2518fb"
+    },
+    "build": {
+      "artifact": "build.log.gz",
+      "sha256": "669e290a247d4422b7d994541ef20468247093b2e0866bd2e40e6ed7a190b54a"
+    },
+    "postgres": {
+      "artifact": "postgres.log.gz",
+      "sha256": "c7a7ec24ea01562606ed4f38d814d5a9c124102b7b932fa6354314aad07ab626"
+    },
+    "replays": {
+      "artifact": "replays.log.gz",
+      "sha256": "97758d30587bc709072987c800be182708c79de5074a64596a99362204c879a0"
+    },
+    "local-browser": {
+      "artifact": "local-browser.log.gz",
+      "sha256": "974cbdc374bec2b50a0cc505c90c10ca88fc7fb50180fe1042bdc2cf698a1fff"
+    },
+    "production-browser": {
+      "artifact": "production-browser.log.gz",
+      "sha256": "bec457e645bfc9fa22fcfefbcd4bc2458f0f9b2e76c59268124f177d6d36de42"
+    },
+    "axe": {
+      "artifact": "axe.log.gz",
+      "sha256": "f72ea2d2040dc5818df3b044e3b2539ce88ba16d9cc8b4242e3efd14c1a2c3ab"
+    },
+    "required-input": {
+      "artifact": "required-input.log.gz",
+      "sha256": "cdac7eac4c0923896f6e31b6b964bfdc3bff48735340e40ea4c7f0058e2d9483"
+    }
+  },
+  "certified": false
+}

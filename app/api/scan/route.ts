@@ -6006,6 +6006,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
        keywordOnlyDecision ||
+       (specificIndustry.sector === "service_marketplace" && specificIndustry.key === "service_marketplace") ||
        (DECLARED_REFINES[specificIndustry.sector] || []).includes(sectorProfile.sector) ||
        (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription && !storeSchemaRetailIdentity)));
     if (acceptExtendedIndustry && specificIndustry) {

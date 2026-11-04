@@ -65,8 +65,8 @@ const log = [];
 
 // A
 await page.goto(`${BASE}/dashboard/testlab`);
-// The catalog answer of #206 names the catalog; the notice counts webshops and others.
-await waitStatus(/Klaar\. \d+ webshops en \d+ andere websites/);
+// The initial notice confirms catalog readiness before any scan starts.
+await waitStatus(/Klaar.*144/);
 state.behaviour[H[1]] = "session";
 await clickButton("Start test");
 let s = await waitStatus(/RankFix meldde login/);
@@ -81,7 +81,7 @@ assert.equal(state.scanCalls[H[2]] || 0, 0, "run must stop at the RankFix-side f
 
 // B
 await page.reload();
-await waitStatus(/Klaar\./);
+await waitStatus(/Klaar/);
 rows = await stored();
 assert.equal(rows.length, 2, "results survive closing/reopening the tab");
 assert.match(await primaryText(), /Doorgaan met resterende/);

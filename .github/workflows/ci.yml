@@ -70,6 +70,10 @@ jobs:
           done
           RF_BASE=http://127.0.0.1:3101 CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node tests/manual/testlab-stop-resume.browser.mjs
 
+      - name: Local QA session, both catalogs, sector filters and export in a real browser
+        if: ${{ success() }}
+        run: CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node tests/manual/run-local-qa-browser.mjs
+
       - name: Fixes browser smoke (mobile and desktop)
         if: ${{ success() }}
         run: |

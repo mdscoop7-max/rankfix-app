@@ -15,6 +15,8 @@ export type RenderFailureCode =
   | "RENDER_NOT_SUBSTANTIVE"
   | "RENDER_LIMIT_REACHED"
   | "BROWSER_CRASHED"
+  | "RENDER_DNS"
+  | "RENDER_TLS"
   | "RENDER_NETWORK"
   | "RENDER_FAILED";
 
@@ -23,7 +25,9 @@ export function renderFailureCode(error: unknown): RenderFailureCode {
   if (/BROWSER_UNAVAILABLE|RENDER_CHROME_NOT_INSTALLED|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
   if (/RENDER_BUSY/.test(message)) return "RENDER_BUSY";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
-  if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
+  if (/\bDNS\b|ENOTFOUND|EAI_AGAIN|ERR_NAME_NOT_RESOLVED/i.test(message)) return "RENDER_DNS";
+  if (/ERR_CERT_|ERR_SSL_|CERT_HAS_EXPIRED|CERTIFICATE_VERIFY_FAILED|UNABLE_TO_VERIFY_LEAF_SIGNATURE/i.test(message)) return "RENDER_TLS";
+  if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
   if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
@@ -43,6 +47,8 @@ const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
   RENDER_LIMIT_REACHED: "het maximum aantal browserpogingen of de scandeadline is bereikt",
   BROWSER_CRASHED: "de browser in de scanomgeving stopte tijdens het laden van de pagina",
+  RENDER_DNS: "de browser kon de domeinnaam niet via DNS opzoeken",
+  RENDER_TLS: "de browser kon geen geldige TLS-/certificaatverbinding vaststellen",
   RENDER_NETWORK: "de browser kreeg geen bruikbare netwerkverbinding met (een deel van) de website",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };

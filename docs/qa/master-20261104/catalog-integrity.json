@@ -1,0 +1,30 @@
+[
+  {
+    "path": "tests/fixtures/testlab-144/catalog-commerce-diverse-20261026.json",
+    "sites": 144,
+    "sha256": "ff6c2be1878633385ae480302b21aefb020ac95a87a9adda9078bcabd6885aaf",
+    "unchangedFrom8751558": true,
+    "labelStatus": null
+  },
+  {
+    "path": "tests/fixtures/testlab-144/catalog-fresh-144-20261029.json",
+    "sites": 144,
+    "sha256": "fd748c5810706152b2e3e6e6d4a0fd879a99664c05b88c1a01b3c63b366dc051",
+    "unchangedFrom8751558": true,
+    "labelStatus": null
+  },
+  {
+    "path": "tests/fixtures/testlab-144/catalog-mkb-48-20261104.json",
+    "sites": 48,
+    "sha256": "fc56dac504487b13efb6c7ed92b0ae331f5b5aabca4a72ff38248ea3a01b94a1",
+    "unchangedFrom8751558": true,
+    "labelStatus": null
+  },
+  {
+    "path": "tests/fixtures/testlab-144/catalog-supplemental-beauty-20261102.json",
+    "sites": 1,
+    "sha256": "73ba5b24478ed9f698f8ef5bd17cfe129231398fbc9bf24cb4aece9a5e308e94",
+    "unchangedFrom8751558": true,
+    "labelStatus": null
+  }
+]

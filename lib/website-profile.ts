@@ -132,6 +132,8 @@ export function buildWebsiteProfile(input: WebsiteProfileInput): WebsiteProfile 
 
   const websiteType: Dimension = input.platformKind === "comparison_platform"
     ? { value: "comparison_platform", label: "Vergelijkings- / offerteplatform", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: ["Eigen omschrijving: vergelijken of offertes aanvragen; verkoop of uitvoering via aangesloten winkels of aanbieders", "Een eigen winkelwagen of checkout is geen vereiste"] }
+    : input.sector === "service_marketplace"
+    ? { value: "marketplace", label: "Platform voor aanbod van derden", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}; uitvoering door onafhankelijke aanbieders`] }
     : shop && !input.primaryServiceIdentity
     ? { value: "ecommerce_store", label: "Webshop", status: "confirmed", confidence: Math.min(97, Math.max(84, input.sectorConfidence || 0)), evidence: (input.commerceEvidence || []).slice(0, 4) }
     : input.sector === "unknown"
