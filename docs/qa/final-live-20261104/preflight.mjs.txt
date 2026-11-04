@@ -1,0 +1,15 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const token=readFileSync('/tmp/rankfix-local/RankFix-QA/local-session-token.txt','utf8').trim();
+const headers={cookie:'rankfix_local_qa='+token};
+const version=await fetch('http://127.0.0.1:3002/api/scan/version',{headers}).then(r=>r.json());
+const res=await fetch('http://127.0.0.1:3002/api/testlab/catalog?catalog=fresh144',{headers});
+const catalog=await res.json();
+if(version.commitSha!==sha||version.environment!=='local'||res.status!==200||catalog.catalogId!=='fresh144'||catalog.sites?.length!==144||new Set(catalog.sites.map(s=>s.host)).size!==144)throw Error('Preflight mismatch');
+const path='tests/fixtures/testlab-144/catalog-fresh-144-20261029.json';
+const provenance={at:new Date().toISOString(),scannerCommit:sha,server:version,catalogId:catalog.catalogId,catalogCount:144,catalogPath:path,catalogSha256:createHash('sha256').update(readFileSync(path)).digest('hex'),node:process.version,mode:'live; no replay; empty result store',tlsValidation:'enabled',browser:'system Chromium via configured HTTPS_PROXY',nssStore:'/home/agent/.pki/nssdb',certificateAlreadyPresentAs:'OpenAI-nebula-dns',caSha256:'C7:1B:4D:1E:9D:77:75:C5:38:C6:88:AB:10:CE:A9:CE:41:7D:73:12:E8:98:38:F9:D1:5F:F7:32:56:CD:7F:C3',explicitTrustStoreAuthorization:true,environmentFix:'writable temporary XDG config/cache, explicit NSS store filesystem grant and configured proxy; certificate validation remains enabled',requiredMkbInputs:'still missing; this proposed fresh144 catalog is not the required mkb acceptance catalog'};
+writeFileSync('qa-results/fresh144-latest/provenance.json',JSON.stringify(provenance,null,2));
+writeFileSync('qa-results/fresh144-latest/catalog.json',JSON.stringify(catalog,null,2));
+console.log(JSON.stringify({sha:version.commitSha,environment:version.environment,catalog:catalog.catalogId,count:catalog.sites.length}));

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/chromium --proxy-server="${HTTPS_PROXY:-$HTTP_PROXY}" "$@"

@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-04T13:40:12.638Z",
+  "scannerCommit": "0de0835757b38840940410ba79b9505d9ab9d72d",
+  "server": {
+    "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+    "environment": "local",
+    "vercelEnv": null,
+    "sectorEngine": "3.5.2-page-evidence-186",
+    "crawler": "2.6.0",
+    "rules": "1.4.0",
+    "scoreModel": "3.5-evidence-gated"
+  },
+  "catalogId": "fresh144",
+  "catalogCount": 144,
+  "catalogPath": "tests/fixtures/testlab-144/catalog-fresh-144-20261029.json",
+  "catalogSha256": "fd748c5810706152b2e3e6e6d4a0fd879a99664c05b88c1a01b3c63b366dc051",
+  "node": "v24.22.1",
+  "mode": "live; no replay; empty result store",
+  "tlsValidation": "enabled",
+  "browser": "system Chromium via configured HTTPS_PROXY",
+  "nssStore": "/home/agent/.pki/nssdb",
+  "certificateAlreadyPresentAs": "OpenAI-nebula-dns",
+  "caSha256": "C7:1B:4D:1E:9D:77:75:C5:38:C6:88:AB:10:CE:A9:CE:41:7D:73:12:E8:98:38:F9:D1:5F:F7:32:56:CD:7F:C3",
+  "explicitTrustStoreAuthorization": true,
+  "environmentFix": "writable temporary XDG config/cache, explicit NSS store filesystem grant and configured proxy; certificate validation remains enabled",
+  "requiredMkbInputs": "still missing; this proposed fresh144 catalog is not the required mkb acceptance catalog",
+  "pauseBetweenSitesMs": 1000,
+  "concurrentScans": 1,
+  "supervisor": "rerun canonical npm run qa:144 only for pending known egress/scan-timeout outcomes; wait for two healthy external controls; max 4 rounds; block after 180s unrecovered egress"
+}

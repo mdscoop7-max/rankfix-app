@@ -1,0 +1,6 @@
+host,expected,status,apiStatus,reason,scanId,sector,score,seo,geo,elapsedMs,at,seoDisplay,geoDisplay
+"nxp.com","manufacturing","success","200","","","manufacturing_industrial","98","98","99","28390","2026-11-04T13:41:08.588Z","98","38–100 (indicatie)"
+"vdlgroep.com","manufacturing","success","200","","","unknown","84","88","78","15744","2026-11-04T13:43:29.516Z","88","78"
+"zeiss.com","manufacturing","success","200","","","unknown","94","99","87","13446","2026-11-04T13:45:16.149Z","99","87"
+"basf.com","manufacturing","api_error","503","SCAN_INFRASTRUCTURE_EGRESS","","","","","","126","2026-11-04T13:45:17.286Z","",""
+"sandvik.com","manufacturing","api_error","503","SCAN_INFRASTRUCTURE_EGRESS","","","","","","516","2026-11-04T13:45:18.811Z","",""

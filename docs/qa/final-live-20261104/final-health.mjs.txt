@@ -1,0 +1,11 @@
+import {appendFileSync,existsSync} from 'node:fs';
+import {readResponseTextLimited} from '/workspace/rankfix-app/lib/safe-fetch.ts';
+while(!existsSync('/tmp/rankfix-continue/final-health.stop')){
+ const probes=await Promise.all(['internal','outbound'].map(async kind=>{
+  const start=Date.now();
+  try {const url=kind==='internal'?'http://127.0.0.1:3002/api/scan/version':'https://example.com/';const r=await fetch(url,{signal:AbortSignal.timeout(8000)});const body=await readResponseTextLimited(r,50000,5000);return {kind,at:new Date().toISOString(),status:r.status,elapsedMs:Date.now()-start,healthy:r.status===200&&(kind==='internal'||body.includes('Example Domain')),confirmedTunnelError:body.includes('remote address:envoy://cloudflare_https_tunnel/')};}
+  catch(e){return {kind,at:new Date().toISOString(),elapsedMs:Date.now()-start,healthy:false,error:e.message};}
+ }));
+ for(const row of probes)appendFileSync('qa-results/fresh144-latest/health.jsonl',JSON.stringify(row)+'\n');
+ await new Promise(r=>setTimeout(r,30000));
+}

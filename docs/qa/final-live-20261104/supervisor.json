@@ -1,0 +1,194 @@
+{
+  "events": [
+    {
+      "at": "2026-11-04T13:40:39.868Z",
+      "round": 1,
+      "action": "start canonical live runner"
+    },
+    {
+      "at": "2026-11-04T13:41:11.188Z",
+      "round": 1,
+      "action": "runner finished",
+      "code": 1,
+      "signal": null,
+      "summary": {
+        "attempted": 3,
+        "success": 1,
+        "technicalFailures": 2,
+        "websiteOutcomes": 0,
+        "remaining": 143
+      }
+    },
+    {
+      "at": "2026-11-04T13:41:11.240Z",
+      "action": "external recovery control",
+      "status": 503,
+      "error": null,
+      "consecutiveHealthy": 0
+    },
+    {
+      "at": "2026-11-04T13:41:41.283Z",
+      "action": "external recovery control",
+      "status": 503,
+      "error": null,
+      "consecutiveHealthy": 0
+    },
+    {
+      "at": "2026-11-04T13:42:11.365Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:42:21.409Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 2
+    },
+    {
+      "at": "2026-11-04T13:42:21.410Z",
+      "action": "resume remaining real targets; no replay of completed sites"
+    },
+    {
+      "at": "2026-11-04T13:42:21.410Z",
+      "round": 2,
+      "action": "start canonical live runner"
+    },
+    {
+      "at": "2026-11-04T13:42:23.269Z",
+      "round": 2,
+      "action": "runner finished",
+      "code": 1,
+      "signal": null,
+      "summary": {
+        "attempted": 3,
+        "success": 1,
+        "technicalFailures": 2,
+        "websiteOutcomes": 0,
+        "remaining": 143
+      }
+    },
+    {
+      "at": "2026-11-04T13:42:23.287Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:42:33.314Z",
+      "action": "external recovery control",
+      "status": 503,
+      "error": null,
+      "consecutiveHealthy": 0
+    },
+    {
+      "at": "2026-11-04T13:43:03.368Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:43:13.420Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 2
+    },
+    {
+      "at": "2026-11-04T13:43:13.420Z",
+      "action": "resume remaining real targets; no replay of completed sites"
+    },
+    {
+      "at": "2026-11-04T13:43:13.420Z",
+      "round": 3,
+      "action": "start canonical live runner"
+    },
+    {
+      "at": "2026-11-04T13:43:32.095Z",
+      "round": 3,
+      "action": "runner finished",
+      "code": 1,
+      "signal": null,
+      "summary": {
+        "attempted": 4,
+        "success": 2,
+        "technicalFailures": 2,
+        "websiteOutcomes": 0,
+        "remaining": 142
+      }
+    },
+    {
+      "at": "2026-11-04T13:43:32.127Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:43:42.148Z",
+      "action": "external recovery control",
+      "status": 503,
+      "error": null,
+      "consecutiveHealthy": 0
+    },
+    {
+      "at": "2026-11-04T13:44:12.230Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:44:22.264Z",
+      "action": "external recovery control",
+      "status": 503,
+      "error": null,
+      "consecutiveHealthy": 0
+    },
+    {
+      "at": "2026-11-04T13:44:52.327Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 1
+    },
+    {
+      "at": "2026-11-04T13:45:02.359Z",
+      "action": "external recovery control",
+      "status": 200,
+      "error": null,
+      "consecutiveHealthy": 2
+    },
+    {
+      "at": "2026-11-04T13:45:02.359Z",
+      "action": "resume remaining real targets; no replay of completed sites"
+    },
+    {
+      "at": "2026-11-04T13:45:02.359Z",
+      "round": 4,
+      "action": "start canonical live runner"
+    },
+    {
+      "at": "2026-11-04T13:45:18.839Z",
+      "round": 4,
+      "action": "runner finished",
+      "code": 1,
+      "signal": null,
+      "summary": {
+        "attempted": 5,
+        "success": 3,
+        "technicalFailures": 2,
+        "websiteOutcomes": 0,
+        "remaining": 141
+      }
+    },
+    {
+      "at": "2026-11-04T13:45:18.839Z",
+      "action": "blocked: maximum four bounded resume rounds reached"
+    }
+  ]
+}

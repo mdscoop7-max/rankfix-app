@@ -1,0 +1,21 @@
+{
+  "audits-0de0835757b3/basf.com.json.gz": "7c9b6f569c086dccb856bc9d08aea4c37df01470ec53ecdbdf31ec633d18b116",
+  "audits-0de0835757b3/nxp.com.json.gz": "732414be74b05679ea839c39222e675e25d76f480e12643eb5eae7cbc4e32206",
+  "audits-0de0835757b3/sandvik.com.json.gz": "cfd1f748a0eb8d112a22aaa1116d6645a07c20916babb26d9fcaf516d68549b2",
+  "audits-0de0835757b3/vdlgroep.com.json.gz": "02ed348e453ab94015442ef21002463cd0597607e22382ad2727a27dfb388028",
+  "audits-0de0835757b3/zeiss.com.json.gz": "cf42ec6783170fbfbf72e9683490dc42d96da96555d7baeff87f71e0612a552c",
+  "catalog.json": "1010cdee6bf3356f301c40801cd1c8a8af9dea932e830bc07792d01564ba3ddd",
+  "chromium-proxy.txt": "c591d1a337b9f7525837a1388af5d144f9928d264526ec45cfb96e037ecfd2ed",
+  "final-analysis.md": "9670fde243285c00e2dba39701cf6aca96a00d6328c5a02e0065b0904d0d4d85",
+  "final-health.mjs.txt": "9c72358a4f5d0a2f947932050437f5f2a575882971ccea6b872e6b6c84c008de",
+  "fresh144-evidence-0de0835757b3.json": "e5a0e6a4f4311b4f54c413b07abf51328041ad254edc32176eacf8c3b258cd1c",
+  "fresh144.csv": "25e10aaae8b17a3323e2055017597912fecbd612fec7bf68f2b22e41a61f2368",
+  "fresh144.json": "e1a4479cdadcae102c1dc36bc5d800140578f7a75d71c8eb9bfd570ed362e51c",
+  "health-summary.json": "0df8159b94d1cdb71b99f6c5ca593b2c83d2719bbedda0c19a72aec3521b09e8",
+  "health.jsonl": "4e7330896ec901d91e73164390ae23c646eddeb50a22e6274d582c2501bcb14c",
+  "live-final.log": "7e864fa209d16c20b5c3f3caa660a45b8e73d1529e0faaa824ea410157c381b7",
+  "live-supervisor.mjs.txt": "a4a7abb2d5419f30a203e1ccf486ba90e855ecb899f73b25eda5c4163843d871",
+  "preflight.mjs.txt": "00326afbdcc221632f45b54bea1f5b3f6a5d980d3c9b95bd4b879231fd9c93d4",
+  "provenance.json": "48159eed7a715f251fec06279150e6e7f093d355d353db611410916d779ac1c1",
+  "supervisor.json": "04bd8e76c170d142fb0fd834de668b46457dcc7fef00f39b063daf350521e523"
+}

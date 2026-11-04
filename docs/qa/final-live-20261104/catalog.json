@@ -1,0 +1,1173 @@
+{
+  "sites": [
+    {
+      "host": "nxp.com",
+      "name": "NXP Semiconductors",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "vdlgroep.com",
+      "name": "VDL Groep",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "zeiss.com",
+      "name": "ZEISS",
+      "country": "DE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "basf.com",
+      "name": "BASF",
+      "country": "DE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "sandvik.com",
+      "name": "Sandvik",
+      "country": "SE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "skf.com",
+      "name": "SKF",
+      "country": "SE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "abb.com",
+      "name": "ABB",
+      "country": "CH",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "wur.nl",
+      "name": "Wageningen University",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "tudelft.nl",
+      "name": "TU Delft",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "kuleuven.be",
+      "name": "KU Leuven",
+      "country": "BE",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "ox.ac.uk",
+      "name": "University of Oxford",
+      "country": "GB",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "nationaleombudsman.nl",
+      "name": "Nationale ombudsman",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "autoriteitpersoonsgegevens.nl",
+      "name": "Autoriteit Persoonsgegevens",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "ema.europa.eu",
+      "name": "European Medicines Agency",
+      "country": "EU",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "eea.europa.eu",
+      "name": "European Environment Agency",
+      "country": "EU",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "lezen.nl",
+      "name": "Stichting Lezen",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "natuurmonumenten.nl",
+      "name": "Natuurmonumenten",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "oxfam.org.uk",
+      "name": "Oxfam",
+      "country": "GB",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "concertgebouw.nl",
+      "name": "Het Concertgebouw",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "mauritshuis.nl",
+      "name": "Mauritshuis",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "musee-orsay.fr",
+      "name": "Musée d'Orsay",
+      "country": "FR",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "prorail.nl",
+      "name": "ProRail",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "nsinternational.com",
+      "name": "NS International",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-1"
+    },
+    {
+      "host": "rijkswaterstaat.nl",
+      "name": "Rijkswaterstaat",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "kadaster.nl",
+      "name": "Kadaster",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "cbs.nl",
+      "name": "Centraal Bureau voor de Statistiek",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "acm.nl",
+      "name": "Autoriteit Consument en Markt",
+      "country": "NL",
+      "expected": "public",
+      "group": "public",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "dnb.nl",
+      "name": "De Nederlandsche Bank",
+      "country": "NL",
+      "expected": "finance",
+      "group": "finance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "afm.nl",
+      "name": "AFM",
+      "country": "NL",
+      "expected": "finance",
+      "group": "finance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "triodos.nl",
+      "name": "Triodos Bank",
+      "country": "NL",
+      "expected": "finance",
+      "group": "finance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "asnbank.nl",
+      "name": "ASN Bank",
+      "country": "NL",
+      "expected": "finance",
+      "group": "finance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "vanlanschotkempen.com",
+      "name": "Van Lanschot Kempen",
+      "country": "NL",
+      "expected": "finance",
+      "group": "finance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "asr.nl",
+      "name": "a.s.r.",
+      "country": "NL",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "unive.nl",
+      "name": "Univé",
+      "country": "NL",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "zilverenkruis.nl",
+      "name": "Zilveren Kruis",
+      "country": "NL",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "vgz.nl",
+      "name": "VGZ",
+      "country": "NL",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "cz.nl",
+      "name": "CZ",
+      "country": "NL",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "umcutrecht.nl",
+      "name": "UMC Utrecht",
+      "country": "NL",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "radboudumc.nl",
+      "name": "Radboudumc",
+      "country": "NL",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "mumc.nl",
+      "name": "Maastricht UMC+",
+      "country": "NL",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "amsterdamumc.nl",
+      "name": "Amsterdam UMC",
+      "country": "NL",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "ggdghor.nl",
+      "name": "GGD GHOR Nederland",
+      "country": "NL",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "hartstichting.nl",
+      "name": "Hartstichting",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "longfonds.nl",
+      "name": "Longfonds",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "kwf.nl",
+      "name": "KWF",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "aap.nl",
+      "name": "Stichting AAP",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "vogelbescherming.nl",
+      "name": "Vogelbescherming",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "milieudefensie.nl",
+      "name": "Milieudefensie",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "humanitas.nl",
+      "name": "Humanitas",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "rodekruis.nl",
+      "name": "Rode Kruis",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "legerdesheils.nl",
+      "name": "Leger des Heils",
+      "country": "NL",
+      "expected": "nonprofit",
+      "group": "nonprofit",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "tue.nl",
+      "name": "Eindhoven University of Technology",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "utwente.nl",
+      "name": "Universiteit Twente",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "universiteitleiden.nl",
+      "name": "Universiteit Leiden",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "uu.nl",
+      "name": "Universiteit Utrecht",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "rug.nl",
+      "name": "Rijksuniversiteit Groningen",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "eur.nl",
+      "name": "Erasmus Universiteit Rotterdam",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "ou.nl",
+      "name": "Open Universiteit",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "hogeschoolrotterdam.nl",
+      "name": "Hogeschool Rotterdam",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "fontys.nl",
+      "name": "Fontys",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "avans.nl",
+      "name": "Avans",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "han.nl",
+      "name": "HAN University of Applied Sciences",
+      "country": "NL",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "akzonobel.com",
+      "name": "AkzoNobel",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "dsm-firmenich.com",
+      "name": "DSM-Firmenich",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "signify.com",
+      "name": "Signify",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "vanderlande.com",
+      "name": "Vanderlande",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "damen.com",
+      "name": "Damen Shipyards",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "royalihc.com",
+      "name": "Royal IHC",
+      "country": "NL",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "heijmans.nl",
+      "name": "Heijmans",
+      "country": "NL",
+      "expected": "construction",
+      "group": "construction",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "bam.com",
+      "name": "BAM",
+      "country": "NL",
+      "expected": "construction",
+      "group": "construction",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "volkerwessels.com",
+      "name": "VolkerWessels",
+      "country": "NL",
+      "expected": "construction",
+      "group": "construction",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "ballast-nedam.nl",
+      "name": "Ballast Nedam",
+      "country": "NL",
+      "expected": "construction",
+      "group": "construction",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "arcadis.com",
+      "name": "Arcadis",
+      "country": "NL",
+      "expected": "engineering",
+      "group": "engineering",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "haskoning.com",
+      "name": "Royal HaskoningDHV",
+      "country": "NL",
+      "expected": "engineering",
+      "group": "engineering",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "sweco.nl",
+      "name": "Sweco",
+      "country": "NL",
+      "expected": "engineering",
+      "group": "engineering",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "tennet.eu",
+      "name": "TenneT",
+      "country": "NL",
+      "expected": "energy",
+      "group": "energy",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "enexis.nl",
+      "name": "Enexis",
+      "country": "NL",
+      "expected": "energy",
+      "group": "energy",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "liander.nl",
+      "name": "Liander",
+      "country": "NL",
+      "expected": "energy",
+      "group": "energy",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "stedin.net",
+      "name": "Stedin",
+      "country": "NL",
+      "expected": "energy",
+      "group": "energy",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "gasunie.nl",
+      "name": "Gasunie",
+      "country": "NL",
+      "expected": "energy",
+      "group": "energy",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "portofrotterdam.com",
+      "name": "Port of Rotterdam",
+      "country": "NL",
+      "expected": "logistics",
+      "group": "logistics",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "schiphol.nl",
+      "name": "Schiphol",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "ret.nl",
+      "name": "RET",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "gvb.nl",
+      "name": "GVB",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "htm.nl",
+      "name": "HTM",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "arriva.nl",
+      "name": "Arriva Nederland",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "connexxion.nl",
+      "name": "Connexxion",
+      "country": "NL",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "dhl.com",
+      "name": "DHL Nederland",
+      "country": "NL",
+      "expected": "logistics",
+      "group": "logistics",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "dpd.com",
+      "name": "DPD Nederland",
+      "country": "NL",
+      "expected": "logistics",
+      "group": "logistics",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "boijmans.nl",
+      "name": "Museum Boijmans Van Beuningen",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "rijksmuseum.nl",
+      "name": "Rijksmuseum",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "vangoghmuseum.nl",
+      "name": "Van Gogh Museum",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "nemosciencemuseum.nl",
+      "name": "NEMO Science Museum",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "naturalis.nl",
+      "name": "Naturalis",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "krollermuller.nl",
+      "name": "Kröller-Müller Museum",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "paleishetloo.nl",
+      "name": "Paleis Het Loo",
+      "country": "NL",
+      "expected": "culture",
+      "group": "culture",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "efteling.com",
+      "name": "Efteling",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "walibi.nl",
+      "name": "Walibi Holland",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "artis.nl",
+      "name": "ARTIS",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "burgerszoo.nl",
+      "name": "Burgers' Zoo",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "diergaardeblijdorp.nl",
+      "name": "Diergaarde Blijdorp",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "beeksebergen.nl",
+      "name": "Beekse Bergen",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "roompot.nl",
+      "name": "Roompot",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "landal.nl",
+      "name": "Landal",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "centerparcs.nl",
+      "name": "Center Parcs",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "valk.nl",
+      "name": "Van der Valk",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "fletcher.nl",
+      "name": "Fletcher Hotels",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "bastionhotels.com",
+      "name": "Bastion Hotels",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "nh-hotels.com",
+      "name": "NH Hotels",
+      "country": "NL",
+      "expected": "hospitality",
+      "group": "hospitality",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "delijn.be",
+      "name": "De Lijn",
+      "country": "BE",
+      "expected": "transport",
+      "group": "transport",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "uza.be",
+      "name": "UZA",
+      "country": "BE",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "uzgent.be",
+      "name": "UZ Gent",
+      "country": "BE",
+      "expected": "healthcare",
+      "group": "healthcare",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "ugent.be",
+      "name": "Universiteit Gent",
+      "country": "BE",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "uantwerpen.be",
+      "name": "Universiteit Antwerpen",
+      "country": "BE",
+      "expected": "education",
+      "group": "education",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "fraunhofer.de",
+      "name": "Fraunhofer",
+      "country": "DE",
+      "expected": "research",
+      "group": "research",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "mpg.de",
+      "name": "Max Planck Gesellschaft",
+      "country": "DE",
+      "expected": "research",
+      "group": "research",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "bosch.com",
+      "name": "Robert Bosch",
+      "country": "DE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "henkel.com",
+      "name": "Henkel",
+      "country": "DE",
+      "expected": "manufacturing",
+      "group": "manufacturing",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "telekom.com",
+      "name": "Deutsche Telekom",
+      "country": "DE",
+      "expected": "telecom",
+      "group": "telecom",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "allianz.com",
+      "name": "Allianz",
+      "country": "DE",
+      "expected": "insurance",
+      "group": "insurance",
+      "round": "fresh-candidates-2"
+    },
+    {
+      "host": "dille-kamille.nl",
+      "name": "Dille & Kamille",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "wehkamp.nl",
+      "name": "wehkamp",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "hema.nl",
+      "name": "HEMA",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "praxis.nl",
+      "name": "Praxis",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "karwei.nl",
+      "name": "Karwei",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "welkoop.nl",
+      "name": "Welkoop",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "megekko.nl",
+      "name": "Megekko",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "bax-shop.nl",
+      "name": "Bax Music",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "obramat.es",
+      "name": "OBRAMAT",
+      "country": "ES",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "leroymerlin.fr",
+      "name": "Leroy Merlin",
+      "country": "FR",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "galaxus.ch",
+      "name": "Galaxus",
+      "country": "CH",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "digitec.ch",
+      "name": "Digitec",
+      "country": "CH",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "kwantum.nl",
+      "name": "Kwantum",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "leenbakker.nl",
+      "name": "Leen Bakker",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "vidaxl.nl",
+      "name": "vidaXL",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "sissy-boy.com",
+      "name": "Sissy-Boy",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "sostrenegrene.com",
+      "name": "Søstrene Grene",
+      "country": "DK",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "loberon.nl",
+      "name": "LOBERON",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "zara.com",
+      "name": "Zara",
+      "country": "ES",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "cos.com",
+      "name": "COS",
+      "country": "GB",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "arket.com",
+      "name": "ARKET",
+      "country": "SE",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "iciparisxl.nl",
+      "name": "ICI PARIS XL",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "flaconi.de",
+      "name": "flaconi",
+      "country": "DE",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    },
+    {
+      "host": "kruidvat.nl",
+      "name": "Kruidvat",
+      "country": "NL",
+      "expected": "ecommerce",
+      "group": "ecommerce",
+      "round": "fresh-commerce-candidates"
+    }
+  ],
+  "count": 144,
+  "catalogId": "fresh144",
+  "categoryCounts": {
+    "webshops": 24,
+    "other": 120
+  },
+  "labels": "proposed_not_independently_verified",
+  "runtime": {
+    "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+    "environment": "local",
+    "vercelEnv": null,
+    "sectorEngine": "3.5.2-page-evidence-186",
+    "crawler": "2.6.0",
+    "rules": "1.4.0",
+    "scoreModel": "3.5-evidence-gated"
+  },
+  "instruction": "Reads public websites only. Does not change customer sites. Start is always manual."
+}
