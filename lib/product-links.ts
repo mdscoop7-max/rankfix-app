@@ -27,6 +27,13 @@ export function looksLikeCategoryPath(pathname: string): boolean {
 export function looksLikeStorePage(pathname: string): boolean {
   return STORE_PAGE.test(pathname.toLowerCase());
 }
+// Franchise and partner recruitment pages share the store-finder exclusion but
+// are not branch/location pages.
+const RECRUITMENT_PAGE = /\/(?:franchise\p{L}*|franchisenemer\p{L}*|ondernemer-worden|word-ondernemer|partner-worden|become-a-partner)(?:\/|$)/iu;
+/** Store finder or branch page (not franchise/partner recruitment). URL hint only. */
+export function looksLikeLocationPath(pathname: string): boolean {
+  return looksLikeStorePage(pathname) && !RECRUITMENT_PAGE.test(pathname.toLowerCase());
+}
 // Last path segment: a descriptive slug (3+ words) ending in a product identifier,
 // e.g. "...-zwart-372526317", "...-10627553/" or "...-c1182o0bj-q12.html".
 const SLUG_WITH_ID = /(?:^|\/)[a-z0-9]+(?:-[a-z0-9]+){2,}-(?:\d{6,}|(?=[a-z0-9]*\d)[a-z0-9]{6,}-[a-z0-9]{2,4})(?:\.html?)?\/?$/i;

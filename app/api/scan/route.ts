@@ -71,6 +71,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
+import { pageIdentityType } from "@/lib/page-identity";
 import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
@@ -78,7 +79,7 @@ import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount, internalLinkCount, MIN_REFUSAL_RECOVERY_LINKS } from "@/lib/render-quality";
-import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
+import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeLocationPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -194,7 +195,7 @@ const safeDecodeURIComponent = (value: string) => {
 };
 
 // Legal and policy pages in the main EU languages (one list for typing and ranking).
-const LEGAL_PATH_SEGMENT = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|terms-of-service|conditions-of-use|voorwaarden|algemene-voorwaarden|gebruiksvoorwaarden|leveringsvoorwaarden|verkoopvoorwaarden|retourvoorwaarden|agb|nutzungsbedingungen|conditions-generales|conditions-generales-de-vente|cgv|cgu|mentions-legales|condiciones|terminos|terminos-y-condiciones|aviso-legal|condizioni|termini|note-legali|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)$/i;
+const LEGAL_PATH_SEGMENT = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|terms-of-service|conditions-of-use|voorwaarden|algemene-voorwaarden|gebruiksvoorwaarden|leveringsvoorwaarden|verkoopvoorwaarden|retourvoorwaarden|agb|nutzungsbedingungen|conditions-generales|conditions-generales-de-vente|cgv|cgu|mentions-legales|condiciones|terminos|terminos-y-condiciones|aviso-legal|condizioni|termini|note-legali|cookie|cookies|cookie-policy|cookiebeleid|cookieverklaring|cookie-statement|privacy-statement|privacystatement|privacy-verklaring|privacyreglement|privacy-notice|disclaimer|legal|impressum|toegankelijkheid|toegankelijkheidsverklaring|digitale-toegankelijkheid|digitale-toegankelijkheidsverklaring|accessibility|accessibility-statement|barrierefreiheit|erklaerung-zur-barrierefreiheit|barrierefreiheitserklaerung|accessibilite|declaration-accessibilite|accessibilita|dichiarazione-accessibilita|accesibilidad|declaracion-de-accesibilidad)$/i;
 
 const stripHtml = (html: string) =>
   html
@@ -5196,7 +5197,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other"; evidence: string[] };
     type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
@@ -5248,7 +5249,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (editorialPage) evidence.push("press/news/article path");
         if (eventPage) evidence.push("event path");
         if (corporatePage) evidence.push("corporate information path");
-        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : (articlePath || editorialPage) ? "article" : eventPage ? "event" : corporatePage ? "corporate" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
+        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : (articlePath || editorialPage) ? "article" : eventPage ? "event" : corporatePage ? "corporate" : storePage && looksLikeLocationPath(path) ? "location" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
         return { url: candidate.toString(), type, evidence };
       } catch { return null; }
     };
@@ -5360,7 +5361,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const identityContext = /\b(over ons|over het bedrijf|onze organisatie|about us|about the company|who we are|what we do|our organisation|our organization|company|expertise|our mission|nos activités|qui sommes-nous|über uns|chi siamo)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
-      let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
+      let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "location" ? 20 : item.type === "legal" || isLegal ? 18 : 8;
       if (preferredLocale && candidateLocale === preferredLocale) score += 12;
       else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
       else if (preferredLocale && !candidateLocale) score += 2;
@@ -5394,11 +5395,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
           ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("article", 2),
-          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("corporate", 1), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
+          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("corporate", 1), ...pickMultiPage("event", 1), ...pickMultiPage("location", 1), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("corporate", 2), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
+          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("corporate", 2), ...pickMultiPage("event", 1), ...pickMultiPage("location", 1), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -5731,7 +5732,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           if (item.key === "canonical") return pageCanonical ? 0.85 : 0.9;
           return 0.5;
         };
+        // Own identity (heading, title head, schema) decides over the URL; a page that
+        // sells one product or lists a priced product range is never re-typed by it.
+        const pageIdentity = pageIdentityType({ title: pageTitle, h1s: pageH1s, schemaTypes: pageSchemaTypes,
+          sellsOneProduct: (pageProductSchema && pageStrongCommerceAction && (pageCommerceEvidence.productSchemaCount || 0) <= 1)
+            || ((pageCommerceEvidence.productSchemaCount || 0) >= 2) || (pageCommerceEvidence.repeatedProductLinks && pagePriceSignals >= 3) });
+        if (pageIdentity) page.evidence.push(`inhoud: ${pageIdentity.reason}`);
         const refinedType = refineSamplePageType({
+          identity: pageIdentity,
           proposed: page.type,
           path: finalCandidate.pathname,
           serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
@@ -7546,7 +7554,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, ...Object.fromEntries((["contact","article","homepage","category","product","form","legal","service","listing","support","location","other"] as const).map((type)=>[type, reportedMultiPageAudits.filter((x)=>x.type===type).length])), audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
     // QA 144: every proven problem on another assessed page reaches the advice

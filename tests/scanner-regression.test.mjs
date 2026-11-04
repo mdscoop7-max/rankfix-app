@@ -521,7 +521,7 @@ test("representative page typing includes service listing and support intents", 
   const { readFile } = await import("node:fs/promises");
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /"service" \| "listing" \| "support"/);
-  assert.match(source, /supportPath \? "support" : \(articlePath \|\| editorialPage\) \? "article" : eventPage \? "event" : corporatePage \? "corporate" : listingPath \? "listing"/);
+  assert.match(source, /supportPath \? "support" : \(articlePath \|\| editorialPage\) \? "article" : eventPage \? "event" : corporatePage \? "corporate" : storePage && looksLikeLocationPath\(path\) \? "location" : listingPath \? "listing"/);
   assert.match(source, /resolvedServicePage \? "service"/);
 });
 

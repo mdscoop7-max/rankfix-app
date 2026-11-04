@@ -17,7 +17,7 @@ const SECTIONS: Array<{ section: string; label: string; types: string[]; shopOnl
   { section: "offer", label: "Diensten / aanbod", types: ["service", "corporate", "event", "listing"], nonShopOnly: true },
   { section: "category", label: "Categorie- en overzichtspagina's", types: ["category", "listing"], shopOnly: true },
   { section: "product", label: "Productpagina's", types: ["product"], shopOnly: true },
-  { section: "contact", label: "Contact", types: ["contact", "form"] },
+  { section: "contact", label: "Contact", types: ["contact", "form", "location"] },
   { section: "support", label: "Klantenservice / veelgestelde vragen", types: ["support"] },
   { section: "legal", label: "Juridisch (privacy, voorwaarden, cookies)", types: ["legal"] },
   { section: "content", label: "Artikelen / nieuws", types: ["article"] },

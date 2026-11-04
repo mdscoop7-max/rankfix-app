@@ -27,7 +27,7 @@ test("refined page type: a grid of Products is a category; one Product is a prod
   assert.equal(refineSamplePageType({ ...base, path: "/product-categorie/maskers/", productSchemaCount: 3 }), "category");
   assert.equal(refineSamplePageType({ ...base, path: "/winkel/maskers/", productSchemaCount: 6 }), "category");
   assert.equal(refineSamplePageType({ ...base, path: "/producten/kleimasker/", productSchemaCount: 1 }), "product");
-  assert.equal(refineSamplePageType({ ...base, path: "/winkels/", productSchemaCount: 0, productSchema: false }), "other");
+  assert.equal(refineSamplePageType({ ...base, path: "/winkels/", productSchemaCount: 0, productSchema: false }), "location");
 });
 
 test("press releases, news and events are never products or categories", () => {

@@ -1,5 +1,5 @@
 import { schemaTypesOf } from "./schema-type.ts";
-import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeStorePage } from "./product-links.ts";
+import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeLocationPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
 /**
@@ -11,7 +11,7 @@ export const FINANCIAL_OFFER_SCHEMA_TYPES: ReadonlySet<string> = new Set(["finan
 export function isFinancialOfferSchema(types: string[]): boolean {
   return types.some((type) => FINANCIAL_OFFER_SCHEMA_TYPES.has(String(type).toLowerCase()));
 }
-export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other";
+export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other";
 
 export function refineSamplePageType(input: {
   proposed: SamplePageType;
@@ -41,9 +41,19 @@ export function refineSamplePageType(input: {
   datedArticle?: boolean;
   /** Platform single-product markup (WooCommerce single-product / main add-to-cart, Magento product-info-main). */
   singleProductMarkup?: boolean;
+  /**
+   * Type from the page's own heading/title/schema (lib/page-identity.ts). Content
+   * decides over the URL: a privacy or accessibility statement is legal, an FAQ is
+   * support, a branch overview a location, a price list a service page.
+   */
+  identity?: { type: "legal" | "support" | "contact" | "location" | "pricing"; reason: string } | null;
 }): SamplePageType {
   const { proposed } = input;
-  if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
+  // Legal, FAQ and contact headings decide at once; a price or branch heading only
+  // after the article check (a dated news item "New rates" stays an article).
+  const identity = proposed !== "homepage" ? input.identity : null;
+  if (identity && (identity.type === "legal" || identity.type === "support" || identity.type === "contact")) return identity.type;
+  if (["homepage", "legal", "support", "form", "contact", "location"].includes(proposed)) return proposed;
   const path = input.path || "";
   if (/\/(?:contact|contact-us|contacteer|kontakt)\/?$/i.test(path)) return "contact";
   // Press releases, news and blog posts are articles, whatever links or a shop
@@ -51,6 +61,7 @@ export function refineSamplePageType(input: {
   // before an editorial URL can be a product.
   const editorial = looksLikeEditorialPath(path) || /\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path);
   if (input.articleSchema || input.datedArticle || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
+  if (identity) return identity.type === "pricing" ? "service" : identity.type;
   if (input.eventSchema || (looksLikeEventPath(path) && !input.purchaseAction)) return "event";
   if (looksLikeCorporatePath(path) && !input.productSchema && !input.purchaseAction) return "corporate";
   // An account, loan, card or insurance page is a service page, even below /produkty/ or
@@ -60,7 +71,8 @@ export function refineSamplePageType(input: {
   // unless there is also confirmed product detail evidence.
   // A category archive, store finder or a page listing several Products is a
   // collection even when it carries Product schema and add-to-cart buttons.
-  if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" ? "other" : proposed;
+  // A store finder / branch page is a location page, never a product range.
+  if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" || proposed === "other" ? (looksLikeLocationPath(path) ? "location" : "other") : proposed;
   // An ItemList of articles or topics is not a product range: a collection also
   // shows prices, a purchase action or Product objects.
   const commerceOnPage = input.visiblePrices > 0 || input.purchaseAction || (input.productSchemaCount || 0) > 0;
@@ -115,7 +127,7 @@ export function refineSamplePageType(input: {
  * with "no purchase action and no Product schema", so a shop page never becomes a
  * service page. No brand, domain or sector vocabulary.
  */
-export const SERVICE_INTENT = /(?<![\p{L}])(?:diensten|dienstverlening|aanvragen|afsluiten|versturen|verzenden|aangetekend|tarieven|abonnement(?:en)?|service[s]?|solutions?|apply|request|open an account|send(?:ing)? a (?:parcel|letter|package)|ship(?:ping)? (?:a )?(?:parcel|package)|track(?:ing)? (?:a |your )?(?:parcel|shipment)|rates|plans|envoyer|exp[ée]dier|exp[ée]dition|envoi|souscrire|ouvrir un compte|demander|suivre (?:un|votre) (?:envoi|colis)|tarifs|offres?|solutions? d|versenden|verschicken|beantragen|abschlie(?:ß|ss)en|er[öo]ffnen|tarife|leistungen|l[öo]sungen|spedire|spedizion[ei]|richied[ei]re|richiedi|aprire (?:un|il) conto|attivare|tariffe|servizi[o]?|soluzioni|enviar|env[ií]o|solicitar|contratar|abrir una cuenta|tarifas|servicios?|soluciones|wy[śs]lij|wysy[łl]k[aią]|za[łl][óo][żz]|otw[óo]rz|wniosek|z[łl][óo][żz] wniosek|us[łl]ug[aiy]?|cennik|oferta|rozwi[ąa]zania|leasing|konto (?:osobiste|firmowe)|abrir conta|servi[çc]os|solicitar|customer support|support portal|supplier portal|customer portal|portal|klantenservice|kundenservice|kundendienst|service client|assistenza clienti|atenci[óo]n al cliente|obs[łl]uga klienta)(?![\p{L}])/iu;
+export const SERVICE_INTENT = /(?<![\p{L}])(?:\p{L}*lessen|lessons?|(?:personal |group |small group |groeps)?trainings?|trainingen|workshops?|cursus(?:sen)?|courses?|kurse?|cours|corsi|clases|coaching|behandeling(?:en)?|treatments?|massages?|diensten|dienstverlening|aanvragen|afsluiten|versturen|verzenden|aangetekend|tarieven|abonnement(?:en)?|service[s]?|solutions?|apply|request|open an account|send(?:ing)? a (?:parcel|letter|package)|ship(?:ping)? (?:a )?(?:parcel|package)|track(?:ing)? (?:a |your )?(?:parcel|shipment)|rates|plans|envoyer|exp[ée]dier|exp[ée]dition|envoi|souscrire|ouvrir un compte|demander|suivre (?:un|votre) (?:envoi|colis)|tarifs|offres?|solutions? d|versenden|verschicken|beantragen|abschlie(?:ß|ss)en|er[öo]ffnen|tarife|leistungen|l[öo]sungen|spedire|spedizion[ei]|richied[ei]re|richiedi|aprire (?:un|il) conto|attivare|tariffe|servizi[o]?|soluzioni|enviar|env[ií]o|solicitar|contratar|abrir una cuenta|tarifas|servicios?|soluciones|wy[śs]lij|wysy[łl]k[aią]|za[łl][óo][żz]|otw[óo]rz|wniosek|z[łl][óo][żz] wniosek|us[łl]ug[aiy]?|cennik|oferta|rozwi[ąa]zania|leasing|konto (?:osobiste|firmowe)|abrir conta|servi[çc]os|solicitar|customer support|support portal|supplier portal|customer portal|portal|klantenservice|kundenservice|kundendienst|service client|assistenza clienti|atenci[óo]n al cliente|obs[łl]uga klienta)(?![\p{L}])/iu;
 
 /**
  * Number of schema.org Product objects in a page's JSON-LD that are not nested

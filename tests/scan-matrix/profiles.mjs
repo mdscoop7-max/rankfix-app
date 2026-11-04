@@ -93,7 +93,7 @@ export const PROFILES = [
   // WooCommerce shop: a /product-categorie/ grid (several Product objects, add-to-cart
   // buttons) and a store finder are never the representative product page.
   { id: "woo-category-vs-product", host: "argan.test", expect: ["ecommerce"], commerce: true,
-    sampleTypes: { "/product-categorie/maskers/": ["category"], "/winkels/": ["other", "contact", "service"] }, productSample: /^\/producten\/kleimasker-250-gram\/$/,
+    sampleTypes: { "/product-categorie/maskers/": ["category"], "/winkels/": ["location", "other", "contact", "service"] }, productSample: /^\/producten\/kleimasker-250-gram\/$/,
     home: { title: "Arganolie en natuurlijke verzorging | Argan Winkel", desc: "Natuurlijke huidverzorging online bestellen. Gratis verzending vanaf € 35.", h1: "Natuurlijke verzorging",
       extraHead: "<link rel='stylesheet' href='/wp-content/plugins/woocommerce/assets/css/woocommerce.css'>",
       body: "<p><a href='/product-categorie/maskers/'>Maskers</a> <a href='/winkels/'>Onze winkels</a> <a href='/producten/kleimasker-250-gram/'>Kleimasker 250 gram</a> <a href='/winkelwagen/'>Winkelwagen</a></p><div class='product-card'>Kleimasker <span>€ 13,95</span><button class='add_to_cart_button'>In winkelwagen</button></div>" },
@@ -114,7 +114,7 @@ export const PROFILES = [
   // Shopify theme shop (Intersport-like): collections are categories, store finder and
   // franchise pages are not product ranges, a product page is the product sample.
   { id: "shopify-collections-stores", host: "sportshop.test", expect: ["ecommerce"], commerce: true, tech: { commercePlatform: "Shopify" },
-    sampleTypes: { "/collections/hardloopschoenen": ["category"], "/pages/winkels": ["other", "contact", "service"], "/pages/franchise": ["other", "service", "contact"] }, productSample: /^\/products\/hardloopschoen-x$/,
+    sampleTypes: { "/collections/hardloopschoenen": ["category"], "/pages/winkels": ["location", "other", "contact", "service"], "/pages/franchise": ["other", "service", "contact"] }, productSample: /^\/products\/hardloopschoen-x$/,
     home: { title: "Sportshop – sportkleding en schoenen online", desc: "Sportkleding, hardloopschoenen en outdoor online bestellen. Gratis retour.", h1: "Sportshop", extraHead: "<link rel='stylesheet' href='//__HOST__/cdn/shop/t/12/assets/base.css'><script src='https://cdn.shopify.com/s/files/1/0001/t/1/assets/global.js'></script><script>window.Shopify = window.Shopify || {}; Shopify.theme = {name:'Dawn'};</script>",
       body: "<div class='shopify-section'><a href='/collections/hardloopschoenen'>Hardloopschoenen</a> <a href='/pages/winkels'>Winkels</a> <a href='/pages/franchise'>Franchise</a> <a href='/products/hardloopschoen-x'>Hardloopschoen X</a> <a href='/cart'>Winkelwagen</a></div><div class='product-card'>Hardloopschoen X <span class='price-item price-item--regular'>€129,95</span><button name='add'>In winkelwagen</button></div>" },
     files: {
