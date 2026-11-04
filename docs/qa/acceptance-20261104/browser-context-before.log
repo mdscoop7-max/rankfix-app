@@ -1,0 +1,16 @@
+UI PASS: remembered scan URL survives SSR/hydration
+UI PASS: URL language and reset token reach the request intact
+UI PASS: account mode and locale follow URL defaults
+file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/common/WaitTask.js:46
+            this.#timeoutError = new TimeoutError(`Waiting failed: ${options.timeout}ms exceeded`);
+                                 ^
+
+TimeoutError: Waiting failed: 30000ms exceeded
+    at new WaitTask (file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/common/WaitTask.js:46:34)
+    at IsolatedWorld.waitForFunction (file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Realm.js:49:26)
+    at CdpFrame.waitForFunction (file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:585:43)
+    at CdpFrame.<anonymous> (file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/util/decorators.js:101:27)
+    at CdpPage.waitForFunction (file:///workspace/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:1542:37)
+    at file:///workspace/rankfix-app/tests/ui-context-smoke.mjs:74:14
+
+Node.js v24.22.1

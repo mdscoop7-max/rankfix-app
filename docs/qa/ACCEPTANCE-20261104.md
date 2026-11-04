@@ -98,3 +98,15 @@ De vier PostgreSQL-integratietests zijn geslaagd op een tijdelijke, uitsluitend 
 - Native Windows/Linux-CI wordt na push opnieuw gecontroleerd. De eerste native mislukkingen zijn niet verborgen; hun oorzaak en herstel staan hierboven.
 
 Totaal negen vastgestelde reparatiepunten, waarvan de laatste verouderde testverwachtingen verduidelijkt met sterkere, afzonderlijke scenario's. De negen punten zijn geen negen bewezen klantwebsitefouten. De oorspronkelijke gedeeltelijke live run blijft uitsluitend bewijs voor scannercommit ce240ef8; na de budgetwijziging is volledige liveacceptatie nog vereist.
+
+## Laatste browsercontrole en volledige 144-selectie
+
+10. TestLab bevatte nog een hardcoded uitsluiting van `vdlgroep.com`, waardoor de zichtbare optie voor alle websites slechts 143 sites kon starten. De uitsluiting en bijbehorende misleidende vaste telling zijn verwijderd. De bestaande live run leverde voor VDL al een rapport op. De browserregressie neemt VDL nu als eerste doel in de gecontroleerde 144-site-fixture en bewijst dat deze host wordt behandeld, met behoud van export- en hervatgedrag. Geen catalogussite stilzwijgend uitgesloten.
+11. De browserfixture voor stop/hervat retourneerde voor het later toegevoegde lokale-sessie-eindpunt standaard HTTP 200; daardoor omzeilde de fixture haar eigen gesimuleerde loginverlies. De fixture retourneert nu expliciet 401 voor lokale toegang zodat de echte accountcontrole wordt getest. Product-authenticatie is niet versoepeld.
+12. De browsercontexttest verwachtte automatisch getoonde ruwe Fix-tekst uit een scan, terwijl de bestaande veiligheidslogica alleen het gecontroleerde scanprobleem toont totdat een voorstel bewust wordt voorbereid. De test controleert nu contextwisseling van de bevinding, afwezigheid van de oude bevinding, afwezigheid van ongereviewde voorsteltekst en nul Fix-API-aanroepen. Geen onveilige productweergave teruggebracht om een test groen te maken.
+
+De lokale productiebrowsercontroles slagen: `TESTLAB_STOP_RESUME_OK`, `AXE_REAL_BROWSER_OK`, `AXE_NOT_BUNDLED_OK`, mobiele/desktopnavigatie en ontbrekende-scanherstel, plus alle vijf UI-contextscenario's inclusief historie, taal, tokens, hydratatie en geen ongevraagde Fix-publicatie. Alle API-antwoorden in deze browserregressies zijn expliciete fixtures; dit zijn geen live scans van klantwebsites.
+
+Browserstart voor deze lokale HTTP-tests werkte met tijdelijke schrijfbare XDG-configuratie/cache. Dit wijzigt geen blijvende certificaattruststore en neemt de afzonderlijk vastgestelde externe proxy/TLS-blokkade niet weg. De geweigerde CA-import is niet uitgevoerd.
+
+Na deze laatste UI-/fixturewijzigingen: volledige `npm test` opnieuw **1004 geslaagd, 0 mislukt, 8 standaard-skips**, typecheck en build geslaagd, lint 0 fouten/59 waarschuwingen. De afzonderlijke 4 PostgreSQL-tests en wall-clock-test waren al groen op de ongewijzigde scanroute. Totaal **12 reparatiepunten** in dit rapport; dit zijn QA-/test-/scanproblemen, niet 12 bewezen fouten bij klantwebsites. De eerste native Windows/Linux-checks op reparatiecommit 9ea6be34 zijn beide groen; de laatste push krijgt opnieuw dezelfde controles.

@@ -1,0 +1,35 @@
+[
+ {
+  "phase": "A",
+  "status": "RankFix meldde login. Test gestopt; coolblue.nl is niet als eindresultaat opgeslagen (gemarkeerd als opnieuw te testen) en wordt bij hervatten opnieuw gescand.",
+  "rows": [
+   "vdlgroep.com:succes",
+   "coolblue.nl:login(opnieuw)"
+  ]
+ },
+ {
+  "phase": "C",
+  "calls": {
+   "vdlgroep.com": 1,
+   "coolblue.nl": 2,
+   "vesteda.com": 2,
+   "funda.nl": 1
+  },
+  "rows": [
+   "vdlgroep.com:succes",
+   "coolblue.nl:succes",
+   "vesteda.com:succes",
+   "funda.nl:succes"
+  ]
+ },
+ {
+  "phase": "D",
+  "status": "RankFix meldde login. Test gestopt; asml.com is niet als eindresultaat opgeslagen (gemarkeerd als opnieuw te testen) en wordt bij hervatten opnieuw gescand."
+ },
+ {
+  "phase": "E",
+  "exported": 144,
+  "succes": 4
+ }
+]
+TESTLAB_STOP_RESUME_OK

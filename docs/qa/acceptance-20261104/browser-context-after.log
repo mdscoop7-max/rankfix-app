@@ -1,0 +1,5 @@
+UI PASS: remembered scan URL survives SSR/hydration
+UI PASS: URL language and reset token reach the request intact
+UI PASS: account mode and locale follow URL defaults
+UI PASS: changing scan context replaces the finding without preparing or publishing a fix
+UI PASS: saved history preserved; no hydration errors or render loops

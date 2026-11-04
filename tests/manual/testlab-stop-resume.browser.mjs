@@ -23,6 +23,8 @@ const fx = (p) => JSON.parse(readFileSync(new URL(`../fixtures/${p}`, import.met
 const rounds = ["testlab-96/round-a.json", "testlab-96/round-b.json", "testlab-96/round-c-nieuw.json", "testlab-96/round-d-nieuw.json", "testlab-144/round-e-service-retail.json", "testlab-144/round-f-service-retail.json"].map(fx);
 const sites = rounds.flatMap((r) => r.sites.map((s) => ({ host: s.hosts[0], name: s.name, country: s.country, expected: s.expected, group: s.group, round: r.id })));
 assert.equal(sites.length, 144);
+// A previously excluded host must still be scanned, including in a resumed run.
+sites[0] = { ...sites[0], host: "vdlgroep.com", name: "VDL Groep" };
 const H = sites.slice(0, 5).map((s) => s.host);
 
 const state = { loggedIn: true, scanCalls: {}, behaviour: {}, aborted: new Set() };
@@ -40,6 +42,7 @@ page.on("request", async (req) => {
   if (url.pathname === "/api/testlab/catalog") return respond(req, { sites, count: 144, catalogId: "baseline", categoryCounts: { webshops: 8, other: 136 }, runtime: { commitSha: SHA, environment: "preview" } });
   if (url.pathname === "/api/scan/version") return respond(req, { commitSha: SHA, environment: "preview" });
   if (url.pathname === "/api/auth/me") return respond(req, { user: state.loggedIn ? { id: "qa" } : null });
+  if (url.pathname === "/api/testlab/local-session") return respond(req, { authorized: false }, 401);
   if (url.pathname === "/api/scan") {
     const host = new URL(JSON.parse(req.postData()).url).host;
     state.scanCalls[host] = (state.scanCalls[host] || 0) + 1;

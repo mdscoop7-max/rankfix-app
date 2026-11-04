@@ -36,8 +36,8 @@ try {
     if(url.pathname==="/api/history")body={usage:{plan:"pro"},scans:[]};
     if(url.pathname==="/api/github/status")body={connected:false};
     if(url.pathname==="/api/reviews/public")body={reviews:[]};
-    if(url.pathname==="/api/history/first")body={scan:{scanned_url:"https://first.example/",result:{seo:{checks:[{issue_id:"H1_MISSING",title:"Heading",fix:"<h1>First verified proposal</h1>"}]}}}};
-    if(url.pathname==="/api/history/second")body={scan:{scanned_url:"https://second.example/",result:{seo:{checks:[{issue_id:"H1_MISSING",title:"Heading",fix:"<h1>Second verified proposal</h1>"}]}}}};
+    if(url.pathname==="/api/history/first")body={scan:{scanned_url:"https://first.example/",result:{seo:{checks:[{issue_id:"H1_MISSING",title:"Heading",message:"First verified finding",fix:"<h1>First unreviewed proposal</h1>"}]}}}};
+    if(url.pathname==="/api/history/second")body={scan:{scanned_url:"https://second.example/",result:{seo:{checks:[{issue_id:"H1_MISSING",title:"Heading",message:"Second verified finding",fix:"<h1>Second unreviewed proposal</h1>"}]}}}};
     void request.respond({status:200,contentType:"application/json",body:JSON.stringify(body)});
   });
   const history=[{url:"https://saved.example/",status:"success",score:61}];
@@ -71,13 +71,14 @@ try {
   console.log("UI PASS: account mode and locale follow URL defaults");
 
   await page.goto(origin+"/dashboard/github?scan_id=first&issue_id=H1_MISSING",{waitUntil:"networkidle0"});
-  await page.waitForFunction(()=>document.body.innerText.includes("First verified proposal"));
+  await page.waitForFunction(()=>document.body.innerText.includes("First verified finding"));
   // App Router updates the query without a full document reload.
   await page.evaluate(()=>window.history.pushState(null,"","/dashboard/github?scan_id=second&issue_id=H1_MISSING"));
-  await page.waitForFunction(()=>document.body.innerText.includes("Second verified proposal"));
-  assert.equal(await page.evaluate(()=>document.body.innerText.includes("First verified proposal")),false);
+  await page.waitForFunction(()=>document.body.innerText.includes("Second verified finding"));
+  assert.equal(await page.evaluate(()=>document.body.innerText.includes("First verified finding")),false);
+  assert.equal(await page.evaluate(()=>/unreviewed proposal/.test(document.body.innerText)),false,"raw check advice is not a reviewed fix proposal");
   assert.equal(requests.filter(r=>r.path==="/api/github/fix").length,0,"viewing proposals never publishes a fix");
-  console.log("UI PASS: changing scan context replaces the old proposal without publication");
+  console.log("UI PASS: changing scan context replaces the finding without preparing or publishing a fix");
 
   await page.goto(origin+"/",{waitUntil:"networkidle0"});
   assert.equal(await page.evaluate(()=>localStorage.getItem("rankfix-free-scan-test-sites-v1")),JSON.stringify(history));

@@ -1,0 +1,115 @@
+
+> rankfix-app@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.ts took 23ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 876ms
+  Running TypeScript ...
+  Finished TypeScript in 3.9s ...
+  Collecting page data using 2 workers ...
+  Generating static pages using 2 workers (0/113) ...
+  Generating static pages using 2 workers (28/113) 
+  Generating static pages using 2 workers (56/113) 
+  Generating static pages using 2 workers (84/113) 
+✓ Generating static pages using 2 workers (113/113) in 760ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /[locale]
+├ ƒ /[locale]/[page]
+├ ƒ /[locale]/contact
+├ ƒ /[locale]/help
+├ ƒ /[locale]/scan
+├ ƒ /account
+├ ƒ /account/forgot-password
+├ ƒ /account/reset-password
+├ ƒ /api/account/language
+├ ƒ /api/admin/reviews
+├ ƒ /api/ai-fix
+├ ƒ /api/assistant
+├ ƒ /api/assistant/scan
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/register
+├ ƒ /api/auth/reset-password
+├ ƒ /api/competitor-scan
+├ ƒ /api/contact
+├ ƒ /api/fixes/status
+├ ƒ /api/github/callback
+├ ƒ /api/github/connect
+├ ƒ /api/github/fix
+├ ƒ /api/github/repos
+├ ƒ /api/github/site-repository
+├ ƒ /api/github/site-repository/connect
+├ ƒ /api/github/status
+├ ƒ /api/google/search-console/callback
+├ ƒ /api/google/search-console/connect
+├ ƒ /api/google/search-console/performance
+├ ƒ /api/google/search-console/properties
+├ ƒ /api/health
+├ ƒ /api/health/admin-status
+├ ƒ /api/health/db
+├ ƒ /api/health/run-now
+├ ƒ /api/health/system
+├ ƒ /api/history
+├ ƒ /api/history/[id]
+├ ƒ /api/internal/health/run
+├ ƒ /api/internal/jobs/run
+├ ƒ /api/internal/monitor/run
+├ ƒ /api/local-seo
+├ ƒ /api/monitor
+├ ƒ /api/recheck
+├ ƒ /api/reviews
+├ ƒ /api/reviews/public
+├ ƒ /api/scan
+├ ƒ /api/scan/version
+├ ƒ /api/testlab/catalog
+├ ƒ /api/testlab/local-session
+├ ƒ /checkout
+├ ƒ /cookies
+├ ƒ /dashboard
+├ ƒ /dashboard/account
+├ ƒ /dashboard/audit/[id]
+├ ƒ /dashboard/audit/[id]/report
+├ ƒ /dashboard/competitor
+├ ƒ /dashboard/contact
+├ ƒ /dashboard/fixes
+├ ƒ /dashboard/github
+├ ƒ /dashboard/health
+├ ƒ /dashboard/help
+├ ƒ /dashboard/history
+├ ƒ /dashboard/how
+├ ƒ /dashboard/local-seo
+├ ƒ /dashboard/more
+├ ƒ /dashboard/review-admin
+├ ƒ /dashboard/reviews
+├ ƒ /dashboard/scan
+├ ƒ /dashboard/search-console
+├ ƒ /dashboard/testlab
+├ ƒ /dashboard/testlab/export
+├ ƒ /dashboard/testlab/report
+├ ○ /opengraph-image
+├ ƒ /pricing
+├ ƒ /privacy
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+└ ƒ /voorwaarden
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
