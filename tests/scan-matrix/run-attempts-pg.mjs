@@ -32,7 +32,8 @@ globalThis.fetch = async (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const html = (b, st = 200, h = {}) => new Response(b, { status: st, headers: { "content-type": "text/html; charset=utf-8", ...h } });
   if (u.host === "ok.test") return u.pathname === "/" ? html(page("Adviesbureau Test")) : html(page("Contact"), u.pathname === "/robots.txt" ? 404 : 200);
-  if (u.host === "missing.test") return html("not found", 404);
+  if (u.host === "missing.test") return html('<html><head><title>404 - Page not found</title></head><body><h1>Page not found</h1><p>The page you requested does not exist.</p></body></html>', 404);
+  if (u.host === "uncertain404.test") return html("not found", 404);
   if (u.host === "blocked.test") return html("<html><head><title>Access denied</title></head><body>Access denied</body></html>", 403);
   if (u.host === "slow.test") { const e = new Error("This operation was aborted"); e.name = "AbortError"; throw e; }
   // Consent redirect loop that only ends when the cookie is sent back.
@@ -51,6 +52,7 @@ const run = async (url) => { const restore = quiet(); try { const r = await POST
 const cases = [
   { url: "https://ok.test/", status: 200, outcome: "success", category: "success" },
   { url: "https://missing.test/", status: 422, outcome: "failed", category: "site_unavailable", code: "HTTP_NOT_FOUND" },
+  { url: "https://uncertain404.test/", status: 422, outcome: "failed", category: "site_blocked", code: "UNVERIFIED_NOT_FOUND" },
   { url: "https://blocked.test/", status: 422, outcome: "failed", category: "site_blocked", code: "HTTP_BLOCKED" },
   { url: "https://slow.test/", status: 502, outcome: "failed", category: "network", code: "FETCH_TIMEOUT" },
   { url: "nonsense url with spaces", status: 400, outcome: "failed", category: "input" },

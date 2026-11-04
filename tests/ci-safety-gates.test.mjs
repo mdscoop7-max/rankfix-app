@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {resolve} from 'node:path';
-const root=process.env.RF_SAFETY_BASELINE||new URL('..',import.meta.url).pathname;
+import {fileURLToPath} from 'node:url';
+const root=process.env.RF_SAFETY_BASELINE||fileURLToPath(new URL('..',import.meta.url));
 const read=p=>readFileSync(resolve(root,p),'utf8');
 test('CI audit and lint failures are blocking and installation uses the lockfile',()=>{const s=read('.github/workflows/ci.yml');assert.doesNotMatch(s,/continue-on-error:\s*true/);assert.match(s,/npm ci --no-audit/);});
 test('known critical Next and browser dependency advisories are addressed by pinned versions',()=>{const p=JSON.parse(read('package.json'));assert.equal(p.dependencies.next,'16.4.3');assert.equal(p.dependencies['puppeteer-core'],'25.16.0');assert.equal(p.overrides.zod,'4.6.6');});

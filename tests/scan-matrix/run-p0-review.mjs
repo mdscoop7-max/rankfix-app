@@ -1,4 +1,6 @@
 import {writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {extractImageMetrics} from '../../lib/image-metrics.ts';
 import {findInertOrderButtons,findTestProducts} from '../../lib/content-integrity.ts';
 import {missionOrganisationIdentity,constructionGroupIdentity} from '../../lib/organisation-identity.ts';
@@ -51,7 +53,7 @@ Object.assign(console,saved);
 const {safePublicFetch}=await import('../../lib/safe-fetch.ts');const cookieRequests=[];
 globalThis.fetch=async(input,options={})=>{const u=String(input);cookieRequests.push({url:u,cookie:new Headers(options.headers).get('cookie')});return cookieRequests.length===1?new Response('',{status:302,headers:{location:'https://second.co.uk/destination','set-cookie':'session=private-test-value; Path=/; Secure; HttpOnly'}}):new Response('ok',{status:200});};
 await safePublicFetch('https://first.co.uk/start');
-writeFileSync(process.env.RF_P0_REPORT || '/tmp/rankfix-p0-route-results.json',JSON.stringify({unit,cookieRequests,outputs},null,2));
+writeFileSync(process.env.RF_P0_REPORT || join(tmpdir(),'rankfix-p0-route-results.json'),JSON.stringify({unit,cookieRequests,outputs},null,2));
 console.log('UNIT',JSON.stringify(unit));console.log('COOKIES',JSON.stringify(cookieRequests));
 for(const o of outputs){const all=[...(o.report.seo?.checks||[]),...(o.report.geo?.checks||[])];console.log(o.id,JSON.stringify({status:o.status,sector:o.report.sectorProfile?.sector,checks:all.filter(c=>['h1','headings','title','description','canonical','image_alt','alt','test_content','order_button','review_claims','indexability','robots_meta'].includes(c.key)).map(c=>({key:c.key,status:c.status,points:c.points,max:c.maxPoints,message:c.message})),imageRequest:o.requests.some(x=>x.url.endsWith('/gone.jpg'))}));}
 // Acceptance checks preserve the review's negative cases as route regressions.

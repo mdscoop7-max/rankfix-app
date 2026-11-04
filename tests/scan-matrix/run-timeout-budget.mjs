@@ -16,11 +16,12 @@ const SCEN = {
   "all-samples-hang": { primary: "ok", samples: "hang" },
 };
 let current = null;
+let primaryHosts = [];
 globalThis.fetch = async (input, init) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const sc = SCEN[current];
   if (/\.(?:txt|xml)$/.test(u.pathname)) return new Response("nf", { status: 404 });
-  if (u.pathname === "/" ) return sc.primary === "hang" ? hang(init) : new Response(page(u.host, "Vervoerder"), { status: 200, headers: { "content-type": "text/html" } });
+  if (u.pathname === "/" ) { primaryHosts.push(u.host); return sc.primary === "hang" ? hang(init) : new Response(page(u.host, "Vervoerder"), { status: 200, headers: { "content-type": "text/html" } }); }
   return sc.samples === "hang" ? hang(init) : new Response(page(u.host, u.pathname.slice(1)), { status: 200, headers: { "content-type": "text/html" } });
 };
 globalThis.__RF_RENDER = async (url) => {
@@ -33,6 +34,7 @@ console.info = () => {}; console.warn = () => {}; console.error = () => {};
 const problems = [];
 for (const id of Object.keys(SCEN)) {
   current = id;
+  primaryHosts = [];
   const t0 = Date.now();
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${id}.test/`, mode: "both", language: "nl" }) }));
   const j = await res.json();
@@ -45,7 +47,8 @@ for (const id of Object.keys(SCEN)) {
   }
   if (id === "primary-hangs-browser-fails") {
     if (res.status !== 502 || j.code !== "FETCH_TIMEOUT") fail(`HTTP ${res.status} ${j.code}`);
-    if (j.diagnosis?.attempts !== 2) fail(`diagnosis attempts ${j.diagnosis?.attempts}`);
+    if (j.diagnosis?.attempts !== 3) fail(`diagnosis attempts ${j.diagnosis?.attempts}`);
+    if (primaryHosts.join(',') !== `${id}.test,${id}.test,www.${id}.test`) fail(`unexpected retries ${primaryHosts.join(',')}`);
     if (j.charged !== false) fail("must not be charged");
     if (s > 45) fail(`took ${s}s (limit 45s)`);
     // QA-144: a time-out of a correct URL must not tell the customer to check the URL.

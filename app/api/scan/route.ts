@@ -920,7 +920,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     let timeoutRecovery: { code: string; rendered: Awaited<ReturnType<typeof renderPublicPage>> } | null = null;
     try {
       let activeTarget = target;
-      const fetchOnce = () => (primaryFetchAttempts++, safePublicFetch(activeTarget, { timeoutMs: 15000, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` }));
+      const fetchOnce = (timeoutMs = 15000) => (primaryFetchAttempts++, safePublicFetch(activeTarget, { timeoutMs, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` }));
       // One retry for transient failures (timeout, reset connection, 502/503/504),
       // so a single slow response does not cost the whole scan.
       const fetchTarget = async () => {
@@ -955,8 +955,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           activeTarget = validatePublicHttpUrl(`${activeTarget.protocol}//${alternate}${activeTarget.pathname}${activeTarget.search}`);
           try {
             // The first host already had two attempts after a timeout: the counterpart
-            // gets one, so the extra wait stays bounded (≤ 15 s).
-            const alternate = code === "FETCH_DNS" ? await fetchTarget() : await fetchOnce();
+            // gets one short probe (≤ 5 s), preserving time for browser recovery.
+            const alternate = code === "FETCH_DNS" ? await fetchTarget() : await fetchOnce(5000);
             // After a timeout the counterpart only replaces the entered address when
             // it actually serves a page (2xx): a 404/403/5xx there says nothing about
             // the address the customer entered.

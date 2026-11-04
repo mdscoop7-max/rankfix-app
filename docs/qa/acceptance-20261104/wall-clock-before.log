@@ -1,0 +1,36 @@
+✖ timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly (123291.012075ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 123347.080684
+
+✖ failing tests:
+
+test at tests/scan-matrix.test.mjs:151:1
+✖ timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly (123291.012075ms)
+  AssertionError [ERR_ASSERTION]: primary-hangs-browser-ok: HTTP 200  in 49s
+  primary-hangs-browser-fails: HTTP 502 FETCH_TIMEOUT in 47s
+  all-samples-hang: HTTP 200  in 27s
+   - primary-hangs-browser-fails: diagnosis attempts 3
+   - primary-hangs-browser-fails: took 47s (limit 45s)
+  SCAN_MATRIX_RESULT {"total":3,"failed":2}
+  
+  
+  2 !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-app/tests/scan-matrix.test.mjs:153:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

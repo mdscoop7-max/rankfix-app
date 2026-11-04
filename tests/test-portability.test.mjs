@@ -31,7 +31,7 @@ test("fixture reads and ESM imports work in a real path with spaces, Unicode, # 
 test("offline runners never use URL.pathname as a native path or ESM specifier", () => {
   const folders = [new URL("./scan-matrix/", import.meta.url), new URL("./fix-engine/", import.meta.url)];
   const files = folders.flatMap(dir => readdirSync(dir).filter(f => f.endsWith(".mjs")).map(f => new URL(f, dir)));
-  files.push(new URL("./report-checks-p9.test.mjs", import.meta.url), new URL("./ymyl-sample.test.mjs", import.meta.url));
+  files.push(new URL("./report-checks-p9.test.mjs", import.meta.url), new URL("./ymyl-sample.test.mjs", import.meta.url), new URL("./ci-safety-gates.test.mjs", import.meta.url), new URL("../scripts/testlab/validate-mkb-catalog.mjs", import.meta.url));
   for (const file of files) assert.doesNotMatch(readFileSync(file, "utf8"), /new URL\([^\n]*import\.meta\.url\)\.pathname/, file.href);
 });
 

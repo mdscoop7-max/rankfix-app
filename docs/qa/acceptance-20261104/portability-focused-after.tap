@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: CI audit and lint failures are blocking and installation uses the lockfile
+ok 1 - CI audit and lint failures are blocking and installation uses the lockfile
+  ---
+  duration_ms: 0.951587
+  type: 'test'
+  ...
+# Subtest: known critical Next and browser dependency advisories are addressed by pinned versions
+ok 2 - known critical Next and browser dependency advisories are addressed by pinned versions
+  ---
+  duration_ms: 0.272142
+  type: 'test'
+  ...
+# Subtest: lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy
+ok 3 - lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy
+  ---
+  duration_ms: 4.289916
+  type: 'test'
+  ...
+# Subtest: P0 independent review scenarios retain safe evidence and no false retail penalties
+ok 4 - P0 independent review scenarios retain safe evidence and no false retail penalties
+  ---
+  duration_ms: 1320.499721
+  type: 'test'
+  ...
+# Subtest: file URL conversion retains Windows drive/UNC paths and encoded characters on either OS
+ok 5 - file URL conversion retains Windows drive/UNC paths and encoded characters on either OS
+  ---
+  duration_ms: 5.452677
+  type: 'test'
+  ...
+# Subtest: fixture reads and ESM imports work in a real path with spaces, Unicode, \# and %
+ok 6 - fixture reads and ESM imports work in a real path with spaces, Unicode, \# and %
+  ---
+  duration_ms: 1.56798
+  type: 'test'
+  ...
+# Subtest: offline runners never use URL.pathname as a native path or ESM specifier
+ok 7 - offline runners never use URL.pathname as a native path or ESM specifier
+  ---
+  duration_ms: 2.916014
+  type: 'test'
+  ...
+# Subtest: child result parsing accepts LF/CRLF but rejects spawn errors, nonzero exits and missing results
+ok 8 - child result parsing accepts LF/CRLF but rejects spawn errors, nonzero exits and missing results
+  ---
+  duration_ms: 1.342997
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1477.31908

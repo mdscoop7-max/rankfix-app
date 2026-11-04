@@ -8,7 +8,7 @@ Status: **gedeeltelijk gevalideerd; volledige live/browseracceptatie geblokkeerd
 - Deze bevat alle `main`-commits (`3b108a45`), loopt 374 commits voor en bevat 12 commits boven de opgegeven `6950e510`.
 - De P0-branch `fix/report-quality-generic-p1-p10-20261031` is al een ancestor; geen herhaalde integratie nodig. Bestaande timeoutattributie, sectorbewijzen, productpaginacontroles en consistente product/merchant-oordelen zijn al aanwezig.
 - Open PRs gecontroleerd; er was geen PR voor deze integratiebranch. De oudere afzonderlijke herstel-PRs zijn niet blind gemerged.
-- Geen scanengine-, score-, sector-, dashboard-, navigatie- of modulewijzigingen in deze reparatie. De live scanengine is exact die van bovenstaande uitgangscommit.
+- De gedeeltelijke live run onderzocht bovenstaande uitgangscommit. In de latere eindcontrole is uitsluitend de extra timeoutprobe van de scanengine begrensd van 15 naar 5 seconden (zie hieronder). Scores, sectoren, dashboardnavigatie en modules zijn niet gewijzigd. De gedeeltelijke live run is geen meting van die definitieve timeoutreparatie.
 
 ## Vijf aantoonbare infrastructuurfouten hersteld
 
@@ -49,7 +49,7 @@ Chrome start binnen de scanomgeving niet betrouwbaar: `BROWSER_UNAVAILABLE`, `ch
 
 Automatische goedkeuringscontrole heeft het toevoegen van de omgevingsproxy-CA aan de blijvende NSS-truststore geweigerd: dit zou het certificaatvertrouwen buiten deze run wijzigen zonder expliciete toestemming. Die actie is niet uitgevoerd; TLS-validatie is niet uitgezet en de weigering is niet omzeild. Voor die specifieke truststorewijziging is expliciete toestemming nodig; een vooraf correct ingerichte browseromgeving kan de blokkade ook wegnemen.
 
-Daarna zijn een nieuwe volledige 144-live-run en browseracceptatie nodig op de definitieve QA-commit, inclusief CBS, Kadaster, Leen Bakker en webshop-/checkoutdekking. Echte databaseflows vereisen een geschikte geïsoleerde databaseconfiguratie. Geen merge naar main zolang acceptatiebewijs en vereiste controles onvoldoende zijn.
+Daarna zijn een nieuwe volledige 144-live-run en browseracceptatie nodig op de definitieve QA-commit, inclusief CBS, Kadaster, Leen Bakker en webshop-/checkoutdekking. De echte databaseflows zijn daarna alsnog uitgevoerd op een tijdelijke geïsoleerde PostgreSQL 17-container; zie de aanvullende resultaten hieronder. Geen merge naar main zolang acceptatiebewijs en vereiste controles onvoldoende zijn.
 
 ## Bewijs en herhaalbaarheid
 
@@ -73,3 +73,28 @@ De vereisten staan al in `tests/fixtures/testlab-mkb/requirements.json`, met `bl
 GitHub rapporteert voor de Vercel-check **Account is blocked**. Dit is een externe accountblokkade, geen bewijs van een geslaagde deployment; accountinstellingen zijn niet gewijzigd.
 
 Check op de eerste gepushte bewijscommit: https://github.com/mdscoop7-max/rankfix-app/actions/runs/41826507059/job/126562471658 . De PR blijft concept: https://github.com/mdscoop7-max/rankfix-app/pull/221 .
+
+## Aanvullende reparaties uit de daadwerkelijke eindcontrole
+
+De eerste native Windows/Linux-workflow liep in `RankFix QA café` en vond nieuwe, reproduceerbare testinfrastructuurfouten. De oorspronkelijke jobfouten zijn opgeslagen als `github-path-failure-*.log` en blijven zichtbaar in Actions.
+
+6. URL-encodering was als native rootpad gebruikt in `tests/ci-safety-gates.test.mjs`; op Linux met accenten faalden drie bestaande veiligheidsasserties en op Windows ontstond onder meer `D:\D:\...`. Dit gebruikt nu `fileURLToPath`. Dezelfde fout is hersteld in de mkb-catalogusvalidator. De bestaande portability-guard controleert beide bestanden. Geen veiligheidsassertie verwijderd.
+7. De P0-reviewrunner schreef vast naar `/tmp`, dat op Windows niet bestaat. Het standaardpad gebruikt nu `join(tmpdir(), ...)`; de bestaande override blijft behouden. De volledige suite is afzonderlijk uitgevoerd in een echte tijdelijke checkout met spaties, accenten, `#` en `%`.
+8. De optionele echte wall-clock-test vond 47 seconden voor een mislukte primaire scan (grens 45 seconden). Na twee time-outs van elk 15 seconden kreeg de extra www/apex-probe nog 15 seconden. Die extra probe krijgt nu maximaal 5 seconden; DNS-herstel en de eerste twee pogingen houden hun bestaande limiet. De test houdt de 45-seconden-grens vast en controleert expliciet de twee oorspronkelijke requests plus precies één www-counterpart. De oude verwachting van twee diagnosepogingen is daarmee gecorrigeerd naar de daadwerkelijk bestaande drie; de test is niet uitgeschakeld.
+9. De echte PostgreSQL-test gebruikte een kale `not found`-body voor een root-404 maar eiste een bewezen ontbrekende website. De bestaande engine gaf terecht `UNVERIFIED_NOT_FOUND` als ook de browser geen bewijs leverde. De fixture gebruikt nu een duidelijke eigen 404-pagina voor `HTTP_NOT_FOUND` en een aparte kale root-404 voor `UNVERIFIED_NOT_FOUND`. Beide categorieën worden daadwerkelijk in PostgreSQL gecontroleerd. De productlogica voor 404's is niet afgezwakt.
+
+De vier PostgreSQL-integratietests zijn geslaagd op een tijdelijke, uitsluitend lokaal gepubliceerde PostgreSQL 17-container: pogingregistratie met de foutcategorieën, emoji/NUL-opslag, schema-/retry-races en de volledige keten scan → opslag → historie → volledig rapport. Dit zijn database-integratietests met gecontroleerde HTTP-responses, geen live websitescans.
+
+`npm audit --audit-level=high` is uitgevoerd: geen high/critical-blokkade, wel 16 moderate meldingen in de ontwikkeltoolingketen rond minimatch. Geen automatische force-upgrade of verlaging van de bestaande CI-drempel uitgevoerd.
+
+## Definitieve lokale uitslag na alle reparaties
+
+- `npm test`: 1012 tests, 1004 geslaagd, 0 mislukt, 8 standaard-skips (`final-engine-full-tests.log`).
+- Alle vier normaal overgeslagen PostgreSQL-tests daarna afzonderlijk uitgevoerd: 4/4 geslaagd (`postgres-after.log`). Tijdelijke database en volume na afloop verwijderd.
+- Normaal overgeslagen wall-clock-timeouttest afzonderlijk uitgevoerd: 1/1 geslaagd, drie scenario's, 103,6 seconden totale testduur (`wall-clock-after.log`). De 45-seconden-grens voor de mislukte primaire scan is gehandhaafd.
+- De overige drie standaard-skips betreffen optionele volledige replays van oudere opnames; die zijn geen live tests en hier niet opnieuw uitgevoerd.
+- Volledige suite in echt pad met spaties, accent, `#` en `%`: 1004 geslaagd, 0 mislukt, 8 skips (`unicode-path-full-tests.log`).
+- Typecheck, lint en build opnieuw geslaagd (`final-typecheck.log`, `final-lint.log`, `final-build.log`).
+- Native Windows/Linux-CI wordt na push opnieuw gecontroleerd. De eerste native mislukkingen zijn niet verborgen; hun oorzaak en herstel staan hierboven.
+
+Totaal negen vastgestelde reparatiepunten, waarvan de laatste verouderde testverwachtingen verduidelijkt met sterkere, afzonderlijke scenario's. De negen punten zijn geen negen bewezen klantwebsitefouten. De oorspronkelijke gedeeltelijke live run blijft uitsluitend bewijs voor scannercommit ce240ef8; na de budgetwijziging is volledige liveacceptatie nog vereist.

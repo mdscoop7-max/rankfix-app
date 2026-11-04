@@ -1,6 +1,7 @@
 import {readFileSync,existsSync} from 'node:fs';import {createHash} from 'node:crypto';import {resolve,dirname,sep} from 'node:path';
 import {validateMkbCatalog} from '../../lib/testlab-catalog-validation.mjs';
-const root=new URL('../../',import.meta.url).pathname,req=JSON.parse(readFileSync(resolve(root,'tests/fixtures/testlab-mkb/requirements.json')));
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url)),req=JSON.parse(readFileSync(resolve(root,'tests/fixtures/testlab-mkb/requirements.json')));
 const [catalogPath=resolve(root,'tests/fixtures/testlab-mkb/catalog.json'),baselinePath=resolve(root,'qa-input/'+req.baselineFilename)]=process.argv.slice(2);
 const missing=[catalogPath,baselinePath].filter(p=>!existsSync(p));
 if(missing.length){console.log('TESTLAB_CATALOG_RESULT '+JSON.stringify({structurallyValid:false,activationAllowed:false,problems:['REQUIRED_INPUT_MISSING'],missing}));process.exitCode=1;}
