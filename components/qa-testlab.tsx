@@ -49,7 +49,7 @@ export default function TestLab144() {
  useEffect(()=>{
   mounted.current=true;
   const requestedCatalog=new URLSearchParams(window.location.search).get("catalog");
-  const catalogId=requestedCatalog==="commerce"||requestedCatalog==="fresh144"?requestedCatalog:"baseline";
+  const catalogId=["commerce","fresh144","mkb48"].includes(requestedCatalog||"")?requestedCatalog:"baseline";
   Promise.all([
    fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)}).then(async r=>({ok:r.ok,status:r.status,data:await r.json()})),
    fetch("/api/scan/version",{cache:"no-store",signal:AbortSignal.timeout(12000)}).then(r=>r.json()),
@@ -64,7 +64,7 @@ export default function TestLab144() {
       setNotice("");return;
     }
     const next=answer.data as Catalog;
-    if(next.sites.length!==144 || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
+    if(next.sites.length!==(catalogId==="mkb48"?48:144) || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
@@ -74,12 +74,12 @@ export default function TestLab144() {
     setCatalog(next);
     const stored=localStorage.getItem(storageKey(version.commitSha,next.catalogId));
     if(stored){try{const list=JSON.parse(stored);
-      if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
+      if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,next.sites.length));
     }catch{}}
     try{const flag=JSON.parse(localStorage.getItem(runKey(version.commitSha,next.catalogId))||"null");
      if(flag?.active&&Date.now()-Number(flag.at||0)<12*3600_000){setScope(String(flag.scope||"all"));setResumePending({scope:String(flag.scope||"all")});setNotice("De TestLab-pagina is tijdens een lopende test opnieuw geladen. De test gaat over 5 seconden automatisch verder bij de eerste niet-geteste website; bestaande resultaten blijven bewaard.");return;}
     }catch{}
-    setNotice("Klaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
+    setNotice("Klaar: "+next.sites.length+" websites geselecteerd. Klik Start test om alleen deze selectie te scannen; houd het tabblad open.");
   }).catch((cause)=>{if(mounted.current){setError("TestLab kon niet laden: "+(cause instanceof Error ? cause.message : "server niet bereikbaar")+". Controleer de lokale QA-aanmelding en herlaad de pagina.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
@@ -225,12 +225,12 @@ export default function TestLab144() {
   <DashboardNav/>
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
-    <h1>TestLab — 144 websites</h1>
-    <p>{catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
+    <h1>TestLab — {catalog?.catalogId==="mkb48"?"48 nieuwe mkb-websites":"144 websites"}</h1>
+    <p>{catalog?.catalogId==="mkb48"?"Gerichte test: 12 sectoren met elk 4 kandidaten. De bestaande 144 worden niet gescand.":catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">{scoped.length}<span>websites in selectie</span></div>
   </header>
   <section className="rf-lab-panel">
-   <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
+   <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="mkb48"?"48 mkb-websites":catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
@@ -254,7 +254,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">{catalog?.catalogId==="fresh144"?"Nieuwe kandidaatcatalogus: bereikbaarheid en verwachte sectoren zijn nog niet onafhankelijk gecontroleerd. ":isCommerceCatalog?"Dit is de 72/72-catalogus; de oude baseline blijft apart beschikbaar. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met &ldquo;Doorgaan met resterende&rdquo; gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
+   <p className="rf-lab-note">{catalog?.catalogId==="mkb48"?"MKB-48: kandidaten zijn nog niet onafhankelijk gecontroleerd op bereikbaarheid en hoofdsector. ":catalog?.catalogId==="fresh144"?"Nieuwe kandidaatcatalogus: bereikbaarheid en verwachte sectoren zijn nog niet onafhankelijk gecontroleerd. ":isCommerceCatalog?"Dit is de 72/72-catalogus; de oude baseline blijft apart beschikbaar. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met &ldquo;Doorgaan met resterende&rdquo; gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">
