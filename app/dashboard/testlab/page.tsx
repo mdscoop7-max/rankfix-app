@@ -8,6 +8,6 @@ import "./testlab.css";
 export default async function TestLabPage({searchParams}: {searchParams: Promise<{catalog?: string | string[]}>}) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.NODE_ENV !== "development") notFound();
   const requested = (await searchParams).catalog;
-  const catalog = typeof requested === "string" && ["commerce","fresh144","mkb48"].includes(requested) ? requested : "baseline";
+  const catalog = typeof requested === "string" && ["commerce","fresh144","mkb48","sector80"].includes(requested) ? requested : "baseline";
   return <TestLab144 key={catalog} requestedCatalog={catalog} />;
 }
