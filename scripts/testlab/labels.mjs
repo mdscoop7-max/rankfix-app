@@ -1,3 +1,4 @@
+import { SECTOR_CATALOG_CANDIDATES as SECTOR_CATALOG } from '../../lib/sector-catalog-candidates.mjs';
 // TestLab labels describe subtypes; the engine returns broader primary sectors.
 // Keep both comparisons visible. A broad match never proves a subtype.
 const labels={
@@ -157,7 +158,22 @@ export function branchComparison(expected,profile={}) {
  * right but branch unknown is "partial" and never counts as a correct branch;
  * main sector right with another specific branch is a mismatch.
  */
+// Sector catalogue (6 Nov 2026, lib/sector-catalog-candidates.mjs): an expected
+// label may be a catalogue main sector ("Reizen, toerisme & verblijf") or entry id.
+// Verdict only, never detection: the main sector is matched, the specialisation
+// stays for manual review.
+export function catalogMainSector(expected){
+ const e=String(expected||'');
+ if(SECTOR_CATALOG.mainSectors[e])return e;
+ return SECTOR_CATALOG.entries.find(x=>x.id===e)?.hoofdsector||null;
+}
 export function sectorVerdict(expected,profile={}) {
+ const main=catalogMainSector(expected);
+ if(main){
+  if(!profile.sector||profile.sector==='unknown')return {expected,verdict:'unconfirmed',reason:'Geen hoofdsector vastgesteld'};
+  const ok=SECTOR_CATALOG.mainSectors[main].engineSectors.includes(profile.sector);
+  return {expected,branch:ok?'generic':'different',verdict:ok?'partial':'mismatch',reason:ok?`Hoofdsector past bij catalogus "${main}"; specialisatie handmatig beoordelen`:`Sector ${profile.sector} past niet bij catalogus "${main}"`};
+ }
  const c=compareSector(expected,profile);
  if(!profile.sector||profile.sector==='unknown')return {...c,verdict:'unconfirmed',reason:'Geen hoofdsector vastgesteld'};
  // A platform's subject matter is not its own service trade.

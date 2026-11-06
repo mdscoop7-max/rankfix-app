@@ -49,3 +49,11 @@ test("negatives: driving-school words used as audience or topic do not make a dr
   ];
   for (const c of notSchools) assert.notEqual(detectDeclaredIndustry({ ...c, url: "https://x.nl/", schemaTypes: [] })?.key, "driving_school", c.title);
 });
+
+test("growrijopleidingen.nl (live fields fetched 6 Nov 2026): compounds praktijkexamen/proefles/autorijbewijs support the driving school", () => {
+  const home = { url: "https://growrijopleidingen.nl/", type: "homepage", status: "audited", title: "Grow Rijopleidingen | Eerder ANWB Rijopleiding, nu Grow", description: "Herfstdeal: gratis praktijkexamen t.w.v. €335, alleen t/m 29 november. Beoordeeld met een 4,3 uit 3.366 reviews op Google. Plan een proefles direct online.", identityHeadings: ["Eerder ANWB Rijopleiding, nu Grow."], schemaTypes: [] };
+  const sub = { url: "https://growrijopleidingen.nl/rijopleidingen", type: "service", status: "audited", title: "Rijopleidingen | Auto, Motor, Scooter en meer | Grow Rijopleidingen", description: "Bekijk alle rijopleidingen van Grow. Van autorijbewijs B tot motorrijbewijs A. Persoonlijke begeleiding, vaste instructeur en heldere prijzen. Eerder ANWB Rijopleidingen, nu Grow.", identityHeadings: ["Rijopleidingen bij Grow"], schemaTypes: [] };
+  assert.equal(detectDeclaredIndustry(home)?.key, "driving_school");
+  assert.equal(detectDeclaredIndustry(sub)?.key, "driving_school");
+  assert.equal(corroborateDeclaredIndustry(home.url, home, [sub]).decision?.key, "driving_school");
+});

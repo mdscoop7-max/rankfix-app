@@ -674,6 +674,28 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // about, not that it carries passengers: case shops, model-train shops, aviation
   // suppliers. A carrier also names a passenger service (tickets, timetable,
   // journeys) or declares itself in typed data (QA #203).
+  // Role before sector (sector catalogue 6 Nov, eDreams-type): a site that sells
+  // flights TOGETHER WITH hotels, car hire or holidays, or names many airlines,
+  // without its own check-in or Airline data, mediates travel; it does not fly.
+  const travelProducts = [
+    /(?<![\p{L}])(?:vluchten|vliegtickets?|flights?|flüge|flugtickets?|vols?|voli|vuelos|voos|loty)(?![\p{L}])/iu.test(own) && "vluchten",
+    /(?<![\p{L}])(?:hotels?|hôtels?|alberghi|hoteles|accommodaties?|unterkünfte)(?![\p{L}])/iu.test(own) && "hotels",
+    /(?<![\p{L}])(?:huurauto'?s?|autoverhuur|car (?:hire|rental)s?|rental cars?|mietwagen|location de voitures?|autonoleggio|alquiler de coches)(?![\p{L}])/iu.test(own) && "huurauto's",
+    /(?<![\p{L}])(?:vakanties?|pakketreizen|stedentrips?|holidays?|package holidays?|pauschalreisen|urlaub|séjours?|vacanze|vacaciones|cruises?)(?![\p{L}])/iu.test(own) && "vakanties",
+  ].filter(Boolean) as string[];
+  const manyCarriers = /(?:\d{2,4}\+?|honderden|hundreds of|meer dan \d+|more than \d+|über \d+|plus de \d+|oltre \d+|más de \d+)\s+(?:\p{L}+\s+)?(?:luchtvaartmaatschappijen|airlines|fluggesellschaften|compagnies aériennes|compagnie aeree|aerolíneas)/iu.test(own);
+  // Air travel only: selling flight tickets is not flying. A carrier names itself
+  // (luchtvaartmaatschappij, airline, airways…), has its own check-in or Airline
+  // data; a flight-ticket seller without any of these is a booking platform. Rail,
+  // bus and ferry operators keep the existing rule (they rarely have check-in).
+  const airOnly = modes.length === 1 && modes[0] === "luchtvaart";
+  const carrierProof = airlineSchema || ownCheckIn || CARRIER_NOUN.test(title + " · " + description + " · " + h1 + " · " + site);
+  const flightTicketSeller = airOnly && !carrierProof && travelOwn.length >= 1;
+  const travelIntermediary = !airlineSchema && !ownCheckIn && travelProducts.includes("vluchten") && (travelProducts.length >= 2 || manyCarriers || flightTicketSeller);
+  if (!retailer && !publication && travelIntermediary) {
+    return { sector: "transport_travel", key: "travel", label: "Reisbemiddeling (online reisbureau)", confidence: "medium", confidenceScore: 78,
+      evidence: evidence([travelProducts.length >= 2 ? `Eigen identiteit biedt meerdere reisproducten aan: ${travelProducts.join(", ")}` : "Eigen identiteit verkoopt vliegtickets zonder zich als luchtvaartmaatschappij te presenteren", manyCarriers && "Eigen identiteit noemt vele luchtvaartmaatschappijen (bemiddeling, geen eigen vluchten)", "Geen eigen online check-in of Airline-structured data: geen bewijs van eigen vervoer"]) };
+  }
   if (!retailer && !publication && !transportIntermediary && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || CARRIER_NOUN.test(description + " · " + h1))))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : 90,
       evidence: evidence([airlineSchema && "Structured data: vervoerder (Airline/station)", modes.length > 0 && `Eigen identiteit noemt vervoerswijze: ${modes.join(", ")}`, travelOwn.length > 0 && `Eigen identiteit noemt ${travelOwn.join(", ")}`]) };
