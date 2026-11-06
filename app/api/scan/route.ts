@@ -2359,13 +2359,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // HTTP 200 serving a "page not found" template is a missing page (soft 404).
         let softNotFound = false;
         let challenged = false;
-        if (res.ok && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
+        // Error answers are read too: a 404/410/5xx carrying a bot-check page is not
+        // proof that the page is gone (bot protection, 6 Nov).
+        const errorAnswer = [404, 410].includes(res.status) || res.status >= 500;
+        if ((res.ok || errorAnswer) && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
           try {
             const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
             const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
             const linkText = stripHtml(head).slice(0, 4000);
             const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
-            softNotFound = linkGate?.kind === "error";
+            softNotFound = res.ok && linkGate?.kind === "error";
             challenged = linkGate?.kind === "challenge";
           } catch {}
         } else { try { await res.body?.cancel(); } catch {} }

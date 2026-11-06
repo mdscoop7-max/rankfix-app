@@ -25,6 +25,9 @@ export function isErrorPageUrl(url: string | null | undefined): boolean {
 export function linkOutcome(link: LinkCheck): LinkOutcome {
   if (isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))) return "missing";
   if (link.error || link.status === null) return "unconfirmed";
+  // 6 Nov (403/404 reports): bot protection may answer 404/5xx with a
+  // challenge page. That proves nothing about the destination.
+  if (link.challenged) return "unconfirmed";
   if (link.status === 404 || link.status === 410) return "missing";
   if (link.status >= 500) return "server_error";
   if (link.status === 401 || link.status === 403) return link.accountLink ? "skipped" : "unconfirmed";
