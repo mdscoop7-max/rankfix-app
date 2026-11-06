@@ -36,6 +36,7 @@ import { comparisonPlatformIdentity } from "@/lib/platform-identity";
 import { checkoutActionInHtml, purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { shopInfoSignals, sitewideShopInfo, type ShopInfoSignals } from "@/lib/shop-info-signals";
+import { summarizeProductHunt, productHuntSentence, type ProductHuntSummary, type ProductCandidateAudit } from "@/lib/product-hunt-diagnostics";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
@@ -5915,7 +5916,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
     // Optional second hop: only with enough time left before the sample deadline.
     const productHuntTime = () => Date.now() - started < SAMPLE_DEADLINE_MS - 20_000 && !clock.expired;
+    // Every product candidate gets an outcome (confirmed / blocked / not loaded /
+    // missing / rejected), so "0 productpagina's" always says why (6 Nov, bonprix).
+    const productHuntAudits: ProductCandidateAudit[] = [];
+    const productHuntSources: string[] = [];
+    let productHuntFound = 0;
+    let productHuntRan = false;
     if (retailContextForProducts && !confirmedProductSample && productHuntTime() && !sampleRateLimit.stopped) {
+      productHuntRan = true;
       // 31 Oct (five-site QA, P7): the same language/variant key as the first
       // selection, so /de/, /at/, /bg/ copies of a sampled page never re-enter.
       const sampleKey = (url: string) => sampleIdentityKey(normalizeScanUrl(stripTrackingParams(url)));
@@ -5925,9 +5933,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         for (const url of [...new Set(urls)]) { const key = sampleKey(url); if (sampledUrls.has(key) || picked.some((other) => sampleKey(other) === key)) continue; picked.push(url); }
         return picked;
       };
-      const auditProductCandidates = async (urls: string[]) => {
-        const audits = await Promise.all(unsampled(urls).slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
+      const auditProductCandidates = async (urls: string[], source = "links op bemonsterde pagina's") => {
+        const fresh = unsampled(urls);
+        productHuntFound += fresh.length;
+        if (fresh.length) productHuntSources.push(source);
+        const audits = await Promise.all(fresh.slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
         for (const audit of audits) sampledUrls.add(sampleKey(audit.url));
+        productHuntAudits.push(...audits);
         multiPageAudits.push(...audits);
         return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
       };
@@ -5946,7 +5958,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             let sitemapXml = await readSitemap(sitemapSource);
             const childSitemap = childSitemapsFromIndex(sitemapXml)[0];
             if (childSitemap) sitemapXml = await readSitemap(childSitemap);
-            productConfirmed = await auditProductCandidates(productUrlsFromSitemap(sitemapXml, siteHost, 8));
+            productConfirmed = await auditProductCandidates(productUrlsFromSitemap(sitemapXml, siteHost, 8), "sitemap");
           } catch {}
           if (productConfirmed) break;
         }
@@ -5957,12 +5969,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           if (!productHuntTime()) break;
           try {
             const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
-            if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
+            if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8), "gerenderde lijstpagina");
           } catch {}
           if (productConfirmed) break;
         }
       }
     }
+    const productHunt: ProductHuntSummary | null = productHuntRan ? summarizeProductHunt(productHuntFound, productHuntSources, productHuntAudits) : null;
     // The scanned page's sample reuses the main response body. Report the status the
     // website really gave RankFix (and that a browser recovered it), never a
     // synthetic 200 that contradicts the HTTP-status check of the same report.
@@ -7223,7 +7236,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const verdict = settleSampleProductCheck(item.key as (typeof SAMPLE_PRODUCT_CHECK_KEYS)[number], sampleProductPages);
         if (verdict.status === "unable_to_confirm" && item.status !== "pass") {
           // Keep it unconfirmed, but say exactly why, per page (no product page / no evidence).
-          if (item.status === "unable_to_confirm") { item.message = verdict.message; item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: verdict.message, pages: verdict.pages } as Check["evidence"]; }
+          if (item.status === "unable_to_confirm") {
+            // No audited product page: say why (none found, blocked, not loaded, rejected).
+            const why = sampleProductPages.length ? "" : productHuntSentence(productHunt);
+            item.message = why ? `${verdict.message} ${why}` : verdict.message;
+            item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: item.message, pages: verdict.pages, ...(productHunt && !sampleProductPages.length ? { productHunt } : {}) } as Check["evidence"];
+          }
           continue;
         }
         if (verdict.status === "unable_to_confirm") continue;
@@ -7581,7 +7599,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       sampleRateLimit,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, productCardNominations, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, productCardNominations, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, productHunt, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,

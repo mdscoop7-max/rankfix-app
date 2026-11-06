@@ -150,18 +150,54 @@ export function countIndependentProducts(html: string): number {
     const types = schemaTypesOf(value);
     return types.some((type) => /^(?:product|productgroup)$/.test(String(type || "").toLowerCase()));
   };
+  // Shopify/WooCommerce themes and review apps often emit the SAME product twice
+  // (theme JSON-LD + app JSON-LD, or one with a placeholder name "Product").
+  // Stored allbirds/gymshark product pages were typed "category" for that reason
+  // (6 Nov). Product objects are counted by identity (@id, url, sku, gtin, name);
+  // nameless or placeholder objects merge with the page's identified product.
+  const identities = new Set<string>();
+  let anonymous = 0;
+  let groups = 0;
+  const identityOf = (node: Record<string, unknown>): string | null => {
+    for (const field of ["@id", "url", "sku", "productID", "gtin13", "gtin", "mpn"]) {
+      const v = node[field];
+      if (typeof v === "string" && v.trim()) return `${field === "url" || field === "@id" ? "u" : "s"}:${v.trim().toLowerCase().replace(/[#?].*$/, "").replace(/\/$/, "")}`;
+    }
+    const name = typeof node.name === "string" ? node.name.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    return name && !/^(?:product|products?|item|artikel|produkt|produit)$/.test(name) ? `n:${name}` : null;
+  };
   const walk = (value: unknown, insideProduct: boolean, depth: number) => {
     if (!value || typeof value !== "object" || depth > 12) return;
     if (Array.isArray(value)) { for (const item of value) walk(item, insideProduct, depth + 1); return; }
     const node = value as Record<string, unknown>;
     const product = isProduct(node);
-    if (product && !insideProduct) count++;
+    if (product && !insideProduct) {
+      count++;
+      if (schemaTypesOf(node).some((t) => String(t || "").toLowerCase() === "productgroup")) groups++;
+      const id = identityOf(node);
+      if (id) identities.add(id); else anonymous++;
+    }
     for (const nested of Object.values(node)) walk(nested, insideProduct || product, depth + 1);
   };
   for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try { walk(JSON.parse(match[1]), false, 0); } catch { /* invalid JSON-LD is reported elsewhere */ }
   }
-  return count;
+  if (count <= 1) return count;
+  // One ProductGroup is one article; separate Product objects next to it are its
+  // variants (Shopify/WooCommerce variant markup), not a product grid.
+  if (groups === 1) return 1;
+  // Same product under a url-key and a name/sku-key: one URL identity + others
+  // without a URL is still one product only when exactly one URL identity exists
+  // and at most one name identity. A real grid has several distinct names/URLs.
+  const urlIds = [...identities].filter((id) => id.startsWith("u:"));
+  // Variant names extend the article name ("Runner NZ" / "Runner NZ - Size 8",
+  // "SoftSense Shorts" / "SoftSense Shorts - Red - XS"): one article.
+  const names = [...identities].filter((id) => id.startsWith("n:")).map((id) => id.slice(2)).sort((a, b) => a.length - b.length);
+  const articleNames = names.filter((n, i) => !names.slice(0, i).some((base) => base.length >= 6 && n.startsWith(base)));
+  const otherIds = [...[...identities].filter((id) => id.startsWith("s:")), ...articleNames.map((n) => `n:${n}`)];
+  if (urlIds.length <= 1 && otherIds.length <= 1) return 1;
+  const distinct = urlIds.length + otherIds.length;
+  return Math.max(distinct, 1) + (distinct ? 0 : anonymous > 0 ? 1 : 0);
 }
 
 /** schema.org types that describe a service offer rather than merchandise. */

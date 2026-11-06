@@ -63,12 +63,21 @@ test("webshop chain on real stored webshops and CrowdStrike as negative control"
   rmSync(dir, { recursive: true, force: true });
   const mods = (h) => (r[h].sectorProfile.applicableModules || []).filter((m) => ["ecommerce", "product", "pricing_currency", "checkout", "merchant", "eu_consumer"].includes(m));
   const check = (h, key) => r[h].seo.checks.find((c) => c.key === key);
-  for (const h of ["allbirds.com", "gymshark.com", "bonsoy.com", "homewizard.com"]) {
-    assert.ok(mods(h).includes("ecommerce"), `${h}: ${mods(h)}`);
-    assert.ok(!mods(h).includes("product"), `${h}: no product module without a proven product page`);
+  for (const h of ["allbirds.com", "gymshark.com", "bonsoy.com", "homewizard.com"]) assert.ok(mods(h).includes("ecommerce"), `${h}: ${mods(h)}`);
+  // No proven product page (bonsoy: 2 candidates, both 404): no product module, and the reason is named.
+  assert.ok(!mods("bonsoy.com").includes("product"));
+  assert.equal(r["bonsoy.com"].multiPage.productHunt.outcomes.missing, 2);
+  assert.match(check("bonsoy.com", "product_price_consistency").message, /2 productkandidaten gevonden, 2 gecontroleerd: 2 bestaan niet/);
+  // Shopify product pages with a duplicate theme/app Product (allbirds) or a ProductGroup
+  // with variants (gymshark) are product pages, not categories (6 Nov).
+  for (const h of ["allbirds.com", "gymshark.com"]) {
+    const types = r[h].multiPage.pageAudits.filter((p) => p.status === "audited" && /\/products\//.test(p.url)).map((p) => p.type);
+    assert.ok(types.length && types.every((t) => t === "product"), `${h}: ${types}`);
+    assert.ok(mods(h).includes("product"), h);
   }
   // Scores unchanged by module activation (stored before-values).
   assert.deepEqual(["allbirds.com", "bonsoy.com", "gymshark.com", "homewizard.com"].map((h) => r[h].overallScore), [80, 93, 94, 91]);
+  assert.equal(r["crowdstrike.com"].overallScore, 94);
   // Negative control: a cybersecurity vendor selling plans is not a webshop.
   assert.equal(r["crowdstrike.com"].sectorProfile.key, "cybersecurity");
   assert.deepEqual(mods("crowdstrike.com"), []);
@@ -82,4 +91,29 @@ test("webshop chain on real stored webshops and CrowdStrike as negative control"
     assert.match(c.message, /Er is geen bestelling geplaatst/);
     assert.equal(check(h, "checkout_trust").status, "unable_to_confirm", "interactive checkout is never claimed");
   }
+});
+
+import { countIndependentProducts } from "../lib/sample-quality.ts";
+import { productCandidateOutcome, productHuntSentence, summarizeProductHunt } from "../lib/product-hunt-diagnostics.ts";
+test("one product page with duplicate or variant markup is one product; a grid stays a grid", () => {
+  const ld = (o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`;
+  const P = (name, url) => ({ "@type": "Product", name, ...(url ? { url } : {}) });
+  assert.equal(countIndependentProducts(ld(P("Runner NZ")) + ld(P("Runner NZ"))), 1);
+  assert.equal(countIndependentProducts(ld(P("Product")) + ld(P("Runner NZ - Size 8", "https://s.test/products/runner"))), 1);
+  assert.equal(countIndependentProducts(ld(P("Shorts")) + ld(P("Shorts - Red - XS"))), 1);
+  assert.equal(countIndependentProducts(ld({ "@type": "ProductGroup", name: "Shorts" }) + ld(P("Shorts Red XS")) + ld(P("Shorts Blue M"))), 1);
+  assert.equal(countIndependentProducts(ld([P("Jurk rood", "https://s.test/a"), P("Broek blauw", "https://s.test/b"), P("Jas", "https://s.test/c")])), 3);
+  assert.equal(countIndependentProducts(ld([P("Jurk rood"), P("Broek blauw")])), 2);
+});
+test("product candidates: confirmed, blocked, not loaded, missing and rejected are distinct", () => {
+  const o = (a) => productCandidateOutcome({ url: "https://s.test/p/x", ...a });
+  assert.equal(o({ status: "audited", httpStatus: 200, commerceEvidence: { confirmedRetailPage: true } }), "confirmed");
+  assert.equal(o({ status: "unable_to_confirm", httpStatus: 403 }), "blocked");
+  assert.equal(o({ status: "unable_to_confirm", httpStatus: 200, nonContent: "challenge" }), "blocked");
+  assert.equal(o({ status: "unable_to_confirm", httpStatus: null, fetchFailure: "FETCH_TIMEOUT" }), "not_loaded");
+  assert.equal(o({ status: "unable_to_confirm", httpStatus: 404 }), "missing");
+  assert.equal(o({ status: "audited", httpStatus: 200, commerceEvidence: { confirmedRetailPage: false } }), "rejected");
+  assert.equal(o({ status: "audited", httpStatus: 200, commerceEvidence: { confirmedRetailPage: true, financialOffer: true } }), "rejected");
+  assert.equal(productHuntSentence(summarizeProductHunt(0, [], [])), "Geen productkandidaten gevonden in links van de bemonsterde pagina's of in de sitemap.");
+  assert.match(productHuntSentence(summarizeProductHunt(5, ["sitemap"], [{ url: "https://s.test/p/a", status: "unable_to_confirm", httpStatus: 403 }, { url: "https://s.test/p/b", status: "audited", httpStatus: 200 }])), /5 productkandidaten gevonden, 2 gecontroleerd: 1 geweigerd door de website, 1 afgekeurd/);
 });

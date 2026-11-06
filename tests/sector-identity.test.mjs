@@ -201,7 +201,8 @@ test("retail sites without a product sample get a bounded second hop", async () 
   // QA-144: the second hop only starts with time left before the sample deadline,
   // and never after the website rate-limited RankFix (QA #207).
   assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\) && !sampleRateLimit\.stopped\)/);
-  assert.match(source, /unsampled\(urls\)\.slice\(0,3\)/, "at most three product audits per hop");
+  // 6 Nov: candidates are first counted for the product-hunt diagnostics (fresh = unsampled(urls)).
+  assert.match(source, /(?:unsampled\(urls\)|fresh)\.slice\(0,3\)/, "at most three product audits per hop");
   assert.match(source, /item\.evidenceSource!=="rendered_html"\)\.slice\(0,2\)/, "at most two listing renders");
   // Nomination is never evidence: confirmation still comes from the fetched page.
   assert.match(source, /return audits\.some\(\(item\)=>item\.status==="audited" && item\.commerceEvidence\?\.confirmedRetailPage\)/);
