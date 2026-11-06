@@ -49,7 +49,7 @@ export default function TestLab144({requestedCatalog}: {requestedCatalog: string
  const runKey=(sha:string,catalogId:string)=>"rankfix-qa-testlab-run:"+catalogId+":"+sha;
  useEffect(()=>{
   mounted.current=true;
-  const catalogId=["commerce","fresh144","mkb48"].includes(requestedCatalog||"")?requestedCatalog:"baseline";
+  const catalogId=["commerce","fresh144","mkb48","sector80"].includes(requestedCatalog||"")?requestedCatalog:"baseline";
   Promise.all([
    fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)}).then(async r=>({ok:r.ok,status:r.status,data:await r.json()})),
    fetch("/api/scan/version",{cache:"no-store",signal:AbortSignal.timeout(12000)}).then(r=>r.json()),
@@ -64,7 +64,7 @@ export default function TestLab144({requestedCatalog}: {requestedCatalog: string
       setNotice("");return;
     }
     const next=answer.data as Catalog;
-    if(next.sites.length!==(catalogId==="mkb48"?48:144) || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
+    if(next.sites.length!==(catalogId==="mkb48"?48:catalogId==="sector80"?80:144) || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
@@ -88,7 +88,7 @@ export default function TestLab144({requestedCatalog}: {requestedCatalog: string
  const scoped=useMemo(()=>sites.filter(s=>(
   scope==="all" || scope==="webshops"&&s.expected==="ecommerce" || scope==="other"&&s.expected!=="ecommerce" || scope==="new48" && /round-[ef]-/.test(s.round) ||
   scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
-  scope===s.country || scope===s.round || (catalog?.catalogId==="mkb48" && scope===s.group)
+  scope===s.country || scope===s.round || (["mkb48","sector80"].includes(catalog?.catalogId||"") && scope===s.group)
  )),[scope,sites]);
  // Alphabetical display only: preserve catalog order for the scan queue and stored results.
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,"nl",{sensitivity:"base"})||a.host.localeCompare(b.host,"nl",{sensitivity:"base"})),[scoped,query]);
