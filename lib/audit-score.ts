@@ -313,5 +313,18 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
  */
 export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, _coveragePercent: number, level: EvidenceLevel) {
   const asRange = Boolean(range) && level !== "complete" && range!.low < range!.high;
-  return { numeric: score, kind: asRange ? "range" as const : "score" as const, display: asRange ? `${range!.low}–${range!.high}` : String(score) };
+  // Fresh144/MKB48 (99 shown on "insufficient" evidence): the headline says
+  // explicitly that it is an indication; the display format is unchanged.
+  return { numeric: score, kind: asRange ? "range" as const : "score" as const, display: asRange ? `${range!.low}–${range!.high}` : String(score), indication: level === "insufficient" };
+}
+
+/**
+ * The letter grade of the headline. It states what is proven: with insufficient
+ * evidence it is graded on the lower bound of the range (unconfirmed checks
+ * counted as not passed), so an "A" never rests on checks that were not assessed.
+ * The point score itself is not changed.
+ */
+export function evidenceGradeBasis(score: number, range: { low: number; high: number } | null | undefined, level: EvidenceLevel): number {
+  if (level !== "insufficient" || !range || !Number.isFinite(range.low)) return score;
+  return Math.min(score, range.low);
 }

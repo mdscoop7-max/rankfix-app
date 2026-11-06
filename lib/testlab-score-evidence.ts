@@ -89,5 +89,6 @@ export function scoreDisplay(score: number | null | undefined, evidence: ScoreEv
     : evidence?.rangeLow != null && evidence?.rangeHigh != null && evidence.rangeLow < evidence.rangeHigh && level !== "complete" ? `${evidence.rangeLow}–${evidence.rangeHigh}` : null;
   const qualifier = level === "insufficient" ? "indicatie" : level && level !== "complete" ? "voorlopig" : level === "complete" ? "definitief" : null;
   const parts = [range ? `punt ${Math.round(score)} op bevestigd bewijs` : null, coverage != null ? `dekking ${coverage}%` : null, qualifier].filter(Boolean);
-  return { main: range || String(Math.round(score)), detail: parts.length ? parts.join(" · ") : null };
+  // Insufficient evidence without a usable range is still an indication, never a bare "99".
+  return { main: range || (level === "insufficient" ? `${Math.round(score)} (indicatie)` : String(Math.round(score))), detail: parts.length ? parts.join(" · ") : null };
 }

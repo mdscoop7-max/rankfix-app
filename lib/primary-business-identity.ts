@@ -20,6 +20,9 @@ export type PrimaryBusinessIdentity = {
 const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform|abwicklung|verkehr)|payment-?(?:lösung(?:en)?|anbieter|dienstleister|systeme?)|paymentlösung(?:en)?|bezahl(?:lösung(?:en)?|systeme?)|bezahl(?:lösung(?:en)?|terminals?|dienst(?:e|leister)?)|payment[- ](?:partner|lösung(?:en)?|anbieter|dienstleister|provider|oplossingen)|karten(?:zahlung(?:en)?|terminals?)|betaalterminals?|pinautomaten?|paiements? en ligne|solutions? de paiement|prestataires? de (?:services de )?paiement|terminaux? de paiement|pagos (?:online|en línea)|pasarela de pagos?|soluciones de pago|pagamenti (?:online|digitali)|soluzioni di pagamento)\b/i;
 // Banks and insurers. Deliberately no bare "bank" (Dutch for sofa) or "savings".
 const bankingPurpose = /\b(?:bankieren|online banking|mobiel bankieren|bankrekening|betaalrekening|spaarrekening|bank accounts?|savings accounts?|current accounts?|hypothe(?:ek|ken|cair)|mortgages?|persoonlijke lening|personal loans?|business loans?|zakelijke financiering|credit cards?|creditcards?|beleggen|vermogensbeheer|wealth management|girokonto|sparkonto|baufinanzierung|compte bancaire|conto corrente|cuenta bancaria)\b/i;
+// Products only a bank offers (accounts, banking itself); mortgages, loans,
+// investing and wealth management are also sold by insurers and pension firms.
+const coreBankingPurpose = /\b(?:bankieren|online banking|mobiel bankieren|bankrekening|betaalrekening|spaarrekening|bank accounts?|savings accounts?|current accounts?|girokonto|sparkonto|compte bancaire|conto corrente|cuenta bancaria)\b/i;
 const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|autoverzekering|insurance|insurer|versicherung(?:en)?|assurances?|assicurazion[ei]|seguros?)\b/i;
 // Online-sales language in the identity: such a site sells goods, so ambiguous
 // words in its title ("camping", "saving", "insurance included") describe the
@@ -112,8 +115,13 @@ export function detectPrimaryBusinessIdentity(input: {
   const insuranceProven = !retailSeller && (schema.has("insuranceagency") || insurancePurpose.test(title));
   const bankingProven = !retailSeller && (bankingTerms.size >= 2 || (bankingTerms.size >= 1 && financeSchema));
   // A full-service bank also sells insurance: two banking terms decide first.
+  // Fresh144 (ASR read as a bank): insurers also sell mortgages, investments and
+  // wealth management. Those are not bank-specific, so an insurer named in its own
+  // title stays an insurer unless the identity names a bank's own products
+  // (current/savings accounts, banking itself).
+  const coreBanking = coreBankingPurpose.test(identityText);
   const financialKind: PrimaryBusinessIdentity["financialKind"] = paymentsProven ? "payments"
-    : bankingTerms.size >= 2 && bankingProven ? "banking"
+    : bankingTerms.size >= 2 && bankingProven && !(insuranceProven && !coreBanking) ? "banking"
     : insuranceProven ? "insurance"
     : bankingProven ? "banking" : undefined;
   const financeProven = Boolean(financialKind);

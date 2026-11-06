@@ -122,6 +122,11 @@ const NON_COMMERCE_TYPES: Record<string, { value: string; label: string }> = {
   nonprofit: { value: "organisation", label: "Non-profitorganisatie" },
   education: { value: "organisation", label: "Onderwijsinstelling" },
   sports_organizations: { value: "organisation", label: "Organisatie / vereniging" },
+  // Fresh144 (ABB, NXP, Sandvik shown as "Dienstverlener"): a manufacturer without
+  // a confirmed own webshop is a manufacturer, not a service provider.
+  manufacturing_industrial: { value: "manufacturer", label: "Fabrikant / producent" },
+  // Museums, concert halls and festivals are cultural institutions.
+  events_culture: { value: "organisation", label: "Culturele instelling / evenementen" },
 };
 
 export function buildWebsiteProfile(input: WebsiteProfileInput): WebsiteProfile {

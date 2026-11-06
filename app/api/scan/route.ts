@@ -64,7 +64,7 @@ import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { jsonLdInjectorSignals, structuredDataAbsence, structuredDataUnprovenMessage } from "@/lib/structured-data-evidence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, dimensionEvidence, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, dimensionEvidence, evidenceGradeBasis, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -7734,7 +7734,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -7967,7 +7967,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       scanDurationMs: Date.now() - started,
       httpStatus: response.status,
       overallScore: selectedOverallScore,
-      grade: grade(selectedOverallScore),
+      grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)),
       coverage: overallCoverage,
       scoreModel,
       selfCheck,

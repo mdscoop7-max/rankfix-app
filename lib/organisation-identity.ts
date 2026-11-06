@@ -16,6 +16,17 @@ const rx = (list: string[], stem = false) => new RegExp(`${B}(?:${list.join("|")
 // Groups of independent concepts: two different groups are required.
 const MISSION = rx(["stichting", "vereniging", "goed doel", "goede doelen", "hulporganisatie", "hulpverlening", "noodhulp", "humanitair", "humanitaire", "natuurbehoud", "natuurbescherming", "natuurorganisatie", "natuurmonument", "natuurgebied", "natuurgebieden", "bescherm(?:t|en)? (?:de )?natuur", "behoud van natuur", "charity", "non-?profit", "ngo", "humanitarian", "conservation", "wildlife", "nature reserves?", "relief organi[sz]ation", "stiftung", "hilfsorganisation", "naturschutz", "fondation", "association caritative", "protection de la nature", "fundaci[oó]n", "organizaci[oó]n ben[eé]fica", "fondazione", "organizzazione non profit", "protezione della natura"], true);
 const SUPPORT_ACTION = rx(["doneer", "doneren", "donatie", "gift", "schenking", "steun ons", "steun (?:de )?natuur", "word lid", "lid worden", "meld je aan als lid", "word donateur", "donateur", "vrijwilliger", "vrijwilligerswerk", "nalaten", "donate", "give now", "make a donation", "support us", "become a member", "membership", "volunteer", "spenden", "spende", "mitglied werden", "ehrenamt", "faire un don", "devenir membre", "b[eé]n[eé]vole", "donar", "hazte socio", "voluntari[oa]", "dona ora", "diventa socio", "volontari"], true);
+// Fresh144 (6b741e96, Hartstichting read as health care): Dutch/German names are
+// compounds ("Hartstichting", "Nierstichting", "Kinderpostzegels-vereniging",
+// "Krebsstiftung"), so the word-boundary MISSION list never saw "stichting".
+// A compound legal-form suffix is the same mission concept; it still needs an
+// independent support action (doneren, nalaten, vrijwilliger) to be primary.
+// Deliberately no "fonds" (pension and investment funds are financial).
+const MISSION_COMPOUND = /\p{L}{3,}(?:stichting|vereniging|stiftung)(?![\p{L}])/iu;
+// A compound alone is weaker than the word: a care or housing foundation
+// ("Zorgstichting", "Woningstichting") also recruits volunteers. It counts only
+// together with fundraising as the main action (donating, legacies, collecting).
+const FUNDRAISING = rx(["doneer", "doneren", "donatie", "donateur", "word donateur", "schenking", "nalaten", "collectant", "collecte", "steun ons", "donate", "make a donation", "give now", "spenden", "spende", "faire un don", "donar", "dona ora"], true);
 const NGO_SCHEMA = new Set(["ngo", "nonprofitorganization", "charity"]);
 const ANBI = /\banbi\b|charity registration|registered charity|gemeinn[üu]tzig|association loi 1901/i;
 
@@ -29,7 +40,9 @@ export function missionOrganisationIdentity(input: { title?: string; description
   const nav = (input.navLabels || []).join(" · ");
   const schema = new Set((input.schemaTypes || []).map((t) => t.toLowerCase()));
   const schemaNgo = [...schema].some((t) => NGO_SCHEMA.has(t));
-  const mission = MISSION.test(own);
+  const missionWord = MISSION.test(own);
+  const missionCompound = !missionWord && MISSION_COMPOUND.test(own) && FUNDRAISING.test(`${own} · ${nav}`);
+  const mission = missionWord || missionCompound;
   const supportOwn = SUPPORT_ACTION.test(own);
   const supportNav = SUPPORT_ACTION.test(nav);
   const anbi = ANBI.test(`${own} ${nav}`);
