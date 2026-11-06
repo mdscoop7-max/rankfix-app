@@ -225,18 +225,18 @@ export default function TestLab144({requestedCatalog}: {requestedCatalog: string
   <DashboardNav/>
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
-    <h1>TestLab — {catalog?.catalogId==="mkb48"?"48 nieuwe mkb-websites":"144 websites"}</h1>
-    <p><Link href="/dashboard/testlab?catalog=mkb48">Alleen 48 mkb-websites</Link> · <Link href="/dashboard/testlab">Bestaande 144</Link></p>
-    <p>{catalog?.catalogId==="mkb48"?"Gerichte test: 12 sectoren met elk 4 kandidaten. De bestaande 144 worden niet gescand.":catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
+    <h1>TestLab — {catalog?.catalogId==="sector80"?"80 verschillende sectoren":catalog?.catalogId==="mkb48"?"48 nieuwe mkb-websites":"144 websites"}</h1>
+    <p><Link href="/dashboard/testlab?catalog=sector80">80 sectoren</Link> · <Link href="/dashboard/testlab?catalog=mkb48">48 mkb-websites</Link> · <Link href="/dashboard/testlab">Bestaande 144</Link></p>
+    <p>{catalog?.catalogId==="sector80"?"80 verschillende sectoren met elk één kandidaatwebsite; betaaldiensten inclusief PayPal.":catalog?.catalogId==="mkb48"?"Gerichte test: 12 sectoren met elk 4 kandidaten. De bestaande 144 worden niet gescand.":catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">{scoped.length}<span>websites in selectie</span></div>
   </header>
   <section className="rf-lab-panel">
-   <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="mkb48"?"48 mkb-websites":catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
+   <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="sector80"?"80 sectoren":catalog?.catalogId==="mkb48"?"48 mkb-websites":catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
       <option value="all">Alle websites ({sites.length})</option>
-      {catalog?.catalogId==="mkb48"?<optgroup label="Sector">{[...new Set(sites.map(s=>s.group))].map(x=><option key={x} value={x}>{x} (4)</option>)}</optgroup>:isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Bestaande ronde E/F (48)</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
+      {["mkb48","sector80"].includes(catalog?.catalogId||"")?<optgroup label="Sector">{[...new Set(sites.map(s=>s.group))].map(x=><option key={x} value={x}>{x} ({sites.filter(s=>s.group===x).length})</option>)}</optgroup>:isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Bestaande ronde E/F (48)</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
      </select>
