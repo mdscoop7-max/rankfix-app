@@ -34,6 +34,9 @@ const KEEP = {
   "nsinternational.com": "transport_travel", "prorail.nl": "transport_travel",
   "ox.ac.uk": "education", "tudelft.nl": "education", "wur.nl": "education",
   "feenstra.com": "home_services", "treatwell.nl": "service_marketplace",
+  // Repaired in round 2: own self-description as optics technology enterprise /
+  // engineering group with products (unknown before).
+  "zeiss.com": "manufacturing_industrial", "sandvik.com": "manufacturing_industrial",
 };
 
 test("stored live Fresh144/MKB48 replays: repaired cases and no regressions", { timeout: 600000 }, () => {

@@ -4,6 +4,7 @@ import { missionOrganisationIdentity } from "../lib/organisation-identity.ts";
 import { detectPrimaryBusinessIdentity } from "../lib/primary-business-identity.ts";
 import { buildWebsiteProfile } from "../lib/website-profile.ts";
 import { evidenceGradeBasis, headlineScore } from "../lib/audit-score.ts";
+import { detectEuPrimaryIdentity } from "../lib/eu-identity.ts";
 import { scoreDisplay } from "../lib/testlab-score-evidence.ts";
 
 // Generic rules behind the Fresh144 repairs of 6 Nov 2026. Invented names only.
@@ -59,4 +60,16 @@ test("insufficient evidence: grade rests on the proven lower bound; the score is
 test("TestLab never shows a bare number on insufficient evidence", () => {
   assert.equal(scoreDisplay(99, { headlineKind: "score", headline: "99", rangeLow: 99, rangeHigh: 99, coveragePercent: 95 }, "insufficient").main, "99 (indicatie)");
   assert.equal(scoreDisplay(92, { headlineKind: "score", headline: "92", coveragePercent: 100 }, "complete").main, "92");
+});
+
+const eu = (title, description) => detectEuPrimaryIdentity({ title, description, siteName: title, hostname: "example.com", navLabels: [], schemaTypes: [] })?.sector ?? null;
+
+test("technology enterprises and engineering groups with physical products are manufacturers", () => {
+  assert.equal(eu("Optix", "Optix is an international technology enterprise operating in the optics and optoelectronics industries."), "manufacturing_industrial");
+  assert.equal(eu("Rockline Group", "Rockline is an engineering group providing products and solutions for mining, rock processing and metal cutting."), "manufacturing_industrial");
+});
+
+test("engineering consultancies and software enterprises are not manufacturers", () => {
+  assert.notEqual(eu("Designco", "Designco is a global design, engineering and consultancy company delivering services for natural and built assets."), "manufacturing_industrial");
+  assert.notEqual(eu("Acme Software", "Acme is a technology enterprise building cloud software for industries."), "manufacturing_industrial");
 });

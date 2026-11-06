@@ -162,6 +162,7 @@ const INDUSTRIAL = stems([
   "components", "componenten", "komponenten", "composants", "componenti", "componentes", "bearings", "lager", "pumps", "pompen", "pumpen", "valves", "kleppen", "ventile", "compressors", "turbines", "turbinen", "generators", "generatoren", "engines", "motoren", "verpakkingsmachine", "voedingsindustrie", "lasers", "laser",
   "steel", "staal", "stahl", "acier", "acciaio", "acero", "chemicals", "chemie", "chimie", "chimica", "química", "plastics", "kunststof", "kunststoff", "packaging machines", "verpakkingsmachines", "electronics manufactur", "precision", "precisie", "präzision",
   "advanced materials", "battery materials", "catalysts", "katalysatoren", "catalyseurs", "specialty chemicals", "spezialchemie",
+  "optics", "optoelectronic", "optronic", "photonics", "fotonica", "optische systemen", "optical systems", "metal cutting", "rock excavation", "mining equipment",
   "aerospace", "lucht- en ruimtevaart", "luft- und raumfahrt", "aéronautique", "aerospaziale", "aeroespacial",
   // Engineered vehicle components (what component makers name in their own title).
   "braking", "brake", "bremssystem", "bremsanlage", "bremsscheib", "freinage", "freins", "impianti frenanti", "sistemi frenanti", "sistema frenante", "frenado", "sistemas de travagem", "remsystem", "remschijv", "hamulc", "układy hamulcowe", "brzdov", "fékrendszer", "sisteme de frânare", "jarrujärjestelm", "bromssystem", "φρένων",
@@ -178,6 +179,10 @@ const HARDWARE = stems(["hardware", "systems", "systemen", "systeme", "systèmes
 const TECH_COMPANY = stems([
   "technology company", "technology companies", "technology group", "technology leader", "technologieleider", "technologieführer", "leader technologique", "leader tecnologico", "líder tecnológico", "materials technology", "materials company", "health technology", "healthtech company", "energy technology", "materials technology", "imaging technology",
   "technologiebedrijf", "technologieconcern", "technologieunternehmen", "technologiekonzern", "technologiegruppe",
+  // Fresh144 (ZEISS, Sandvik unknown): "a technology enterprise operating in the
+  // optics industries", "an engineering group providing products ...". Still needs
+  // a physical product/industry word and no software word (rule 7b').
+  "technology enterprise", "technology corporation", "engineering group", "engineering company providing products",
   "entreprise technologique", "groupe technologique", "société technologique", "société de technologie", "azienda tecnologica", "gruppo tecnologico", "empresa tecnológica", "grupo tecnológico",
 ]);
 const PHYSICAL_GOODS = stems(["devices", "apparaten", "geräte", "appareils", "dispositivi", "dispositivos", "materials", "materialen", "materiaal", "werkstoff", "matériaux", "materiali", "materiales", "batter", "catalys", "katalys", "imaging", "beeldvorming", "lighting", "verlichting", "monitoring systems", "medical equipment", "medische apparatuur", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
