@@ -13,6 +13,13 @@ export type MotorEvidence = {
   secondaryRetailDetail?: boolean;
   // Independent product + offer + purchase evidence, not a generic payment link.
   verifiedSecondaryStorefront?: boolean;
+  /**
+   * The site-level webshop decision is confirmed (cart/checkout/product grid on
+   * the site) for a retail primary identity. bonprix (6 Nov): "Webshop bevestigd"
+   * with zero product pages left every webshop module off, so shop-level checks
+   * (terms, returns, consumer info, trust) were never active.
+   */
+  shopConfirmed?: boolean;
 };
 
 export function decideCommerceModules(e: MotorEvidence): string[] {
@@ -26,12 +33,15 @@ export function decideCommerceModules(e: MotorEvidence): string[] {
     return [];
   }
   const modules: string[] = [];
-  if (e.retailProduct && (e.cart || e.checkout)) modules.push("ecommerce");
+  // Shop-level modules follow the confirmed shop; product-level modules still need
+  // a proven product (no unproven page is ever treated as a product).
+  const shopLevel = Boolean(e.shopConfirmed && e.primaryBusinessModel === "retail");
+  if ((e.retailProduct && (e.cart || e.checkout)) || shopLevel) modules.push("ecommerce");
   if (e.retailProduct) modules.push("product");
   if (e.retailProduct && e.productPrice) modules.push("pricing_currency");
   if (e.merchantFeed && e.retailProduct) modules.push("merchant");
   if (e.retailProduct && e.cart && e.checkout) modules.push("checkout");
-  if (e.euMarket && e.retailProduct && (e.cart || e.checkout)) modules.push("eu_consumer");
+  if (e.euMarket && ((e.retailProduct && (e.cart || e.checkout)) || shopLevel)) modules.push("eu_consumer");
   return modules;
 }
 

@@ -6607,6 +6607,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       euMarket: Boolean(euMarketEligible),
       secondaryRetailDetail: verifiedRepresentativeProductDetail,
       verifiedSecondaryStorefront: hardCommerceEvidence,
+      shopConfirmed: finalCommerceDecision.confirmed,
     });
     Object.assign(checkoutFunnelEvidence, {
       sampledCheckoutDestinations: auditedMultiPages.filter(item => item.status === "audited" && item.type === "product" &&
@@ -6809,7 +6810,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88 && homepageStorefront) {
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 88;
-      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);
+      // bonprix (6 Nov): this line claimed a product page while none was sampled.
+      // It now names the evidence that actually confirmed the shop.
+      const productPageProof = auditedMultiPages.some((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
+      sectorProfile.evidence = [...sectorProfile.evidence, productPageProof ? "Representatieve productpagina bevestigt webshopfunctionaliteit" : "Webshopfunctionaliteit bevestigd op site-niveau (winkelwagen/afrekenen/productoverzicht); geen productpagina bevestigd"].slice(0,6);
       masterEvidence.primarySector.confidence = sectorProfile.confidence;
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";

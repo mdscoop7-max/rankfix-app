@@ -79,3 +79,20 @@ Tests: 1083 geslaagd, 0 mislukt; typecheck en lint groen; CI "Test, lint and bui
 | 6 | Hermeting Fresh144 + sector80 + MKB-48 | eigenaar draait TestLab | voor/na per site |
 
 Werkwijze: één stap tegelijk, max. 5 structurele problemen per ronde, geen site-specifieke regels, alles op QA.
+
+## Stap 1 — webshop-keten (6 nov, avond)
+
+**1a. Uitgeschakelde webshopmodules — opgelost**
+- Oorzaak: `decideCommerceModules` activeerde elk webshopmodule pas met een bewezen productpagina (`retailProduct`). Een bevestigde webshop zonder bemonsterde productpagina (bonprix) kreeg daardoor géén module, terwijl de webshop wél bevestigd was.
+- Wijziging: bij een bevestigde webshop met retail-identiteit zijn de winkelniveau-modules `ecommerce` en `eu_consumer` actief; `product`, `pricing_currency`, `checkout`, `merchant` blijven alleen met bewezen product. Dienstverleners/onbekend: ongewijzigd.
+- Ook: de bewijsregel "Representatieve productpagina bevestigt webshopfunctionaliteit" stond er zonder productpagina; nu wordt het werkelijke bewijs genoemd.
+- Vóór/na op de opgeslagen 96-site TestLab-replay: allbirds, bonsoy, gymshark, homewizard hadden 0 webshopmodules → nu `ecommerce` (+`eu_consumer` bij EU-markt). Scores en aantal onbevestigde controles ongewijzigd (80/93/94/91; 15/13/15/12).
+
+**1b. Productpagina's bij JS-webshops — oorzaak nog niet bewezen**
+- Code: productlinks worden uit (ook gerenderde) categoriepagina's gehaald en max. 3 kandidaten gecontroleerd; daarna sitemap, daarna renderen van niet-gerenderde lijstpagina's. In de replay vond allbirds 57 en gymshark 61 productlinks; of die live opgehaald en geweigerd/afgekeurd werden, staat alleen in de volledige JSON.
+- Nodig: volledige JSON bonprix (en 2–3 andere JS-webshops).
+
+**1c. Checkout- en betaalbewijs — nog niet onderzocht met bewijs**
+- Checkout wordt alleen bevestigd via een productpagina met koopactie + afrekenbestemming; zonder productpagina blijft het "niet te bevestigen" (juist, maar daardoor bij JS-webshops altijd open). Volgt uit 1b.
+
+Bijvangst (niet aangepast, buiten stap 1): crowdstrike.com (cybersecurity) krijgt in de replay webshopmodules; landal.nl/deere.com websitetype webshop zonder modules.
