@@ -63,3 +63,25 @@ test("a flight-ticket seller that never names itself an airline, without check-i
   const lot = detectEuPrimaryIdentity({ title: "Tanie loty i bilety lotnicze | Polskie Linie Lotnicze", description: "Zarezerwuj lot online.", h1s: [], hostname: "lot.test" });
   assert.equal(lot?.key, "passenger_transport");
 });
+
+test("hotel directory/booking pages are no vote for being a hotel; a real hotel still is", async () => {
+  const { corroborateDeclaredIndustry, detectDeclaredIndustry } = await import("../lib/site-sector-corroboration.mjs");
+  const page = (url, title, description) => ({ url, type: "other", status: "audited", title, description, identityHeadings: [title.split(" |")[0]], schemaTypes: [] });
+  const home = { url: "https://reisplatform.test/", type: "homepage", status: "audited", title: "Reisplatform | Vluchten, hotels en vakanties", description: "Boek vluchten, hotels en huurauto's.", identityHeadings: [], schemaTypes: [] };
+  const dir = [
+    page("https://reisplatform.test/hotels/barcelona/", "Hotels in Barcelona | Reisplatform", "Boek je hotel in Barcelona: kamers en overnachtingen met ontbijt."),
+    page("https://reisplatform.test/hotels/rome/", "Goedkope hotels in Rome | Reisplatform", "Boek je hotelkamer in Rome: overnachtingen en kamers."),
+    page("https://reisplatform.test/hotels/parijs/", "Hotels in Parijs | Reisplatform", "Boek een hotel in Parijs: kamers met ontbijt."),
+  ];
+  const r = corroborateDeclaredIndustry(home.url, home, dir);
+  assert.notEqual(r.decision?.key, "hotel");
+  const realHotel = { url: "https://hoteldehaven.test/", title: "Hotel De Haven | Boutique hotel aan zee", description: "Ons hotel heeft 40 kamers, ontbijt en een restaurant. Boek uw overnachting direct.", identityHeadings: ["Hotel De Haven"], schemaTypes: ["Hotel"] };
+  assert.equal(detectDeclaredIndustry(realHotel)?.key, "hotel");
+});
+
+test("accommodation booking platform (several kinds, global scale) is mediation; a single hotel or park is not", () => {
+  const platform = detectEuPrimaryIdentity({ title: "Boekplatform | Hotels, appartementen en vakantiehuizen", description: "Boek hotels, appartementen en vakantiehuizen wereldwijd. Miljoenen accommodaties.", h1s: ["Vind je verblijf"], hostname: "boekplatform.test" });
+  assert.equal(platform?.key, "travel");
+  const park = detectEuPrimaryIdentity({ title: "Parkgroep | Vakantieparken in Nederland", description: "Onze vakantiehuizen en chalets op 20 parken in Nederland en Duitsland.", h1s: ["Vakantie bij ons"], hostname: "parkgroep.test" });
+  assert.notEqual(park?.key, "travel");
+});

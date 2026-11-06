@@ -691,10 +691,16 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const airOnly = modes.length === 1 && modes[0] === "luchtvaart";
   const carrierProof = airlineSchema || ownCheckIn || CARRIER_NOUN.test(title + " · " + description + " · " + h1 + " · " + site);
   const flightTicketSeller = airOnly && !carrierProof && travelOwn.length >= 1;
-  const travelIntermediary = !airlineSchema && !ownCheckIn && travelProducts.includes("vluchten") && (travelProducts.length >= 2 || manyCarriers || flightTicketSeller);
+  // Accommodation booking platforms: several kinds of third-party accommodation
+  // at a scale no single hotel or park has ("hotels, appartementen en
+  // vakantiehuizen wereldwijd", "millions of properties").
+  const accommodationKinds = (own.match(/(?<![\p{L}])(?:hotels|appartementen|apartments|vakantiehuizen|vacation homes|holiday homes|ferienwohnungen|ferienhäuser|b&bs?|bed (?:and|&) breakfasts|hostels|villa's|villas|resorts|pensions|chalets|campings)(?![\p{L}])/giu) || []).map((x) => x.toLowerCase());
+  const platformScale = /(?<![\p{L}])(?:wereldwijd|worldwide|weltweit|dans le monde entier|in tutto il mondo|en todo el mundo|miljoenen|millions? of|millionen|des millions|milioni|millones|in \d{2,3} landen|in over \d{2,3} countries|meer dan [\d.]+ (?:accommodaties|hotels|woningen)|more than [\d,]+ (?:properties|hotels|listings))(?![\p{L}])/iu.test(own);
+  const accommodationPlatform = !airlineSchema && new Set(accommodationKinds).size >= 2 && platformScale;
+  const travelIntermediary = (!airlineSchema && !ownCheckIn && travelProducts.includes("vluchten") && (travelProducts.length >= 2 || manyCarriers || flightTicketSeller)) || accommodationPlatform;
   if (!retailer && !publication && travelIntermediary) {
     return { sector: "transport_travel", key: "travel", label: "Reisbemiddeling (online reisbureau)", confidence: "medium", confidenceScore: 78,
-      evidence: evidence([travelProducts.length >= 2 ? `Eigen identiteit biedt meerdere reisproducten aan: ${travelProducts.join(", ")}` : "Eigen identiteit verkoopt vliegtickets zonder zich als luchtvaartmaatschappij te presenteren", manyCarriers && "Eigen identiteit noemt vele luchtvaartmaatschappijen (bemiddeling, geen eigen vluchten)", "Geen eigen online check-in of Airline-structured data: geen bewijs van eigen vervoer"]) };
+      evidence: evidence([accommodationPlatform && `Eigen identiteit bemiddelt meerdere soorten accommodatie op grote schaal (${[...new Set(accommodationKinds)].join(", ")})`, travelProducts.length >= 2 ? `Eigen identiteit biedt meerdere reisproducten aan: ${travelProducts.join(", ")}` : "Eigen identiteit verkoopt vliegtickets zonder zich als luchtvaartmaatschappij te presenteren", manyCarriers && "Eigen identiteit noemt vele luchtvaartmaatschappijen (bemiddeling, geen eigen vluchten)", "Geen eigen online check-in of Airline-structured data: geen bewijs van eigen vervoer"]) };
   }
   if (!retailer && !publication && !transportIntermediary && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || CARRIER_NOUN.test(description + " · " + h1))))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : 90,

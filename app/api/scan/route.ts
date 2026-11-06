@@ -6057,7 +6057,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // replaces a more specific subtype of the same sector already decided.
     const broadOverSpecific = Boolean(specificIndustry && specificIndustry.key === specificIndustry.sector
       && sectorProfile.sector === specificIndustry.sector && sectorProfile.key && sectorProfile.key !== sectorProfile.sector);
-    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage && !broadOverSpecific &&
+    // Field report 6 Nov (eDreams-type, "Hotel & accommodatie (bevestigd)"): a
+    // booking platform's pages list third-party hotels or restaurants. When the
+    // site's own identity is mediation, a corroborated local trade never replaces it.
+    const mediationIdentity = ["travel","service_marketplace","marketplace","booking_platform","comparison_platform"].includes(String(euPrimaryIdentity?.key || primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const localTradeOverMediation = Boolean(specificIndustry && mediationIdentity && (LOCAL_TRADE_KEYS.has(String(specificIndustry.key)) || specificIndustry.sector === "hospitality"));
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage && !broadOverSpecific && !localTradeOverMediation &&
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
        keywordOnlyDecision ||
