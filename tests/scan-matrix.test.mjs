@@ -262,3 +262,10 @@ test("catalog development regressions retain all previously corrected primary id
   assert.equal(r.total, 68);
   assert.equal(r.failed, 0, r.log);
 });
+
+// sector80 (6 Nov): accountancy firm with a healthcare client practice, beauty clinic, skin therapist.
+test("professional firms: client sectors in navigation do not decide the firm's own sector", () => {
+  const r = run("run-sector-peers.mjs", { GROUP: "professional-firms" });
+  assert.equal(r.total, 3);
+  assert.equal(r.failed, 0, r.log);
+});
