@@ -1,0 +1,967 @@
+{
+  "id": "sector80",
+  "description": "80 diverse sector candidates, one website per sector; sector taxonomy labels proposed, not independently verified; manual QA only.",
+  "reviewStatus": "proposed_not_independently_verified",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Tandarts",
+      "hosts": [
+        "dentalclinics.nl"
+      ],
+      "group": "dentist",
+      "expected": "dentist",
+      "round": "sector80-20261106",
+      "sectorName": "Tandarts",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Huisarts",
+      "hosts": [
+        "thuisarts.nl"
+      ],
+      "group": "general_practice",
+      "expected": "general_practice",
+      "round": "sector80-20261106",
+      "sectorName": "Huisarts",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Ziekenhuis",
+      "hosts": [
+        "umcutrecht.nl"
+      ],
+      "group": "hospital",
+      "expected": "hospital",
+      "round": "sector80-20261106",
+      "sectorName": "Ziekenhuis",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Apotheek",
+      "hosts": [
+        "benu.nl"
+      ],
+      "group": "pharmacy",
+      "expected": "pharmacy",
+      "round": "sector80-20261106",
+      "sectorName": "Apotheek",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fysiotherapie",
+      "hosts": [
+        "fysioholland.nl"
+      ],
+      "group": "physiotherapy",
+      "expected": "physiotherapy",
+      "round": "sector80-20261106",
+      "sectorName": "Fysiotherapie",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Dierenarts",
+      "hosts": [
+        "anicura.nl"
+      ],
+      "group": "veterinary",
+      "expected": "veterinary",
+      "round": "sector80-20261106",
+      "sectorName": "Dierenarts",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Opticien",
+      "hosts": [
+        "pearle.nl"
+      ],
+      "group": "optician",
+      "expected": "optician",
+      "round": "sector80-20261106",
+      "sectorName": "Opticien",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Audicien",
+      "hosts": [
+        "schoonenberg.nl"
+      ],
+      "group": "hearing_care",
+      "expected": "hearing_care",
+      "round": "sector80-20261106",
+      "sectorName": "Audicien",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Geestelijke gezondheidszorg",
+      "hosts": [
+        "ggzcentraal.nl"
+      ],
+      "group": "mental_health",
+      "expected": "mental_health",
+      "round": "sector80-20261106",
+      "sectorName": "Geestelijke gezondheidszorg",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Thuiszorg",
+      "hosts": [
+        "buurtzorgnederland.com"
+      ],
+      "group": "home_care",
+      "expected": "home_care",
+      "round": "sector80-20261106",
+      "sectorName": "Thuiszorg",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Kinderopvang",
+      "hosts": [
+        "kindergarden.nl"
+      ],
+      "group": "childcare",
+      "expected": "childcare",
+      "round": "sector80-20261106",
+      "sectorName": "Kinderopvang",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Basisschool",
+      "hosts": [
+        "obsdeklimop.nl"
+      ],
+      "group": "primary_education",
+      "expected": "primary_education",
+      "round": "sector80-20261106",
+      "sectorName": "Basisschool",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Universiteit",
+      "hosts": [
+        "uva.nl"
+      ],
+      "group": "university",
+      "expected": "university",
+      "round": "sector80-20261106",
+      "sectorName": "Universiteit",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Rijschool",
+      "hosts": [
+        "anwb.nl"
+      ],
+      "group": "driving_school",
+      "expected": "driving_school",
+      "round": "sector80-20261106",
+      "sectorName": "Rijschool",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Uitzendbureau",
+      "hosts": [
+        "randstad.nl"
+      ],
+      "group": "staffing",
+      "expected": "staffing",
+      "round": "sector80-20261106",
+      "sectorName": "Uitzendbureau",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Accountantskantoor",
+      "hosts": [
+        "bdo.nl"
+      ],
+      "group": "accounting",
+      "expected": "accounting",
+      "round": "sector80-20261106",
+      "sectorName": "Accountantskantoor",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Advocatenkantoor",
+      "hosts": [
+        "loyensloeff.com"
+      ],
+      "group": "legal_services",
+      "expected": "legal_services",
+      "round": "sector80-20261106",
+      "sectorName": "Advocatenkantoor",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Notaris",
+      "hosts": [
+        "notaris.nl"
+      ],
+      "group": "notary",
+      "expected": "notary",
+      "round": "sector80-20261106",
+      "sectorName": "Notaris",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Makelaar",
+      "hosts": [
+        "makelaarsland.nl"
+      ],
+      "group": "realtor",
+      "expected": "realtor",
+      "round": "sector80-20261106",
+      "sectorName": "Makelaar",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hypotheekadvies",
+      "hosts": [
+        "dehypotheker.nl"
+      ],
+      "group": "mortgage_advice",
+      "expected": "mortgage_advice",
+      "round": "sector80-20261106",
+      "sectorName": "Hypotheekadvies",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bank",
+      "hosts": [
+        "abnamro.nl"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "round": "sector80-20261106",
+      "sectorName": "Bank",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Verzekeraar",
+      "hosts": [
+        "asr.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "sector80-20261106",
+      "sectorName": "Verzekeraar",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Betaaldiensten",
+      "hosts": [
+        "paypal.com"
+      ],
+      "group": "payment_services",
+      "expected": "payment_services",
+      "round": "sector80-20261106",
+      "sectorName": "Betaaldiensten",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Boekhoudsoftware",
+      "hosts": [
+        "exact.com"
+      ],
+      "group": "accounting_software",
+      "expected": "accounting_software",
+      "round": "sector80-20261106",
+      "sectorName": "Boekhoudsoftware",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fintech betaalinfrastructuur",
+      "hosts": [
+        "adyen.com"
+      ],
+      "group": "payment_infrastructure",
+      "expected": "payment_infrastructure",
+      "round": "sector80-20261106",
+      "sectorName": "Fintech betaalinfrastructuur",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Pensioenuitvoerder",
+      "hosts": [
+        "apg.nl"
+      ],
+      "group": "pension_administration",
+      "expected": "pension_administration",
+      "round": "sector80-20261106",
+      "sectorName": "Pensioenuitvoerder",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vermogensbeheer",
+      "hosts": [
+        "robeco.com"
+      ],
+      "group": "asset_management",
+      "expected": "asset_management",
+      "round": "sector80-20261106",
+      "sectorName": "Vermogensbeheer",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Webshop elektronica",
+      "hosts": [
+        "coolblue.nl"
+      ],
+      "group": "electronics_retail",
+      "expected": "electronics_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Webshop elektronica",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Webshop mode",
+      "hosts": [
+        "zalando.nl"
+      ],
+      "group": "fashion_retail",
+      "expected": "fashion_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Webshop mode",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Webshop cosmetica",
+      "hosts": [
+        "douglas.nl"
+      ],
+      "group": "beauty_retail",
+      "expected": "beauty_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Webshop cosmetica",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Supermarkt",
+      "hosts": [
+        "ah.nl"
+      ],
+      "group": "supermarket",
+      "expected": "supermarket",
+      "round": "sector80-20261106",
+      "sectorName": "Supermarkt",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bouwmarkt",
+      "hosts": [
+        "gamma.nl"
+      ],
+      "group": "hardware_retail",
+      "expected": "hardware_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Bouwmarkt",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Tuincentrum",
+      "hosts": [
+        "intratuin.nl"
+      ],
+      "group": "garden_center",
+      "expected": "garden_center",
+      "round": "sector80-20261106",
+      "sectorName": "Tuincentrum",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Meubelwinkel",
+      "hosts": [
+        "ikea.com"
+      ],
+      "group": "furniture_retail",
+      "expected": "furniture_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Meubelwinkel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Boekhandel",
+      "hosts": [
+        "bruna.nl"
+      ],
+      "group": "bookstore",
+      "expected": "bookstore",
+      "round": "sector80-20261106",
+      "sectorName": "Boekhandel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Speelgoedwinkel",
+      "hosts": [
+        "intertoys.nl"
+      ],
+      "group": "toy_retail",
+      "expected": "toy_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Speelgoedwinkel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Sportwinkel",
+      "hosts": [
+        "decathlon.nl"
+      ],
+      "group": "sporting_goods",
+      "expected": "sporting_goods",
+      "round": "sector80-20261106",
+      "sectorName": "Sportwinkel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fietsenwinkel",
+      "hosts": [
+        "mantel.com"
+      ],
+      "group": "bicycle_retail",
+      "expected": "bicycle_retail",
+      "round": "sector80-20261106",
+      "sectorName": "Fietsenwinkel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Autodealer",
+      "hosts": [
+        "vanmossel.nl"
+      ],
+      "group": "car_dealership",
+      "expected": "car_dealership",
+      "round": "sector80-20261106",
+      "sectorName": "Autodealer",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Garage",
+      "hosts": [
+        "kwik-fit.nl"
+      ],
+      "group": "car_repair",
+      "expected": "car_repair",
+      "round": "sector80-20261106",
+      "sectorName": "Garage",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Autoverhuur",
+      "hosts": [
+        "sixt.nl"
+      ],
+      "group": "car_rental",
+      "expected": "car_rental",
+      "round": "sector80-20261106",
+      "sectorName": "Autoverhuur",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Laadpaalbeheer",
+      "hosts": [
+        "allego.eu"
+      ],
+      "group": "ev_charging",
+      "expected": "ev_charging",
+      "round": "sector80-20261106",
+      "sectorName": "Laadpaalbeheer",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Restaurant",
+      "hosts": [
+        "loetje.nl"
+      ],
+      "group": "restaurant",
+      "expected": "restaurant",
+      "round": "sector80-20261106",
+      "sectorName": "Restaurant",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hotel",
+      "hosts": [
+        "vandervalk.nl"
+      ],
+      "group": "hotel",
+      "expected": "hotel",
+      "round": "sector80-20261106",
+      "sectorName": "Hotel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Reisbureau",
+      "hosts": [
+        "tui.nl"
+      ],
+      "group": "travel_agency",
+      "expected": "travel_agency",
+      "round": "sector80-20261106",
+      "sectorName": "Reisbureau",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vakantiepark",
+      "hosts": [
+        "centerparcs.nl"
+      ],
+      "group": "holiday_park",
+      "expected": "holiday_park",
+      "round": "sector80-20261106",
+      "sectorName": "Vakantiepark",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Evenementenlocatie",
+      "hosts": [
+        "rai.nl"
+      ],
+      "group": "event_venue",
+      "expected": "event_venue",
+      "round": "sector80-20261106",
+      "sectorName": "Evenementenlocatie",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Museum",
+      "hosts": [
+        "rijksmuseum.nl"
+      ],
+      "group": "museum",
+      "expected": "museum",
+      "round": "sector80-20261106",
+      "sectorName": "Museum",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Theater",
+      "hosts": [
+        "carre.nl"
+      ],
+      "group": "theatre",
+      "expected": "theatre",
+      "round": "sector80-20261106",
+      "sectorName": "Theater",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bioscoop",
+      "hosts": [
+        "pathe.nl"
+      ],
+      "group": "cinema",
+      "expected": "cinema",
+      "round": "sector80-20261106",
+      "sectorName": "Bioscoop",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Sportschool",
+      "hosts": [
+        "basic-fit.com"
+      ],
+      "group": "gym",
+      "expected": "gym",
+      "round": "sector80-20261106",
+      "sectorName": "Sportschool",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Schoonheidssalon",
+      "hosts": [
+        "soaptreatmentstore.com"
+      ],
+      "group": "beauty_salon",
+      "expected": "beauty_salon",
+      "round": "sector80-20261106",
+      "sectorName": "Schoonheidssalon",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Kapper",
+      "hosts": [
+        "brainwash-kappers.nl"
+      ],
+      "group": "hair_salon",
+      "expected": "hair_salon",
+      "round": "sector80-20261106",
+      "sectorName": "Kapper",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Schoonmaakbedrijf",
+      "hosts": [
+        "asito.nl"
+      ],
+      "group": "cleaning_services",
+      "expected": "cleaning_services",
+      "round": "sector80-20261106",
+      "sectorName": "Schoonmaakbedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Loodgieter",
+      "hosts": [
+        "rrs.nl"
+      ],
+      "group": "plumber",
+      "expected": "plumber",
+      "round": "sector80-20261106",
+      "sectorName": "Loodgieter",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Elektricien",
+      "hosts": [
+        "croonwolterendros.nl"
+      ],
+      "group": "electrical_installation",
+      "expected": "electrical_installation",
+      "round": "sector80-20261106",
+      "sectorName": "Elektricien",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Installatiebedrijf",
+      "hosts": [
+        "feenstra.com"
+      ],
+      "group": "hvac",
+      "expected": "hvac",
+      "round": "sector80-20261106",
+      "sectorName": "Installatiebedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bouwbedrijf",
+      "hosts": [
+        "bam.com"
+      ],
+      "group": "construction",
+      "expected": "construction",
+      "round": "sector80-20261106",
+      "sectorName": "Bouwbedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Architectenbureau",
+      "hosts": [
+        "mvrdv.com"
+      ],
+      "group": "architecture",
+      "expected": "architecture",
+      "round": "sector80-20261106",
+      "sectorName": "Architectenbureau",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Ingenieursbureau",
+      "hosts": [
+        "arcadis.com"
+      ],
+      "group": "engineering",
+      "expected": "engineering",
+      "round": "sector80-20261106",
+      "sectorName": "Ingenieursbureau",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Schilderbedrijf",
+      "hosts": [
+        "onderhoudnl.nl"
+      ],
+      "group": "painting_services",
+      "expected": "painting_services",
+      "round": "sector80-20261106",
+      "sectorName": "Schilderbedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Dakdekker",
+      "hosts": [
+        "dakmerk.nl"
+      ],
+      "group": "roofing",
+      "expected": "roofing",
+      "round": "sector80-20261106",
+      "sectorName": "Dakdekker",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hovenier",
+      "hosts": [
+        "donkergroen.nl"
+      ],
+      "group": "landscaping",
+      "expected": "landscaping",
+      "round": "sector80-20261106",
+      "sectorName": "Hovenier",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vastgoedbeheer",
+      "hosts": [
+        "vbrem.nl"
+      ],
+      "group": "property_management",
+      "expected": "property_management",
+      "round": "sector80-20261106",
+      "sectorName": "Vastgoedbeheer",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Logistiek dienstverlener",
+      "hosts": [
+        "dhl.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "round": "sector80-20261106",
+      "sectorName": "Logistiek dienstverlener",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Pakketbezorging",
+      "hosts": [
+        "postnl.nl"
+      ],
+      "group": "parcel_delivery",
+      "expected": "parcel_delivery",
+      "round": "sector80-20261106",
+      "sectorName": "Pakketbezorging",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Personenvervoer spoor",
+      "hosts": [
+        "ns.nl"
+      ],
+      "group": "rail_transport",
+      "expected": "rail_transport",
+      "round": "sector80-20261106",
+      "sectorName": "Personenvervoer spoor",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Luchtvaartmaatschappij",
+      "hosts": [
+        "klm.nl"
+      ],
+      "group": "airline",
+      "expected": "airline",
+      "round": "sector80-20261106",
+      "sectorName": "Luchtvaartmaatschappij",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Scheepvaart",
+      "hosts": [
+        "maersk.com"
+      ],
+      "group": "shipping",
+      "expected": "shipping",
+      "round": "sector80-20261106",
+      "sectorName": "Scheepvaart",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Havenbedrijf",
+      "hosts": [
+        "portofrotterdam.com"
+      ],
+      "group": "port_operator",
+      "expected": "port_operator",
+      "round": "sector80-20261106",
+      "sectorName": "Havenbedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Telecomprovider",
+      "hosts": [
+        "kpn.com"
+      ],
+      "group": "telecommunications",
+      "expected": "telecommunications",
+      "round": "sector80-20261106",
+      "sectorName": "Telecomprovider",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Internetprovider",
+      "hosts": [
+        "ziggo.nl"
+      ],
+      "group": "internet_provider",
+      "expected": "internet_provider",
+      "round": "sector80-20261106",
+      "sectorName": "Internetprovider",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Energieleverancier",
+      "hosts": [
+        "vattenfall.nl"
+      ],
+      "group": "energy_supplier",
+      "expected": "energy_supplier",
+      "round": "sector80-20261106",
+      "sectorName": "Energieleverancier",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Netbeheerder",
+      "hosts": [
+        "liander.nl"
+      ],
+      "group": "grid_operator",
+      "expected": "grid_operator",
+      "round": "sector80-20261106",
+      "sectorName": "Netbeheerder",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Waterbedrijf",
+      "hosts": [
+        "vitens.nl"
+      ],
+      "group": "water_utility",
+      "expected": "water_utility",
+      "round": "sector80-20261106",
+      "sectorName": "Waterbedrijf",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Afvalverwerking",
+      "hosts": [
+        "renewi.com"
+      ],
+      "group": "waste_management",
+      "expected": "waste_management",
+      "round": "sector80-20261106",
+      "sectorName": "Afvalverwerking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Machinebouw",
+      "hosts": [
+        "vanderlande.com"
+      ],
+      "group": "machinery_manufacturing",
+      "expected": "machinery_manufacturing",
+      "round": "sector80-20261106",
+      "sectorName": "Machinebouw",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Chemische industrie",
+      "hosts": [
+        "basf.com"
+      ],
+      "group": "chemical_manufacturing",
+      "expected": "chemical_manufacturing",
+      "round": "sector80-20261106",
+      "sectorName": "Chemische industrie",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Farmaceutische industrie",
+      "hosts": [
+        "organon.com"
+      ],
+      "group": "pharmaceutical_manufacturing",
+      "expected": "pharmaceutical_manufacturing",
+      "round": "sector80-20261106",
+      "sectorName": "Farmaceutische industrie",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Voedselproductie",
+      "hosts": [
+        "heineken.com"
+      ],
+      "group": "beverage_manufacturing",
+      "expected": "beverage_manufacturing",
+      "round": "sector80-20261106",
+      "sectorName": "Voedselproductie",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}
