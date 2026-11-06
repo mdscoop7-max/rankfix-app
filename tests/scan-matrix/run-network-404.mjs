@@ -1,7 +1,8 @@
 // QA 144 run 7a2155c (25 Oct): DNS and 404 classes. Neutral hosts, no site rules.
 //   apexdns.test        apex has no DNS record, www.apexdns.test answers -> report via www, hostFallback recorded
 //   www.wwwdns.test     www has no DNS, the apex answers                  -> report via apex
-//   nodns.test          neither name resolves                             -> 502 FETCH_DNS (network, no score)
+//   nodns.test          neither name resolves (ENOTFOUND)                 -> 422 SITE_DOMAIN_NOT_FOUND (domain fact, no score; 6 Nov)
+//   flakydns.test       resolver failure (EAI_AGAIN) on both names        -> 502 FETCH_DNS (network, no score)
 //   root404.test        homepage 404 to RankFix, browser gets the site    -> report, crawler block (originalStatus 404)
 //   root404real.test    homepage 404 and the browser gets "Seite nicht gefunden" -> 422 HTTP_NOT_FOUND
 //   deep404.test        a deep URL 404                                     -> 422 HTTP_NOT_FOUND, no browser attempt
@@ -12,11 +13,16 @@
 const nav = Array.from({ length: 12 }, (_, i) => `<a href="/sectie-${i}">Sectie ${i}</a>`).join(" ");
 const site = (title) => `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${title} – Sortiment, Filialen und Service."></head><body><header>${nav}</header><h1>${title}</h1><main><p>${"Sortiment Filialen Service Angebote ".repeat(80)}</p></main></body></html>`;
 const timeoutError = () => { const e = new Error("The operation was aborted due to timeout"); e.name = "TimeoutError"; return e; };
+const flakyDnsError = () => { const e = new TypeError("fetch failed"); e.cause = { code: "EAI_AGAIN", message: "getaddrinfo EAI_AGAIN" }; return e; };
 const dnsError = () => { const e = new TypeError("fetch failed"); e.cause = { code: "ENOTFOUND", message: "getaddrinfo ENOTFOUND" }; return e; };
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const h = u.host;
   if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } });
+  if (h === "flakydns.test" || h === "www.flakydns.test") throw flakyDnsError();
+  // 6 Nov: website-side faults that are not a block of RankFix.
+  if (h === "pay402.test") return new Response("<html><head><title>Payment required</title></head><body>This site is not active.</body></html>", { status: 402, headers: { "content-type": "text/html" } });
+  if (h === "expired.test" || h === "www.expired.test") { const e = new TypeError("fetch failed"); e.cause = { code: "CERT_HAS_EXPIRED", message: "certificate has expired" }; throw e; }
   if (h === "apexdns.test" || h === "www.wwwdns.test" || h === "nodns.test" || h === "www.nodns.test") throw dnsError();
   if (h === "apexhang.test" || h === "hang404.test" || h === "bothhang.test" || h === "www.bothhang.test") throw timeoutError();
   if (h === "www.apexhang.test") return new Response(site("Apex Kapsalon"), { status: 200, headers: { "content-type": "text/html" } });
@@ -46,7 +52,10 @@ const rows = [];
 const cases = [
   ["apexdns.test", "/", (j, r) => { if (r.status !== 200) return `expected report via www, got ${r.status} ${j.code}`; if (!j.hostFallback || !/www\.apexdns\.test/.test(j.hostFallback.to)) return `hostFallback missing: ${JSON.stringify(j.hostFallback)}`; if (!/www\.apexdns\.test/.test(j.finalUrl)) return `finalUrl ${j.finalUrl}`; }],
   ["www.wwwdns.test", "/", (j, r) => { if (r.status !== 200) return `expected report via apex, got ${r.status} ${j.code}`; if (!/\/\/wwwdns\.test/.test(j.hostFallback?.to || "")) return `hostFallback ${JSON.stringify(j.hostFallback)}`; }],
-  ["nodns.test", "/", (j, r) => { if (r.status !== 502 || j.code !== "FETCH_DNS") return `expected 502 FETCH_DNS, got ${r.status} ${j.code}`; if (j.incident?.attribution !== "network") return `attribution ${j.incident?.attribution}`; }],
+  ["nodns.test", "/", (j, r) => { if (r.status !== 422 || j.code !== "SITE_DOMAIN_NOT_FOUND") return `expected 422 SITE_DOMAIN_NOT_FOUND, got ${r.status} ${j.code}`; if (j.incident?.attribution !== "target_site") return `attribution ${j.incident?.attribution}`; }],
+  ["pay402.test", "/", (j, r) => { if (r.status !== 422 || j.code !== "HTTP_PAYMENT_REQUIRED") return `expected 422 HTTP_PAYMENT_REQUIRED, got ${r.status} ${j.code}`; if (j.incident?.attribution !== "target_site") return `attribution ${j.incident?.attribution}`; if (/geblokkeerd/i.test(j.error || "")) return "402 described as a block"; }],
+  ["expired.test", "/", (j, r) => { if (r.status !== 422 || j.code !== "SITE_TLS_INVALID" || j.tlsReason !== "certificate_expired") return `expected 422 SITE_TLS_INVALID/certificate_expired, got ${r.status} ${j.code} ${j.tlsReason}`; if (j.incident?.attribution !== "target_site") return `attribution ${j.incident?.attribution}`; }],
+  ["flakydns.test", "/", (j, r) => { if (r.status !== 502 || j.code !== "FETCH_DNS") return `expected 502 FETCH_DNS, got ${r.status} ${j.code}`; if (j.incident?.attribution !== "network") return `attribution ${j.incident?.attribution}`; }],
   ["root404.test", "/", (j, r) => { if (r.status !== 200) return `expected browser recovery, got ${r.status} ${j.code}`; if (j.access?.originalStatus !== 404 || !j.access?.rankfixBlocked) return `access ${JSON.stringify(j.access)}`; if (!/geautomatiseerde verzoeken/.test(j.access?.note || "")) return `note ${j.access?.note}`; }],
   ["root404real.test", "/", (j, r) => { if (r.status !== 422 || j.code !== "HTTP_NOT_FOUND") return `expected 422 HTTP_NOT_FOUND, got ${r.status} ${j.code}`; if (j.incident?.originHttpStatus !== 404) return `origin ${j.incident?.originHttpStatus}`; // QA #204: the site's own not-found page in the 404 body confirms it without a browser.
     if (!/bestaat niet.*(?:browsercontrole|niet-gevonden-pagina)/.test(j.error || "")) return `message ${j.error}`; if (j.verification?.verdict !== "confirmed") return `verdict ${j.verification?.verdict}`; }],

@@ -31,14 +31,17 @@ for (const dir of dirs) {
     const m = d.metrics || {};
     const audits = d.multiPage?.pageAudits || [];
     const home = audits.find((p) => p.url === d.finalUrl) || audits[0] || {};
-    const nav = (m.navigationLabels || []).slice(0, 60).map((label, i) => [new URL(`/nav-${i}`, d.finalUrl).toString(), label]);
+    // Real sampled page URLs become the homepage links, so the route crawls the
+    // same pages it saw live; remaining navigation labels keep their text.
+    const sampled = audits.filter((p) => p.url && p.url !== d.finalUrl).map((p) => [p.url, String(p.title || "").split(/\s[—|–-]\s/)[0] || p.url]);
+    const nav = [...sampled, ...(m.navigationLabels || []).slice(0, 40).map((label, i) => [new URL(`/nav-${i}`, d.finalUrl).toString(), label])];
     const pages = [{
       url: d.finalUrl, title: m.title || home.title || "", description: m.description || "", identityHeadings: m.h1s || [],
       schemaTypes: m.schemaTypes || [], body: String(home.identityText || "").slice(0, 3000), status: "audited",
     }];
     for (const p of audits) {
       if (!p.url || p.url === d.finalUrl) continue;
-      pages.push({ url: p.url, title: p.title || "", description: p.description || "", identityHeadings: [], schemaTypes: [], body: String(p.identityText || "").slice(0, 3000), status: p.status === "audited" ? "audited" : "failed", httpStatus: p.httpStatus || null });
+      pages.push({ url: p.url, title: p.title || "", description: p.description || "", identityHeadings: p.identityHeadings || [], schemaTypes: p.schemaTypes || [], body: String(p.identityText || "").slice(0, 3000), status: p.status === "audited" ? "audited" : "failed", httpStatus: p.httpStatus || null });
     }
     sites.push({
       host, expected: catalog.get(host)?.expected || null, finalUrl: d.finalUrl, lang: m.lang || "en", renderedLive: Boolean(d.rendering?.javascriptExecuted),

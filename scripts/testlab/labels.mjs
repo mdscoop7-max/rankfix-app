@@ -163,7 +163,7 @@ export function failureCategory(status,code='',attribution=null) {
  if(/DATABASE|INFRASTRUCTURE/.test(code))return 'infrastructure';
  if(/BLOCKED|CHALLENGE|CAPTCHA|ROBOTS|UNVERIFIED_NOT_FOUND/.test(code))return 'site_blocked';
  // The website served an error or maintenance page instead of its content.
- if(/SITE_ERROR_PAGE|HTTP_NOT_FOUND|HTTP_SERVER_ERROR/.test(code))return 'site_unavailable';
+ if(/SITE_ERROR_PAGE|HTTP_NOT_FOUND|HTTP_PAYMENT_REQUIRED|SITE_TLS_INVALID|SITE_DOMAIN_NOT_FOUND|HTTP_SERVER_ERROR/.test(code))return 'site_unavailable';
  if([401,403].includes(status))return 'auth';
  if(/TIMEOUT/.test(code))return 'timeout';
  if(status===0||/FETCH_|REDIRECT_LOOP|REDIRECT_LIMIT/.test(code))return 'network';

@@ -27,7 +27,7 @@ import { selectPageProduct } from "@/lib/product-provenance";
 import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
+import { fetchFailureCode, finishScanAttempt, startScanAttempt, tlsFailureReason, TLS_REASON_NL, dnsDomainMissing } from "@/lib/scan-attempts";
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage, detectProtectionProvider, isChallengeServerError } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
@@ -1025,6 +1025,23 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           console.info("RankFix timeout recovery render failed", { url: target.toString(), reason: renderFailureCode(renderError) });
         }
       }
+      if (!timeoutRecovery && code === "FETCH_DNS" && dnsDomainMissing(fetchError)) {
+        const text = scanLanguage === "nl"
+          ? `Scan niet mogelijk: de domeinnaam ${target.hostname} heeft geen websiteadres (DNS: domein bestaat niet of heeft geen A/AAAA-record, ook niet met of zonder www). Controleer de URL of de DNS-instellingen. Er is geen score berekend.`
+          : `Scan not possible: the domain ${target.hostname} has no website address (DNS: the domain does not exist or has no A/AAAA record, also not with or without www). Check the URL or DNS settings. No score was calculated.`;
+        return NextResponse.json({ error: text, code: "SITE_DOMAIN_NOT_FOUND", diagnosis: diagnoseFetchFailure("FETCH_DNS", Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false }, { status: 422 });
+      }
+      if (!timeoutRecovery && code === "FETCH_TLS") {
+        // A provable certificate fault is the website's own problem; a handshake
+        // failure stays a network outcome (MKB-48, 6 Nov).
+        const tlsReason = tlsFailureReason(fetchError);
+        const siteFault = tlsReason !== "handshake";
+        const tlsCode = siteFault ? "SITE_TLS_INVALID" : "FETCH_TLS";
+        const tlsText = scanLanguage === "nl"
+          ? `Scan niet mogelijk: ${TLS_REASON_NL[tlsReason]}. Er is geen score berekend.`
+          : fetchFailureMessage("FETCH_TLS", scanLanguage, (Date.now() - started) / 1000) || scanError.fetch;
+        return NextResponse.json({ error: tlsText, code: tlsCode, tlsReason, diagnosis: diagnoseFetchFailure("FETCH_TLS", Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false }, { status: siteFault ? 422 : 502 });
+      }
       if (!timeoutRecovery) return NextResponse.json(
         { error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
         { status: 502 }
@@ -1206,7 +1223,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             ? `El sitio devolvió un error del servidor (HTTP ${response.status}). Inténtalo más tarde; no se ha calculado ninguna puntuación.`
             : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
-      const accessBlock = ![404, 410].includes(response.status) && response.status < 500;
+      // MKB-48 (6 Nov, thewaxingcompany.nl): HTTP 402 "Payment Required" means the
+      // website's own hosting/plan is not active. It is the site being unavailable,
+      // not the site refusing RankFix.
+      const sitePaymentRequired = response.status === 402;
+      if (sitePaymentRequired) {
+        httpMessages.nl = "Deze website is niet beschikbaar (HTTP 402, betaling vereist): meestal is het hosting- of websiteabonnement van de site niet actief. Dit is geen blokkade van RankFix; er is daarom geen score berekend.";
+        httpMessages.en = "This website is unavailable (HTTP 402, payment required): usually the site's own hosting or website plan is not active. RankFix was not blocked; no score was calculated.";
+      }
+      const accessBlock = ![404, 410].includes(response.status) && response.status < 500 && !sitePaymentRequired;
       if (rootNotFound && notFoundVerification === "confirmed") {
         const rootText: Record<string,string> = {
           nl: recovery.reason === "RENDER_CONFIRMS_NOT_FOUND"
@@ -1245,7 +1270,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
           : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
       } : null;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 && !challengeServerError ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : sitePaymentRequired ? "HTTP_PAYMENT_REQUIRED" : response.status >= 500 && !challengeServerError ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser
