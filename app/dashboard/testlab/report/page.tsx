@@ -41,7 +41,7 @@ function Report(){
   "", "NIET BEVESTIGDE CONTROLES",
   ...(unconfirmed.length?unconfirmed.map(x=>"- "+pretty(x.title||x.key)):["Geen"]),
   "", "Let op: QA-scan, niet onafhankelijk gevalideerd. Volledig technisch bewijs beschikbaar in JSON."
- ].join("\\n"): "";
+ ].join("\n"): "";
  return <main style={{minHeight:"100vh",background:"#f1f5f9",padding:"28px 18px",fontFamily:"system-ui, sans-serif",color:"#1e293b"}}>
   <div style={{maxWidth:1120,margin:"0 auto"}}>
    <nav style={{marginBottom:20}}><Link href="/dashboard/testlab" style={{color:"#1d4ed8",fontWeight:650}}>← Terug naar TestLab</Link></nav>
