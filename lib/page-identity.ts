@@ -37,6 +37,14 @@ function headingSays(pattern: RegExp, heading: string): boolean {
   return rest.length <= 4;
 }
 
+// Stripe live scan (6 Nov): /nl/careers was typed "Juridisch". A consent dialog's
+// heading ("Cookie-instellingen", "We gebruiken cookies") is rendered as an H1
+// before the page's own H1, and "arbeidsvoorwaarden" (employment terms) contains
+// "voorwaarden". Neither is the page's own legal identity.
+const CONSENT_HEADING = /^(?:cookie[ -]?(?:instellingen|voorkeuren|settings|preferences|toestemming|melding|consent|banner)|(?:we|wij) (?:use|gebruiken|maken gebruik van) cookies|this (?:site|website) uses cookies|deze (?:site|website) gebruikt cookies|(?:uw|jouw|your) privacy(?: (?:instellingen|settings|voorkeuren|preferences|choices))?|privacy[ -]?(?:instellingen|settings|voorkeuren|preferences|center|centrum)|manage (?:cookies|consent)|cookies (?:beheren|accepteren))\b/iu;
+const EMPLOYMENT_TERMS = /\b(?:arbeidsvoorwaarden|secundaire arbeidsvoorwaarden|employment (?:terms|conditions)|arbeitsbedingungen)\b/iu;
+const CAREERS_PATH = /(?:^|\/)(?:careers?|jobs?|vacatures?|werken-bij|werkenbij|karriere|stellenangebote|carrieres?|carriere|emplois?|lavora-con-noi|empleo)(?:\/|$)/i;
+
 export function pageIdentityType(input: {
   title?: string | null;
   h1s?: string[];
@@ -45,16 +53,20 @@ export function pageIdentityType(input: {
   sellsOneProduct?: boolean;
   /** Street addresses (or LocalBusiness/Store objects) found on the page. */
   addressCount?: number;
+  /** URL path of the page; a careers/jobs path is never re-typed as legal. */
+  path?: string;
 }): PageIdentity {
   if (input.sellsOneProduct) return null;
-  const h1 = (input.h1s || []).map((h) => h.trim()).filter(Boolean)[0] || "";
+  const h1 = (input.h1s || []).map((h) => h.trim()).filter((h) => h && !CONSENT_HEADING.test(h))[0] || "";
   const head = titleHead(input.title);
   const headings = [h1, head].filter(Boolean);
   const says = (pattern: RegExp) => headings.some((h) => headingSays(pattern, h));
   const schema = new Set((input.schemaTypes || []).map((t) => String(t).toLowerCase()));
   // The H1 is the page's own statement; the title head is its fallback.
   const h1Says = (pattern: RegExp) => Boolean(h1) && headingSays(pattern, h1);
-  if (h1Says(LEGAL) || (!h1 && says(LEGAL))) return { type: "legal", reason: `kop "${h1 || head}"` };
+  const legalHeading = (h: string) => !EMPLOYMENT_TERMS.test(h) && headingSays(LEGAL, h);
+  const careersPage = CAREERS_PATH.test(input.path || "");
+  if (!careersPage && ((h1 && legalHeading(h1)) || (!h1 && headings.some(legalHeading)))) return { type: "legal", reason: `kop "${h1 || head}"` };
   if (h1Says(FAQ) || (!h1 && says(FAQ))) return { type: "support", reason: `veelgestelde vragen (kop "${h1 || head}")` };
   if (h1Says(CONTACT) || (!h1 && says(CONTACT))) return { type: "contact", reason: `kop "${h1 || head}"` };
   if ((h1Says(LOCATION) || (!h1 && says(LOCATION))) && !schema.has("product")) return { type: "location", reason: `vestigingsoverzicht (kop "${h1 || head}"${(input.addressCount || 0) >= 2 ? `, ${input.addressCount} adressen` : ""})` };
@@ -63,6 +75,6 @@ export function pageIdentityType(input: {
   if (schema.has("faqpage") && !h1) return { type: "support", reason: "FAQPage structured data" };
   if (schema.has("contactpage") && !h1) return { type: "contact", reason: "ContactPage structured data" };
   // A legal heading in the title head while the H1 is a generic brand line.
-  if (says(LEGAL) && !h1Says(CONTACT) && !h1Says(FAQ)) return { type: "legal", reason: `titel "${head}"` };
+  if (!careersPage && headings.some(legalHeading) && !h1Says(CONTACT) && !h1Says(FAQ)) return { type: "legal", reason: `titel "${head}"` };
   return null;
 }

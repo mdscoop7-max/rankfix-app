@@ -34,6 +34,8 @@ const PROVIDERS = [
   ["Paybox | Betaaloplossingen voor webshops", "Paybox is een payment service provider voor online betalingen, abonnementen en betalen in de winkel.", ["Alle betaalmethoden in één platform"], ["Betaalmethoden", "Prijzen", "Developers"]],
   ["Safepay | Online betalingen voor ondernemers", "Safepay is een Nederlandse payment service provider. Accepteer alle betaalmethoden in je webshop.", ["Betalingen die je laten groeien"], ["Betaalmethoden", "Tarieven", "Ontwikkelaars"]],
   ["Tapper | Pinautomaat en kassasysteem", "Met de Tapper pinautomaat accepteer je pinbetalingen en contactloos betalen.", ["Accepteer kaartbetalingen overal"], ["Pinautomaten", "Prijzen"]],
+  // Stripe live scan (6 Nov, NL): typed generic "Financiële diensten".
+  ["Paystream | Financiële infrastructuur voor meer omzet", "Paystream is een financiële dienstverlener en softwareplatform. Miljoenen bedrijven gebruiken Paystream om betalingen te accepteren en uitbetalingen te verwerken.", ["Financiële infrastructuur voor meer omzet"], ["Producten", "Ontwikkelaars", "Prijzen"]],
   ["Lineworld | Payment services", "A European leader in payment services and transactional services for merchants and banks.", ["Payment services for merchants"], []],
 ];
 test("every kind of payment provider is recognised as payments", () => {
@@ -45,9 +47,18 @@ const NOT_PAYMENTS = [
   ["Sneakers online kopen | Shoeshop", "Gratis verzending, veilig betalen met iDEAL of Walletpay. Shop online de nieuwste sneakers.", ["Nieuwe sneakers"]],
   ["Bakkerij Jansen | Brood en gebak", "Ambachtelijke bakker. Bij ons kun je pinnen en contactloos betalen.", ["Vers brood"]],
   ["Modehuis | Winkelen in de stad", "Shop online of kom winkelen in onze winkel. Gratis retourneren.", ["Nieuwe collectie"]],
+  ["Accountant | Financiële administratie", "Wij verzorgen de financiële infrastructuur van uw administratie en loonadministratie.", ["Uw accountant"]],
+  ["Boekhoudkantoor Jansen", "Wij verwerken uw administratie, facturen en betalingen.", ["Boekhouding"]],
   ["Cadeaukaart | Geldig bij duizenden winkels", "Betaal met de cadeaukaart bij duizenden winkels. Bestel online.", ["Cadeaukaarten"]],
 ];
 test("shops and local businesses that mention paying are not payment providers", () => {
   const wrong = NOT_PAYMENTS.filter(([title, description, headings]) => detectPrimaryBusinessIdentity({ title, description, headings, schemaTypes: [] }).financialKind === "payments").map((p) => p[0]);
   assert.deepEqual(wrong, []);
+});
+
+import { detectEuPrimaryIdentity } from "../lib/eu-identity.ts";
+test("financial-group evidence names what corroborated it, never invented bank/insurance activity", () => {
+  const r = detectEuPrimaryIdentity({ title: "Finco | Financiële dienstverlener", description: "Finco is een financiële dienstverlener voor bedrijven.", h1: "Financiële diensten voor bedrijven", siteName: "Finco", hostname: "finco.example", navLabels: [], schemaTypes: [] });
+  assert.equal(r?.sector, "financial_services");
+  assert.doesNotMatch(r.evidence.join(" "), /bank- of verzekering/);
 });

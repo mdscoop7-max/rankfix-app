@@ -5775,7 +5775,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         };
         // Own identity (heading, title head, schema) decides over the URL; a page that
         // sells one product or lists a priced product range is never re-typed by it.
-        const pageIdentity = pageIdentityType({ title: pageTitle, h1s: pageH1s, schemaTypes: pageSchemaTypes,
+        const pageIdentity = pageIdentityType({ title: pageTitle, h1s: pageH1s, schemaTypes: pageSchemaTypes, path: finalCandidate.pathname,
           sellsOneProduct: (pageProductSchema && pageStrongCommerceAction && (pageCommerceEvidence.productSchemaCount || 0) <= 1)
             || ((pageCommerceEvidence.productSchemaCount || 0) >= 2) || (pageCommerceEvidence.repeatedProductLinks && pagePriceSignals >= 3) });
         if (pageIdentity) page.evidence.push(`inhoud: ${pageIdentity.reason}`);

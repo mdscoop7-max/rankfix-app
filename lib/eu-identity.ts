@@ -626,10 +626,15 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   //     Customer clauses ("software for financial services") were stripped above.
   const financialGroupSources = countSources((s) => FINANCIAL_GROUP.test(s));
   if (!retailer && !publication && financialGroupSources >= 1) {
-    const corroborated = INSURANCE.test(own) || bankConcepts.some((c) => c !== "financial_group") || financialGroupSources >= 2;
-    return { sector: "financial_services", key: INSURANCE.test(own) && !bankConcepts.some((c) => c !== "financial_group") ? "financial_insurance" : "financial_services", label: "Financiële diensten",
+    const insuranceActivity = INSURANCE.test(own);
+    const bankActivity = bankConcepts.some((c) => c !== "financial_group");
+    const corroborated = insuranceActivity || bankActivity || financialGroupSources >= 2;
+    // Stripe live scan (6 Nov): the evidence claimed "bank- of verzekeringsactiviteiten"
+    // when the corroboration was only a second source. Name what actually corroborated.
+    const why = bankActivity && insuranceActivity ? ", met bank- en verzekeringsactiviteiten" : bankActivity ? ", met bankactiviteiten" : insuranceActivity ? ", met verzekeringsactiviteiten" : financialGroupSources >= 2 ? ", in meerdere eigen bronnen" : "";
+    return { sector: "financial_services", key: insuranceActivity && !bankActivity ? "financial_insurance" : "financial_services", label: "Financiële diensten",
       confidence: corroborated ? "high" : "medium", confidenceScore: corroborated ? 88 : 77,
-      evidence: [`Eigen identiteit noemt de organisatie een financiële dienstverlener${corroborated ? ", met bank- of verzekeringsactiviteiten" : ""}`] };
+      evidence: [`Eigen identiteit noemt de organisatie een financiële dienstverlener${why}`] };
   }
 
   // 4. Education: a university/college names itself.
