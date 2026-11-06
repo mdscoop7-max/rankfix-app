@@ -23,7 +23,9 @@ test("TestLab row and QA report page use scoreDisplay, not the bare overallScore
   assert.match(lab, /scoreDisplay\(r\?\.score/);
   assert.doesNotMatch(lab, /<td>\{num\(r\?\.score\?\?null\)\}/);
   const report = await readFile(new URL("../app/dashboard/testlab/report/page.tsx", import.meta.url), "utf8");
-  assert.match(report, /scoreDisplay\(record\.result\?\.overallScore/);
+  assert.match(report, /scoreDisplay\(record\.result\??\.overallScore/);
+  assert.match(report, /evidence\?\.seoDisplay/);
+  assert.doesNotMatch(report, /record\.result\??\.seo\??\.score\}/);
 });
 
 test("stored reports without headline still show the range in dashboard lists", async () => {

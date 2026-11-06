@@ -54,7 +54,8 @@ test("no customer or QA surface prints a bare SEO/GEO score next to its evidence
     "app/dashboard/history/page.tsx": /geo_display\?\?scan\.geo_score/,
     "app/api/history/route.ts": /geo_display:dimensionScoreText/,
     "components/qa-testlab.tsx": /scoreEvidence\?\.geoDisplay/,
-    "app/dashboard/testlab/report/page.tsx": /ev\.geoDisplay/,
+    // Owner rewrite 6 Nov (8281390): evidence?.geoDisplay, same evidence-based display.
+    "app/dashboard/testlab/report/page.tsx": /(?:ev|evidence\?)\.geoDisplay/,
   };
   for (const [file, used] of Object.entries(surfaces)) {
     const src = readFileSync(new URL("../" + file, import.meta.url), "utf8");
