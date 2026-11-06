@@ -20,9 +20,16 @@ export type MotorEvidence = {
    * (terms, returns, consumer info, trust) were never active.
    */
   shopConfirmed?: boolean;
+  /**
+   * The decided identity sells priced services/plans (software, cybersecurity,
+   * hosting, financial services). A plan card with Product schema and a buy button
+   * (CrowdStrike "Falcon Go") is a subscription, never a retail webshop.
+   */
+  pricedServiceIdentity?: boolean;
 };
 
 export function decideCommerceModules(e: MotorEvidence): string[] {
+  if (e.pricedServiceIdentity) return [];
   const retailContext = e.primaryBusinessModel === "retail" || Boolean(e.verifiedSecondaryStorefront && e.retailProduct && e.cart) || (e.primaryBusinessModel === "unknown" && e.retailProduct && e.cart);
   if (!retailContext) {
     // A provider may sell devices alongside services. Product and price checks

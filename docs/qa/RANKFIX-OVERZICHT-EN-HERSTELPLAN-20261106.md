@@ -96,3 +96,8 @@ Werkwijze: één stap tegelijk, max. 5 structurele problemen per ronde, geen sit
 - Checkout wordt alleen bevestigd via een productpagina met koopactie + afrekenbestemming; zonder productpagina blijft het "niet te bevestigen" (juist, maar daardoor bij JS-webshops altijd open). Volgt uit 1b.
 
 Bijvangst (niet aangepast, buiten stap 1): crowdstrike.com (cybersecurity) krijgt in de replay webshopmodules; landal.nl/deere.com websitetype webshop zonder modules.
+
+**Stap 1 vervolg (21:50)**
+- CrowdStrike (negatieve controle, echte opgeslagen respons): cybersecurity met "Falcon Go"-plan (Product-schema, $59.99) kreeg alle webshopmodules en websitetype Webshop. Nu: geen webshopmodules, websitetype Dienstverlener, retailcontroles N.v.t. Score 94 → 94; bewijsdekking 79% → 89% (N.v.t. i.p.v. onbevestigd/waarschuwing).
+- 1c Checkout-informatie: verzend- en betaalinformatie van bemonsterde pagina's (klantenservice, voorwaarden, footertekst) bevestigt nu "Checkout informatie" (0 punten), met de URL als bewijs; nooit door te bestellen. Interactieve checkout blijft "niet te bevestigen". Vóór/na replay: homewizard en tentree onbevestigd → bevestigd; scores ongewijzigd.
+- Volledige JSON bonprix/NUVEMIXA niet aanwezig in Git, Neon-QA-databases (preview-testing: 0; shared-recovery: alleen CrowdStrike 23 okt) of fixtures.

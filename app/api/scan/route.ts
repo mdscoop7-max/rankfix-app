@@ -35,6 +35,7 @@ import { buildWebsiteProfile } from "@/lib/website-profile";
 import { comparisonPlatformIdentity } from "@/lib/platform-identity";
 import { checkoutActionInHtml, purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
+import { shopInfoSignals, sitewideShopInfo, type ShopInfoSignals } from "@/lib/shop-info-signals";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
@@ -5229,7 +5230,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; shopInfo?: ShopInfoSignals; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5816,7 +5817,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // Concrete business details on this sampled page (address, phone, e-mail, registration).
         const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), accountabilitySnippet: accountabilitySnippet(finalCandidate.toString(), stripHtml(pageHtml)), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), accountabilitySnippet: accountabilitySnippet(finalCandidate.toString(), stripHtml(pageHtml)), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), shopInfo: shopInfoSignals(stripHtml(pageHtml).slice(0, 60000)), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -6608,6 +6609,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       secondaryRetailDetail: verifiedRepresentativeProductDetail,
       verifiedSecondaryStorefront: hardCommerceEvidence,
       shopConfirmed: finalCommerceDecision.confirmed,
+      pricedServiceIdentity: isPricedServiceIdentity(String(sectorProfile.key || "")),
     });
     Object.assign(checkoutFunnelEvidence, {
       sampledCheckoutDestinations: auditedMultiPages.filter(item => item.status === "audited" && item.type === "product" &&
@@ -7180,11 +7182,37 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
 
+    // A priced-service identity (software, cybersecurity, hosting, finance) that sells
+    // plans online is not a retail webshop (CrowdStrike, 6 Nov): retail product and
+    // checkout checks do not apply, consistent with website type and modules.
+    const pricedServicePlans = finalCommerceApplicability.state === "confirmed" && isPricedServiceIdentity(String(sectorProfile.key || ""));
+    if (pricedServicePlans) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, "De primaire activiteit is een dienst (software, beveiliging, hosting of financiële dienst) met online abonnementen of plannen. Een plan met prijs is geen retailproduct; retail-, product- en checkoutcontroles zijn daarom niet van toepassing.");
+      }
+    }
+    // Shop information read from sampled same-site pages (support, terms, footer
+    // text), never from an order: shipping + payment methods confirm the static
+    // "Checkout informatie" check (0 points); the interactive checkout stays
+    // unconfirmed and only names where payment information was found.
+    if (finalCommerceApplicability.state === "confirmed" && !pricedServicePlans) {
+      const siteInfo = sitewideShopInfo([{ url: finalUrl.toString(), status: "audited", shopInfo: shopInfoSignals(text) }, ...auditedMultiPages]);
+      const info = seoChecks.find((item)=>item.key==="checkout_information_signal");
+      if (info && info.status === "unable_to_confirm" && siteInfo.shipping && siteInfo.payment) {
+        info.status = "pass"; info.issue_status = "PASS"; info.confidence = "high";
+        info.message = `Verzendinformatie (${siteInfo.shipping}) en betaalmethoden (${siteInfo.payment}) zijn op bemonsterde pagina's van de website gevonden. Er is geen bestelling geplaatst.`;
+        info.evidence = { url: siteInfo.payment, found: true, details: info.message };
+      }
+      const trust = seoChecks.find((item)=>item.key==="checkout_trust");
+      if (trust && trust.status === "unable_to_confirm" && siteInfo.payment && !/gevonden op/.test(trust.message || "")) {
+        trust.message = `${trust.message} Betaalinformatie gevonden op ${siteInfo.payment}; de interactieve checkout is bewust niet uitgevoerd.`;
+      }
+    }
     // Webshop evidence chain (lib/sample-product-checks.ts): on a confirmed webshop,
     // scanned from a non-product page, the five product checks are judged on the
     // audited product pages of the sample with the product-page criteria. Each
     // verdict names its page; no product page or no evidence stays unconfirmed.
-    if (finalCommerceApplicability.state === "confirmed" && !isProductPage) {
+    if (finalCommerceApplicability.state === "confirmed" && !isProductPage && !pricedServicePlans) {
       const sampleProductPages: SampleProductPage[] = auditedMultiPages
         .filter((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer)
         .slice(0, 8)
@@ -7407,7 +7435,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // dimensions with their own evidence (lib/website-profile.ts).
     const websiteProfile = buildWebsiteProfile({
       bookingPrimary: bookingPrimaryIdentity && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings"),
-      primaryServiceIdentity: localTradeIdentity && ["home_services", "construction"].includes(sectorProfile.sector),
+      // A priced-service identity (software, cybersecurity, hosting, finance) with an
+      // online plan purchase is a service provider, not a webshop (CrowdStrike, 6 Nov).
+      primaryServiceIdentity: (localTradeIdentity && ["home_services", "construction"].includes(sectorProfile.sector)) || isPricedServiceIdentity(String(sectorProfile.key || "")),
       commerceState: commerceApplicabilityReport.state,
       commerceReason: (commerceApplicabilityReport as { reason?: string }).reason || null,
       platformKind: platformIdentity && sectorProfile.key === "comparison_platform" ? "comparison_platform" : null,

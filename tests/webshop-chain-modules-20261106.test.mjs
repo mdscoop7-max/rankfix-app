@@ -30,3 +30,56 @@ test("the report never claims a product page that was not sampled", () => {
   assert.match(route, /productPageProof \? "Representatieve productpagina bevestigt webshopfunctionaliteit" : "Webshopfunctionaliteit bevestigd op site-niveau/);
   assert.match(route, /shopConfirmed: finalCommerceDecision\.confirmed/);
 });
+
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { shopInfoSignals, sitewideShopInfo } from "../lib/shop-info-signals.ts";
+
+test("shop information is read from any audited page, never from an order", () => {
+  assert.deepEqual(shopInfoSignals("Gratis verzending vanaf €20. Betaal met iDEAL of Klarna. 30 dagen retourneren."), { shipping: true, payment: true, returns: true });
+  assert.deepEqual(shopInfoSignals("Over ons en onze missie."), { shipping: false, payment: false, returns: false });
+  const s = sitewideShopInfo([
+    { url: "https://shop.example/", status: "audited", shopInfo: { shipping: true, payment: false, returns: false } },
+    { url: "https://shop.example/klantenservice/betalen", status: "audited", shopInfo: { shipping: false, payment: true, returns: true } },
+    { url: "https://shop.example/blocked", status: "unable_to_confirm", shopInfo: { shipping: true, payment: true, returns: true } },
+  ]);
+  assert.deepEqual(s, { shipping: "https://shop.example/", payment: "https://shop.example/klantenservice/betalen", returns: "https://shop.example/klantenservice/betalen" });
+});
+
+// Real stored TestLab responses (96-site run) replayed through /api/scan, before → after:
+// allbirds/gymshark/bonsoy/homewizard had no webshop module; CrowdStrike (cybersecurity,
+// "Falcon Go" plan with Product schema) had every webshop module and websitetype Webshop.
+const root = fileURLToPath(new URL("..", import.meta.url));
+test("webshop chain on real stored webshops and CrowdStrike as negative control", { timeout: 600000 }, () => {
+  const dir = mkdtempSync(join(tmpdir(), "rf-shops-"));
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", "tests/scan-matrix/run-route-replay.mjs", "--json"], {
+    cwd: root, encoding: "utf8", timeout: 580000, env: { ...process.env, DUMP_DIR: dir, ROUTE_FIXTURE: `${root}/tests/fixtures/webshop-chain/route.json.gz` },
+  });
+  assert.equal(out.status, 0, (out.stderr || "").slice(-1500));
+  const r = Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(join(dir, f), "utf8"))]));
+  rmSync(dir, { recursive: true, force: true });
+  const mods = (h) => (r[h].sectorProfile.applicableModules || []).filter((m) => ["ecommerce", "product", "pricing_currency", "checkout", "merchant", "eu_consumer"].includes(m));
+  const check = (h, key) => r[h].seo.checks.find((c) => c.key === key);
+  for (const h of ["allbirds.com", "gymshark.com", "bonsoy.com", "homewizard.com"]) {
+    assert.ok(mods(h).includes("ecommerce"), `${h}: ${mods(h)}`);
+    assert.ok(!mods(h).includes("product"), `${h}: no product module without a proven product page`);
+  }
+  // Scores unchanged by module activation (stored before-values).
+  assert.deepEqual(["allbirds.com", "bonsoy.com", "gymshark.com", "homewizard.com"].map((h) => r[h].overallScore), [80, 93, 94, 91]);
+  // Negative control: a cybersecurity vendor selling plans is not a webshop.
+  assert.equal(r["crowdstrike.com"].sectorProfile.key, "cybersecurity");
+  assert.deepEqual(mods("crowdstrike.com"), []);
+  assert.equal(r["crowdstrike.com"].websiteProfile.websiteType.value, "services");
+  // Full product chain where product pages were proven stays intact.
+  for (const h of ["colourpop.com", "landyachtz.com", "tentree.com"]) assert.deepEqual(mods(h), ["ecommerce", "product", "checkout", "eu_consumer"], h);
+  // Checkout information from sampled pages, with the page that proves it.
+  for (const h of ["homewizard.com", "tentree.com"]) {
+    const c = check(h, "checkout_information_signal");
+    assert.equal(c.status, "pass", h);
+    assert.match(c.message, /Er is geen bestelling geplaatst/);
+    assert.equal(check(h, "checkout_trust").status, "unable_to_confirm", "interactive checkout is never claimed");
+  }
+});

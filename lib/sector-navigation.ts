@@ -17,5 +17,7 @@ export function hospitalityNavigationEvidence(labels: string[]): boolean {
 // /products/ or /pricing pages: payments, banking, insurance and SaaS. Their
 // prices and pay buttons are not retail evidence by themselves.
 export function isPricedServiceIdentity(key: string): boolean {
-  return /^(?:financial_[a-z_]+|financial_services|payments|banking|bank|finance|insurance|saas_b2b|software_app|software)$/.test(String(key || ""));
+  // 6 Nov: cybersecurity vendors and web hosts sell subscription plans with
+  // Product schema (CrowdStrike "Falcon Go" $59.99); a plan is not a retail product.
+  return /^(?:financial_[a-z_]+|financial_services|payments|banking|bank|finance|insurance|saas_b2b|software_app|software|cybersecurity|web_hosting)$/.test(String(key || ""));
 }
