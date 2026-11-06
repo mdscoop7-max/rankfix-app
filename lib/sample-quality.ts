@@ -53,6 +53,18 @@ export function refineSamplePageType(input: {
    * enabled purchase button.
    */
   singleProductZone?: boolean;
+  /**
+   * Content proof of ONE offer without Product schema (Fresh144 6 Nov, custom shops
+   * without JSON-LD): one or two prices in explicit price markup (itemprop=price,
+   * a price-classed element), a real cart action (cart form/hook, not "buy now").
+   */
+  singleMarkedOffer?: boolean;
+  /**
+   * The offer is priced per period (per maand/month/jaar…) and the page shows no
+   * stock state: a subscription or plan (software, telecom, membership), not
+   * merchandise. Financing lines ("€12 per maand") on an in-stock product do not count.
+   */
+  subscriptionOffer?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   // Legal, FAQ and contact headings decide at once; a price or branch heading only
@@ -90,7 +102,11 @@ export function refineSamplePageType(input: {
   // products nested inside the page's own Product are not counted (see
   // countIndependentProducts), so a product detail page stays a product page.
   // One product on the page itself beats a category-like URL and a related grid.
-  if (input.singleProductZone && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return "product";
+  if (input.singleProductZone && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return input.subscriptionOffer && !input.productSchema ? "service" : "product";
+  // One marked price + a cart action + one heading is one product, whatever the URL
+  // or a related-products grid suggests; the same template therefore gets the same
+  // type on every product of the shop. A priced plan without stock is a service.
+  if (input.singleMarkedOffer && input.purchaseAction && input.uniqueH1 && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return input.subscriptionOffer && !input.productSchema ? "service" : "product";
   const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
   // A product detail page with a "related products" grid (QA #207).
@@ -222,4 +238,16 @@ export function missingJsHeadEvidenceUnverified(input: {
   clientShell: boolean;
 }): boolean {
   return !input.rendered && (input.frameworkSignal || input.clientShell);
+}
+
+/**
+ * A price quoted per period ("€ 9,99 per maand", "$12/mo", "79 €/Jahr", "€5 p/m"),
+ * in EU languages. Only meaningful together with "no stock state" (see
+ * refineSamplePageType.subscriptionOffer).
+ */
+export function subscriptionPriced(text: string): boolean {
+  const period = String.raw`(?:maand|mnd|md|month|mo|year|yr|jaar|jr|mois|an|monat|jahr|mese|anno|mes|año|miesi[ąa]c|rok)`;
+  const price = String.raw`(?:(?:€|£|\$|EUR|USD|GBP)\s?\d{1,5}(?:[.,]\d{2}|,-)?|\d{1,5}(?:[.,]\d{2}|,-)?\s?(?:€|EUR|zł))`;
+  return new RegExp(String.raw`${price}\s*(?:(?:per|pro|par|\/)\s*(?:user|gebruiker|device|apparaat|seat|licen[sc]e|licentie|nutzer|utilisateur|utente|usuario|endpoint)\s*)?(?:\/\s*|per\s+|p\/|pro\s+|par\s+|al\s+|a(?:l)?\s+|por\s+|\s)${period}(?![\p{L}])`, "iu").test(String(text || ""))
+    || /\bp\/m\b/i.test(String(text || "").match(/(?:€|EUR)\s?\d{1,5}[^\n]{0,6}p\/m/i)?.[0] || "");
 }

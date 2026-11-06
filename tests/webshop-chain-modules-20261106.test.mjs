@@ -114,6 +114,6 @@ test("product candidates: confirmed, blocked, not loaded, missing and rejected a
   assert.equal(o({ status: "unable_to_confirm", httpStatus: 404 }), "missing");
   assert.equal(o({ status: "audited", httpStatus: 200, commerceEvidence: { confirmedRetailPage: false } }), "rejected");
   assert.equal(o({ status: "audited", httpStatus: 200, commerceEvidence: { confirmedRetailPage: true, financialOffer: true } }), "rejected");
-  assert.equal(productHuntSentence(summarizeProductHunt(0, [], [])), "Geen productkandidaten gevonden in links van de bemonsterde pagina's of in de sitemap.");
+  assert.match(productHuntSentence(summarizeProductHunt(0, [], [])), /^Geen productkandidaten gevonden in links van de bemonsterde pagina.s of in de sitemap\. Dit is geen bewijs/);
   assert.match(productHuntSentence(summarizeProductHunt(5, ["sitemap"], [{ url: "https://s.test/p/a", status: "unable_to_confirm", httpStatus: 403 }, { url: "https://s.test/p/b", status: "audited", httpStatus: 200 }])), /5 productkandidaten gevonden, 2 gecontroleerd: 1 geweigerd door de website, 1 afgekeurd/);
 });

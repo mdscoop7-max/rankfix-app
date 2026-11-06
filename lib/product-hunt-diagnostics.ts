@@ -33,9 +33,12 @@ export type ProductHuntSummary = {
   sources: string[];
   outcomes: Record<ProductCandidateOutcome, number>;
   examples: { url: string; outcome: ProductCandidateOutcome; httpStatus: number | null }[];
+  /** Listing pages read for product links; rendered without a product card; render failed. */
+  listings?: ProductHuntListings;
 };
+export type ProductHuntListings = { checked: number; renderedWithoutCards: number; renderFailed: number };
 
-export function summarizeProductHunt(found: number, sources: string[], audits: ProductCandidateAudit[]): ProductHuntSummary {
+export function summarizeProductHunt(found: number, sources: string[], audits: ProductCandidateAudit[], listings?: ProductHuntListings): ProductHuntSummary {
   const outcomes: Record<ProductCandidateOutcome, number> = { confirmed: 0, blocked: 0, not_loaded: 0, missing: 0, rejected: 0 };
   const examples: ProductHuntSummary["examples"] = [];
   for (const a of audits) {
@@ -43,7 +46,7 @@ export function summarizeProductHunt(found: number, sources: string[], audits: P
     outcomes[o] += 1;
     if (examples.length < 6) examples.push({ url: a.url, outcome: o, httpStatus: a.httpStatus ?? null });
   }
-  return { candidatesFound: found, attempted: audits.length, sources: [...new Set(sources)], outcomes, examples };
+  return { candidatesFound: found, attempted: audits.length, sources: [...new Set(sources)], outcomes, examples, ...(listings ? { listings } : {}) };
 }
 
 const LABEL: Record<ProductCandidateOutcome, string> = {
@@ -54,7 +57,15 @@ const LABEL: Record<ProductCandidateOutcome, string> = {
 /** One Dutch sentence for the report; empty when a product page was confirmed. */
 export function productHuntSentence(s: ProductHuntSummary | null | undefined): string {
   if (!s || s.outcomes.confirmed > 0) return "";
-  if (!s.candidatesFound) return "Geen productkandidaten gevonden in links van de bemonsterde pagina's of in de sitemap.";
+  if (!s.candidatesFound) {
+    const l = s.listings;
+    const detail = l && l.checked ? [
+      `${l.checked} lijst- of categoriepagina's gelezen`,
+      l.renderedWithoutCards ? `${l.renderedWithoutCards} toonden na JavaScript-rendering geen herkenbare productkaarten` : "",
+      l.renderFailed ? `${l.renderFailed} konden niet worden gerenderd (niet geladen)` : "",
+    ].filter(Boolean).join("; ") : "";
+    return `Geen productkandidaten gevonden in links van de bemonsterde pagina's of in de sitemap${detail ? ` (${detail})` : ""}. Dit is geen bewijs dat de webshop geen productpagina's heeft.`;
+  }
   const parts = (Object.keys(LABEL) as ProductCandidateOutcome[]).filter((k) => k !== "confirmed" && s.outcomes[k] > 0).map((k) => `${s.outcomes[k]} ${LABEL[k]}`);
   const first = s.examples[0];
   return `${s.candidatesFound} productkandidaten gevonden, ${s.attempted} gecontroleerd: ${parts.join(", ") || "geen resultaat"}.${first ? ` Voorbeeld: ${first.url}${first.httpStatus ? ` (HTTP ${first.httpStatus})` : ""}.` : ""}`;

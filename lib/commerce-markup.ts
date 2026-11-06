@@ -61,9 +61,13 @@ export function purchaseActionInHtml(html: string): boolean {
   return CART_FORM.test(source) || CART_HOOK.test(source) || NAMED_CONTROL.test(source);
 }
 
-const CARD_CLASS = String.raw`(?:product-item|product-card|product-tile|product-miniature|product-thumb|product-grid-item|productitem|grid-product|product-box|productbox|product-list-item|product_item|type-product|card-product|product-teaser)`;
+const CARD_CLASS = String.raw`(?:product[-_]?item|product[-_]?card|product[-_]?tile|plp[-_](?:item|tile|card)|product-list__item|product-miniature|product-thumb|product-grid-item|productitem|grid-product|product-box|productbox|product-list-item|product_item|type-product|card-product|product-teaser)`;
 // Start of a product card: any element whose class list contains a card class.
-const CARD_START = new RegExp(String.raw`<(?:li|div|article|form|section)\b[^>]{0,400}?\bclass\s*=\s*["'][^"']{0,200}?(?<![\w-])${CARD_CLASS}(?![\w])`, "gi");
+// JavaScript storefronts (React/Vue/Next) often print CSS-module class names
+// ("ProductCard_root__x3", "productTile-module__a") or a test hook
+// (data-testid="product-card"): the card name is followed by "_" or "-module".
+// Microdata product cards (itemtype=schema.org/Product) count as cards as well.
+const CARD_START = new RegExp(String.raw`<(?:li|div|article|form|section|a)\b[^>]{0,400}?(?:\bclass\s*=\s*["'][^"']{0,200}?(?<![\w-])${CARD_CLASS}(?![a-z0-9])|\bdata-(?:testid|test-id|test|qa|cy|component)\s*=\s*["'][^"']{0,60}?${CARD_CLASS}(?![a-z0-9])|\bitemtype\s*=\s*["']https?:\/\/schema\.org\/Product["'])`, "gi");
 // A link that names itself a product link by class.
 const PRODUCT_LINK_CLASS = /<a\b[^>]{0,400}?\bclass\s*=\s*["'][^"']{0,200}?(?<![\w-])(?:product-link|product-item-link|product-title-link|product-name|product__link|product-card__link|product-tile__link|card__link|full-unstyled-link|woocommerce-LoopProduct-link|product_img_link|product-thumbnail)(?![\w-])[^>]*>/gi;
 const HREF = /\shref\s*=\s*["']([^"'#]+)["']/i;
@@ -105,8 +109,14 @@ export function priceSignalCount(text: string): number {
   return (source.match(/(?:€|EUR\b|£|GBP\b)\s*\d{1,5}(?:[.,]\d{3})*(?:[.,](?:\d{2}|-{1,2}))?|\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi) || []).length;
 }
 
-/** API, feed and machine endpoints: never an HTML page for the sample (QA #207). */
+/**
+ * API, feed and machine endpoints, and downloadable files (a manual PDF below
+ * /downloads/products/…, images, archives, documents): never an HTML page for the
+ * sample (QA #207; Fresh144 6 Nov: manual PDFs counted as "product links" turned a
+ * product page into a category).
+ */
 export function isApiOrFeedPath(path: string, search = ""): boolean {
-  return /(?:^|\/)(?:wp-json|wp-admin|xmlrpc\.php|graphql|api|rest|feed|feeds|rss|atom|oembed|ajax|wc-api|wc-ajax|_next\/data|__data\.json)(?:\/|$|\.)/i.test(path)
+  return /\.(?:pdf|zip|rar|7z|gz|tgz|docx?|xlsx?|pptx?|odt|csv|txt|xml|json|jpe?g|png|gif|webp|avif|svg|ico|mp[34]|mov|avi|webm|wav|dwg|dxf|stp|step|stl|exe|dmg|apk|epub)$/i.test(path)
+    || /(?:^|\/)(?:wp-json|wp-admin|xmlrpc\.php|graphql|api|rest|feed|feeds|rss|atom|oembed|ajax|wc-api|wc-ajax|_next\/data|__data\.json)(?:\/|$|\.)/i.test(path)
     || /(?:^|[?&])(?:format=(?:json|xml|rss)|output=json|wc-ajax=|rest_route=|feed=)/i.test(search);
 }

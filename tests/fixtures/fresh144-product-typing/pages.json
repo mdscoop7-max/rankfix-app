@@ -1,0 +1,287 @@
+{
+ "source": "Fresh144 live scan 5 Nov 2026, engine 2a6c6c5, original audit JSON (multiPage.pageAudits)",
+ "pages": [
+  {
+   "url": "https://www.bax-shop.nl/moving-head/ayra-vision-250bsw-ip-movinghead-tweedelig-in-flightcase",
+   "type": "category",
+   "h1Count": 1,
+   "title": "Ayra Vision 250BSW IP | Bax Music",
+   "structureKey": "h4|a9|img9|form3|article4|table0|li9|schema1",
+   "evidenceSource": "raw_html",
+   "commerceEvidence": {
+    "productSchema": false,
+    "productSchemaCount": 0,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": false,
+    "storeSchema": false,
+    "strongCommerceAction": true,
+    "checkoutDestination": true,
+    "repeatedProductLinks": true,
+    "priceSignals": 4,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      1499
+     ],
+     "priceStrength": "explicit_product_markup",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": "in_stock",
+     "availabilityAmbiguous": false,
+     "availabilityScope": "page",
+     "availabilityPhrases": [
+      "op voorraad"
+     ],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": false,
+    "serverRendered": true,
+    "confirmedRetailPage": true
+   },
+   "productLinks": [
+    "https://www.bax-shop.nl/b-stock-aanbiedingen/product/1607655/b-stock-ayra-vision-250bsw-ip-movinghead-twee-in-een-flightcase",
+    "https://www.bax-shop.nl/downloads/products/9000-0143-5850/ayra_vision_250_bsw_ip_nl_handleiding_20250524.pdf",
+    "https://www.bax-shop.nl/downloads/products/9000-0143-5850/ayra_vision_250_bsw_ip_en_user_manual_20250524.pdf",
+    "https://www.bax-shop.nl/downloads/products/9000-0143-5850/vision_250bsw_ip.ssl2"
+   ]
+  },
+  {
+   "url": "https://www.bax-shop.nl/gitaarversterker-combo/boss-katana-25-1x8-inch-25w-gitaarversterker-combo-met-tuner",
+   "type": "other",
+   "h1Count": 1,
+   "title": "Boss Katana-25 | Bax Music",
+   "structureKey": "h4|a9|img9|form3|article1|table0|li9|schema1",
+   "evidenceSource": "raw_html",
+   "commerceEvidence": {
+    "productSchema": false,
+    "productSchemaCount": 0,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": false,
+    "storeSchema": false,
+    "strongCommerceAction": true,
+    "checkoutDestination": true,
+    "repeatedProductLinks": false,
+    "priceSignals": 2,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      189
+     ],
+     "priceStrength": "explicit_product_markup",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": "in_stock",
+     "availabilityAmbiguous": false,
+     "availabilityScope": "page",
+     "availabilityPhrases": [
+      "op voorraad"
+     ],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": false,
+    "serverRendered": true,
+    "confirmedRetailPage": true
+   },
+   "productLinks": []
+  },
+  {
+   "url": "https://www.bax-shop.nl/microfoons",
+   "type": "category",
+   "h1Count": 1,
+   "title": "Microfoon kopen? Microfoons koop je online bij Bax Music",
+   "structureKey": "h4|a9|img9|form3|article0|table0|li8|schema5",
+   "evidenceSource": "raw_html",
+   "commerceEvidence": {
+    "productSchema": false,
+    "productSchemaCount": 0,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": false,
+    "storeSchema": false,
+    "strongCommerceAction": false,
+    "checkoutDestination": true,
+    "repeatedProductLinks": true,
+    "priceSignals": 7,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      99,
+      40,
+      30,
+      46,
+      35,
+      100,
+      75
+     ],
+     "priceStrength": "broad_page_text",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": "in_stock",
+     "availabilityAmbiguous": false,
+     "availabilityScope": "product_zone",
+     "availabilityPhrases": [
+      "op voorraad"
+     ],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": true,
+    "serverRendered": true,
+    "confirmedRetailPage": false
+   },
+   "productLinks": []
+  },
+  {
+   "url": "https://www.bax-shop.nl/gitaar",
+   "type": "category",
+   "h1Count": 1,
+   "title": "Gitaar kopen? Gitaren koop je online bij Bax Music",
+   "structureKey": "h4|a9|img9|form3|article0|table0|li8|schema5",
+   "evidenceSource": "raw_html",
+   "commerceEvidence": {
+    "productSchema": false,
+    "productSchemaCount": 0,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": false,
+    "storeSchema": false,
+    "strongCommerceAction": false,
+    "checkoutDestination": true,
+    "repeatedProductLinks": true,
+    "priceSignals": 7,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      99,
+      41,
+      35,
+      65,
+      49,
+      80,
+      59
+     ],
+     "priceStrength": "broad_page_text",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": "in_stock",
+     "availabilityAmbiguous": false,
+     "availabilityScope": "product_zone",
+     "availabilityPhrases": [
+      "op voorraad"
+     ],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": true,
+    "serverRendered": true,
+    "confirmedRetailPage": false
+   },
+   "productLinks": []
+  },
+  {
+   "url": "https://www.kwantum.nl/gordijnen-raamdecoratie/gordijnen",
+   "type": "category",
+   "h1Count": 1,
+   "title": "Goedkope gordijnen & gordijnstoffen kopen? | Kwantum",
+   "structureKey": "h4|a9|img9|form1|article0|table0|li9|schema5",
+   "evidenceSource": "rendered_html",
+   "commerceEvidence": {
+    "productSchema": true,
+    "productSchemaCount": 24,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": true,
+    "storeSchema": false,
+    "strongCommerceAction": false,
+    "checkoutDestination": false,
+    "repeatedProductLinks": false,
+    "priceSignals": 3,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      22,
+      50,
+      21,
+      25,
+      13,
+      32,
+      18,
+      36
+     ],
+     "priceStrength": "explicit_product_markup",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": null,
+     "availabilityAmbiguous": false,
+     "availabilityScope": "none",
+     "availabilityPhrases": [],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": false,
+    "serverRendered": false,
+    "confirmedRetailPage": true
+   },
+   "productLinks": [
+    "https://www.kwantum.nl/gordijn-sandra-taupe-4324203",
+    "https://www.kwantum.nl/gordijn-doris-naturel-4324198",
+    "https://www.kwantum.nl/gordijn-doris-sage-4324200",
+    "https://www.kwantum.nl/gordijn-alice-greige-4324207",
+    "https://www.kwantum.nl/gordijn-doris-lichtbruin-4324199",
+    "https://www.kwantum.nl/gordijn-florencia-zand-4322204",
+    "https://www.kwantum.nl/gordijn-marsha-zand-4324190",
+    "https://www.kwantum.nl/gordijn-judy-bruin-4324211"
+   ]
+  },
+  {
+   "url": "https://www.welkoop.nl/tuin",
+   "type": "category",
+   "h1Count": 1,
+   "title": "Tuinartikelen kopen? Ruim aanbod online - Welkoop | Welkoop",
+   "structureKey": "h4|a9|img6|form1|article0|table0|li0|schema5",
+   "evidenceSource": "rendered_html",
+   "commerceEvidence": {
+    "productSchema": false,
+    "productSchemaCount": 0,
+    "financialOffer": false,
+    "eventSchema": false,
+    "itemListSchema": true,
+    "storeSchema": false,
+    "strongCommerceAction": false,
+    "checkoutDestination": false,
+    "repeatedProductLinks": false,
+    "priceSignals": 31,
+    "product": null,
+    "visibleOffer": {
+     "priceCandidates": [
+      41.95,
+      722.8,
+      539,
+      754,
+      599,
+      129,
+      99,
+      7.25
+     ],
+     "priceStrength": "broad_page_text",
+     "currencies": [
+      "EUR"
+     ],
+     "availabilityState": null,
+     "availabilityAmbiguous": false,
+     "availabilityScope": "none",
+     "availabilityPhrases": [],
+     "purchaseButton": null
+    },
+    "productMarkupAbsent": true,
+    "serverRendered": false,
+    "confirmedRetailPage": false
+   },
+   "productLinks": []
+  }
+ ]
+}

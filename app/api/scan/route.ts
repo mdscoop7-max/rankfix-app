@@ -75,7 +75,7 @@ import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } f
 import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
 import { pageIdentityType } from "@/lib/page-identity";
 import { nominateProductCards } from "@/lib/product-nomination";
-import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
+import { countIndependentProducts, subscriptionPriced, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
@@ -5779,6 +5779,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // sells one product or lists a priced product range is never re-typed by it.
         const pageIdentity = pageIdentityType({ title: pageTitle, h1s: pageH1s, schemaTypes: pageSchemaTypes, path: finalCandidate.pathname,
           sellsOneProduct: (pageProductSchema && pageStrongCommerceAction && (pageCommerceEvidence.productSchemaCount || 0) <= 1)
+            || (pageStrongCommerceAction && pageH1s.length === 1 && pageVisibleOffer.visiblePriceEvidenceStrength === "explicit_product_markup" && pageVisibleOffer.visiblePriceCandidates.length <= 2)
             || ((pageCommerceEvidence.productSchemaCount || 0) >= 2) || (pageCommerceEvidence.repeatedProductLinks && pagePriceSignals >= 3) });
         if (pageIdentity) page.evidence.push(`inhoud: ${pageIdentity.reason}`);
         const refinedType = refineSamplePageType({
@@ -5813,6 +5814,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // "related products" grid stays a product page (QA #207).
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
           singleProductZone: (() => { const o = pageVisibleOffer; return pageH1s.length === 1 && o.purchaseButton === "enabled" && o.zonePriceCandidates.length >= 1 && o.zonePriceCandidates.length <= 2; })(),
+          singleMarkedOffer: pageVisibleOffer.visiblePriceEvidenceStrength === "explicit_product_markup" && pageVisibleOffer.visiblePriceCandidates.length >= 1 && pageVisibleOffer.visiblePriceCandidates.length <= 2,
+          subscriptionOffer: !pageVisibleOffer.visibleAvailabilityState && subscriptionPriced(stripHtml(pageHtml).slice(0, 80000)),
           singleProductMarkup: Boolean(/class\s*=\s*["'][^"']*(?<![\w-])(?:single-product|product-info-main|product-single|product__info-wrapper|product-detail(?:s)?-main)(?![\w-])|single_add_to_cart_button|id\s*=\s*["']product-addtocart-button["']/i.test(pageHtml.slice(0,600000))),
         });
         // Concrete business details on this sampled page (address, phone, e-mail, registration).
@@ -5922,6 +5925,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const productHuntSources: string[] = [];
     let productHuntFound = 0;
     let productHuntRan = false;
+    // Listing pages behind the hunt: how many were read, and how many showed no
+    // product card after rendering or could not be rendered (JS shops, 6 Nov).
+    const productHuntListings = { checked: 0, renderedWithoutCards: 0, renderFailed: 0 };
     if (retailContextForProducts && !confirmedProductSample && productHuntTime() && !sampleRateLimit.stopped) {
       productHuntRan = true;
       // 31 Oct (five-site QA, P7): the same language/variant key as the first
@@ -5943,6 +5949,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         multiPageAudits.push(...audits);
         return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
       };
+      const listingAudits = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other"));
+      productHuntListings.checked = listingAudits.length;
+      productHuntListings.renderedWithoutCards = listingAudits.filter((item)=>item.evidenceSource==="rendered_html" && !(item.productLinks || []).length).length;
       let productConfirmed = await auditProductCandidates(multiPageAudits.flatMap((item)=>item?.productLinks || []));
       // Sitemaps often list product URLs directly and need no browser. Read at most
       // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
@@ -5969,13 +5978,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           if (!productHuntTime()) break;
           try {
             const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
-            if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8), "gerenderde lijstpagina");
-          } catch {}
+            if (isSubstantiveRender(renderedListing.html)) {
+              const links = extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8);
+              if (!links.length) productHuntListings.renderedWithoutCards += 1;
+              productConfirmed = await auditProductCandidates(links, "gerenderde lijstpagina");
+            } else productHuntListings.renderFailed += 1;
+          } catch { productHuntListings.renderFailed += 1; }
           if (productConfirmed) break;
         }
       }
     }
-    const productHunt: ProductHuntSummary | null = productHuntRan ? summarizeProductHunt(productHuntFound, productHuntSources, productHuntAudits) : null;
+    const productHunt: ProductHuntSummary | null = productHuntRan ? summarizeProductHunt(productHuntFound, productHuntSources, productHuntAudits, productHuntListings) : null;
     // The scanned page's sample reuses the main response body. Report the status the
     // website really gave RankFix (and that a browser recovered it), never a
     // synthetic 200 that contradicts the HTTP-status check of the same report.
