@@ -89,3 +89,45 @@ test("verbatim but irrelevant quotes (brand line, privacy page) do not prove the
   const noVocab = verifyProposal({ key: "x", role: "eigen_dienstverlener", quotes: [] }, buildEvidencePack(pages), [{ sector: "s", key: "x", label: "X" }]);
   assert.equal(noVocab.ok, false);
 });
+
+test("AI evidence text excludes navigation, header, footer, banners and short menu lines", async () => {
+  const { aiContentText } = await import("../lib/ai-content-text.ts");
+  const html = `<html><body><header class="site-header"><a>Home</a></header>
+    <nav><ul><li>Meter Privacy Vol stroomnet Terug Vol stroomnet</li></ul></nav>
+    <div class="mega-menu">Stroom en gas storingen menu item lijst</div>
+    <main><h1>Netbedrijf</h1><p>Wij beheren het stroomnet en gasnet in de regio Utrecht en Rotterdam.</p><p>Kort.</p>
+    <div role="navigation">Navigatie met vijf of meer woorden hier</div></main>
+    <div id="cookie-banner">Wij gebruiken cookies voor een betere ervaring op de site</div>
+    <footer><p>Copyright alle rechten voorbehouden 2026 netbeheerder stroomnet</p></footer></body></html>`;
+  assert.equal(aiContentText(html), "Wij beheren het stroomnet en gasnet in de regio Utrecht en Rotterdam.");
+  for (const bad of ["<div>".repeat(20000) + "x" + "</div>".repeat(20000), "<p>".repeat(20000) + "</div>".repeat(20000), "<script>a</script>".repeat(4000)]) {
+    const t0 = performance.now(); aiContentText(bad); assert.ok(performance.now() - t0 < 500);
+  }
+});
+
+test("readable report shows AI proposal, verified sources and the decision; nothing when disabled", async () => {
+  const { aiSectorReportLines } = await import("../lib/ai-sector-report.ts");
+  assert.deepEqual(aiSectorReportLines({ aiVerification: { status: "disabled", reason: "uit" } }), []);
+  const lines = aiSectorReportLines({ aiVerification: { status: "confirmed", reason: "ok", model: "m", role: "eigen_dienstverlener", option: { label: "Rijschool & rijopleiding" },
+    quotes: [{ url: "https://x.test/", quote: "Grow is een rijschool" }], usage: { promptTokens: 1500, completionTokens: 90, durationMs: 2100 } } });
+  assert.equal(lines[0], "AI-SECTORCONTROLE");
+  assert.ok(lines.some((l) => /Beslissing: Branche bevestigd/.test(l)));
+  assert.ok(lines.some((l) => /AI-voorstel: Rijschool & rijopleiding \(rol: voert de dienst zelf uit\)/.test(l)));
+  assert.ok(lines.some((l) => l === '- https://x.test/: "Grow is een rijschool"'));
+  assert.ok(lines.some((l) => /2100 ms, 1590 tokens/.test(l)));
+  const rejected = aiSectorReportLines({ aiVerification: { status: "rejected", reason: "Slechts 1 pagina", model: "m", proposal: { key: "hotel", role: "bemiddelaar" } } });
+  assert.ok(rejected.some((l) => /verworpen/.test(l)) && rejected.some((l) => /AI-voorstel: hotel \(rol: bemiddelaar\)/.test(l)));
+});
+
+test("AI usage (tokens, duration) is recorded for cost measurement", async () => {
+  const r = await verifySectorWithAi({ profile: { sector: "unknown" }, pages, options, env: ON, fetchImpl: async () => new Response(JSON.stringify({ usage: { prompt_tokens: 1234, completion_tokens: 56 }, choices: [{ message: { content: JSON.stringify({ key: "unknown", role: "onbekend", quotes: [] }) } }] })) });
+  assert.equal(r.usage.promptTokens, 1234); assert.equal(r.usage.completionTokens, 56); assert.ok(r.usage.durationMs >= 0);
+});
+
+test("text repeated on 3+ evidence pages is template text (menus without nav markup), never evidence", () => {
+  const menu = "Vol stroomnet Drukte op het stroomnet Wachtlijst";
+  const site = ["/", "/a", "/b", "/c"].map((path, i) => ({ url: `https://n.test${path}`, type: i ? "other" : "homepage", title: `Pagina ${i}`, text: `${menu}. Pagina ${i} tekst.` }));
+  const r = verifyProposal({ key: "grid", role: "eigen_dienstverlener", quotes: [{ url: "https://n.test/", quote: menu }, { url: "https://n.test/a", quote: menu }] },
+    buildEvidencePack(site), [{ sector: "energy_utilities", key: "grid", label: "Netbeheerder", vocab: [/stroomnet/i] }]);
+  assert.equal(r.ok, false);
+});

@@ -4,6 +4,7 @@ import {useSearchParams} from "next/navigation";
 import Link from "next/link";
 import {readQaAudit,type QaAuditResult} from "@/lib/testlab-audit-store";
 import {scoreDisplay,scoreEvidenceFields} from "@/lib/testlab-score-evidence";
+import {aiSectorReportLines} from "@/lib/ai-sector-report";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw stored scan JSON is read defensively via object()/items()
 type AnyRecord=Record<string,any>;
@@ -27,6 +28,7 @@ function Report(){
  const display=record&&evidence?scoreDisplay(record.result.overallScore,evidence,model.evidenceLevel):null;
  const breakdown=items(model.breakdown),problems=breakdown.filter(x=>x.status==="warning"||x.status==="fail"||x.status==="critical"),unconfirmed=breakdown.filter(x=>x.status==="unable_to_confirm");
  const sectorConfirmed=scope.sectorConfirmed===true;
+ const aiLines=aiSectorReportLines(sector);
  const readableReport=record?[
   "RANKFIX QA WEBSITE-AUDIT",
   "Website: "+record.host,
@@ -37,6 +39,7 @@ function Report(){
   "Bewijsdekking: "+(coverage.coveragePercent??"Onbekend")+"%",
   "Pagina's beoordeeld: "+(pages.assessed??"?")+"/"+(pages.selected??"?"),
   "Branche: "+pretty(sector.label||sector.sector)+(sectorConfirmed?" (bevestigd)":" (niet bevestigd)"),
+  ...(aiLines.length?["",...aiLines]:[]),
   "", "AANDACHTSPUNTEN",
   ...(problems.length?problems.map(x=>"- "+pretty(x.title||x.key)+": "+statusLabel(x.status)):["Geen bevestigde problemen in de kerncontroles"]),
   "", "NIET BEVESTIGDE CONTROLES",
@@ -57,7 +60,7 @@ function Report(){
      </div>
      <p style={{fontSize:13,color:"#475569",marginBottom:0}}>Een voorlopig scorebereik is geen definitief oordeel. De SEO/GEO-puntenscores gelden voor bevestigde kerncontroles; aanvullende controles en paginabewijs kunnen ontbreken.</p>
     </section>
-    <section style={panel}><h2 style={heading}>Bedrijf en branche</h2><p><strong>Gevonden:</strong> {pretty(sector.label||sector.sector)} {sectorConfirmed?<span style={{color:"#166534"}}>· bevestigd</span>:<span style={{color:"#b45309"}}>· branche niet bevestigd</span>}</p><p style={{color:"#64748b",fontSize:14}}>Sectorcode: {pretty(sector.sector)} · Herkende websitefunctie: {pretty(object(object(data.websiteProfile).websiteType).value)}</p></section>
+    <section style={panel}><h2 style={heading}>Bedrijf en branche</h2><p><strong>Gevonden:</strong> {pretty(sector.label||sector.sector)} {sectorConfirmed?<span style={{color:"#166534"}}>· bevestigd</span>:<span style={{color:"#b45309"}}>· branche niet bevestigd</span>}</p><p style={{color:"#64748b",fontSize:14}}>Sectorcode: {pretty(sector.sector)} · Herkende websitefunctie: {pretty(object(object(data.websiteProfile).websiteType).value)}</p>{aiLines.length>0&&<div style={{marginTop:12,padding:12,background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,fontSize:14}}>{aiLines.map((line,index)=><div key={index} style={index===0?{fontWeight:700,marginBottom:4}:{}}>{line}</div>)}</div>}</section>
     <section style={panel}><h2 style={heading}>Problemen en verbeterpunten ({problems.length})</h2>{problems.length?problems.map((x,i)=><div key={x.key||i} style={{borderTop:"1px solid #e2e8f0",padding:"14px 0"}}><strong>{pretty(x.title||x.key)}</strong> <span style={{color:statusColor(x.status),fontSize:13}}>· {statusLabel(x.status)}</span><div style={{fontSize:13,color:"#64748b",marginTop:4}}>Onderdeel: {pretty(x.category)}{x.rawDeduction!=null?" · Puntenaftrek: "+x.rawDeduction:""}</div></div>):<p>Geen bevestigde waarschuwingen in de beschikbare scorecontroles.</p>}{Number(summary.sitewideIssues||0)>0&&<p style={{color:"#92400e",fontSize:13}}>Daarnaast {summary.sitewideIssues} aandachtspunten op andere pagina&apos;s. Deze zijn niet automatisch inbegrepen in de homepage-score.</p>}</section>
     <section style={panel}><h2 style={heading}>Niet bevestigde controles ({unconfirmed.length})</h2><p style={{fontSize:14,color:"#475569"}}>Geen bewijs is niet hetzelfde als een fout. Deze controles krijgen geen verzonnen oordeel.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:8}}>{unconfirmed.map((x,i)=><div key={x.key||i} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:10,fontSize:13}}>{pretty(x.title||x.key)}</div>)}</div></section>
     <section style={panel}><h2 style={heading}>SEO- en GEO-controles</h2>{["seo","geo"].map(group=><div key={group}><h3 style={{textTransform:"uppercase",fontSize:15,marginTop:20}}>{group}</h3>{breakdown.filter(x=>x.category===group).map((x,i)=><div key={x.key||i} style={{display:"flex",justifyContent:"space-between",gap:12,borderTop:"1px solid #e2e8f0",padding:"9px 0",fontSize:14}}><span>{pretty(x.title||x.key)}</span><span style={{color:statusColor(x.status),whiteSpace:"nowrap",fontWeight:650}}>{statusLabel(x.status)}</span></div>)}</div>)}</section>

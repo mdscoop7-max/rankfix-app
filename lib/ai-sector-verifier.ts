@@ -15,6 +15,8 @@ export type AiEvidencePage = { url: string; type?: string; title?: string | null
 export type AiBusinessRole = "eigen_dienstverlener" | "eigen_verkoper" | "eigen_productie" | "bemiddelaar" | "marktplaats_platform" | "vergelijker" | "software_saas" | "uitgever_media" | "publieke_instantie" | "non_profit" | "onbekend";
 export const AI_ROLES: AiBusinessRole[] = ["eigen_dienstverlener", "eigen_verkoper", "eigen_productie", "bemiddelaar", "marktplaats_platform", "vergelijker", "software_saas", "uitgever_media", "publieke_instantie", "non_profit", "onbekend"];
 export type AiProposal = { key: string; role: AiBusinessRole; quotes: { url: string; quote: string }[]; reasoning?: string };
+/** Measured per AI call: tokens as reported by the API and wall time. */
+export type AiUsage = { promptTokens: number | null; completionTokens: number | null; durationMs: number };
 export type AiVerification =
   | { status: "not_needed" | "disabled"; reason: string }
   | { status: "error"; reason: string; model?: string }
@@ -52,11 +54,15 @@ export function verifyProposal(proposal: AiProposal, pack: AiEvidencePage[], opt
   if (!AI_ROLES.includes(proposal.role)) return { ok: false, reason: `Onbekende rol "${proposal.role}"` };
   // Without the engine's own activity vocabulary a proposal cannot be verified.
   if (!option.vocab?.length) return { ok: false, reason: `Geen activiteitenwoordenlijst voor "${option.key}": niet te verifiëren` };
+  const haystacks = new Map(pack.map((p) => [p.url, norm([p.title, p.description, ...(p.headings || []), p.text].join(" · "))]));
   const verified = (proposal.quotes || []).filter((q) => {
-    const page = pack.find((p) => p.url === q.url);
+    const haystack = haystacks.get(q.url);
     const quote = norm(String(q.quote || ""));
-    if (!page || quote.length < 12 || quote.split(" ").length < 3) return false;
-    const haystack = norm([page.title, page.description, ...(page.headings || []), page.text].join(" · "));
+    if (!haystack || quote.length < 12 || quote.split(" ").length < 3) return false;
+    // Template text (menus, footers, cookie lines) repeats on many pages; markup
+    // filtering misses menus without nav/header elements. Text found on 3 or more
+    // of the evidence pages is never independent evidence.
+    if ([...haystacks.values()].filter((h) => h.includes(quote)).length >= 3) return false;
     // Verbatim AND about the activity: the quote itself must contain the engine's
     // vocabulary for this sector ("rijschool", "rijles"); "We are DPD" proves nothing.
     return haystack.includes(quote) && option.vocab!.some((re) => new RegExp(re.source, re.flags.replace("g", "")).test(String(q.quote)));
@@ -107,6 +113,9 @@ export async function verifySectorWithAi(input: {
   if (pack.length < 2) return { status: "rejected", reason: "Minder dan 2 eigen pagina's beschikbaar als bewijs", model };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.timeoutMs ?? 8000);
+  const started = Date.now();
+  let usage: AiUsage = { promptTokens: null, completionTokens: null, durationMs: 0 };
+  const withUsage = <T extends AiVerification>(result: T): T & { usage: AiUsage } => ({ ...result, usage: { ...usage, durationMs: Date.now() - started } });
   try {
     const doFetch = input.fetchImpl || ((u, i) => fetch(u, i));
     const response = await doFetch("https://api.openai.com/v1/chat/completions", {
@@ -114,17 +123,18 @@ export async function verifySectorWithAi(input: {
       headers: { "content-type": "application/json", authorization: `Bearer ${String(env.OPENAI_API_KEY).trim()}` },
       body: JSON.stringify({ model, response_format: { type: "json_object" }, messages: [{ role: "user", content: buildPrompt(pack, input.options) }] }),
     });
-    if (!response.ok) return { status: "error", reason: `AI-dienst antwoordde HTTP ${response.status}`, model };
-    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    if (!response.ok) return withUsage({ status: "error", reason: `AI-dienst antwoordde HTTP ${response.status}`, model });
+    const data = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+    usage = { promptTokens: data.usage?.prompt_tokens ?? null, completionTokens: data.usage?.completion_tokens ?? null, durationMs: 0 };
     let proposal: AiProposal;
-    try { proposal = JSON.parse(String(data.choices?.[0]?.message?.content || "")); } catch { return { status: "error", reason: "AI-antwoord was geen geldige JSON", model }; }
-    if (!proposal || proposal.key === "unknown") return { status: "unknown", reason: "AI vond onvoldoende of tegenstrijdig bewijs", model };
+    try { proposal = JSON.parse(String(data.choices?.[0]?.message?.content || "")); } catch { return withUsage({ status: "error", reason: "AI-antwoord was geen geldige JSON", model }); }
+    if (!proposal || proposal.key === "unknown") return withUsage({ status: "unknown", reason: "AI vond onvoldoende of tegenstrijdig bewijs", model });
     const check = verifyProposal(proposal, pack, input.options);
-    if (!check.ok) return { status: "rejected", reason: check.reason, model, proposal };
+    if (!check.ok) return withUsage({ status: "rejected", reason: check.reason, model, proposal });
     const ruleSector = input.profile.sector && input.profile.sector !== "unknown" ? input.profile.sector : null;
     const agrees = !ruleSector || ruleSector === check.option.sector;
-    return { status: agrees ? "confirmed" : "conflict", reason: agrees ? "AI-voorstel bevestigd met letterlijk websitebewijs" : `AI-bewijs (${check.option.label}) spreekt de onbevestigde regelbranche tegen`, model, option: check.option, role: proposal.role, quotes: check.quotes };
+    return withUsage({ status: agrees ? "confirmed" : "conflict", reason: agrees ? "AI-voorstel bevestigd met letterlijk websitebewijs" : `AI-bewijs (${check.option.label}) spreekt de onbevestigde regelbranche tegen`, model, option: check.option, role: proposal.role, quotes: check.quotes });
   } catch (error) {
-    return { status: "error", reason: controller.signal.aborted ? "AI-controle overschreed de tijdslimiet" : `AI-controle mislukt: ${error instanceof Error ? error.message : "onbekend"}`, model };
+    return withUsage({ status: "error", reason: controller.signal.aborted ? "AI-controle overschreed de tijdslimiet" : `AI-controle mislukt: ${error instanceof Error ? error.message : "onbekend"}`, model });
   } finally { clearTimeout(timer); }
 }
