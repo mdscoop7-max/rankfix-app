@@ -115,6 +115,28 @@ export function buildPrompt(pack: AiEvidencePage[], options: AiSectorOption[]): 
 
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
+/** Options whose activity vocabulary appears in the evidence pages (verifiable at all). */
+export function relevantOptions(options: AiSectorOption[], pack: AiEvidencePage[]): AiSectorOption[] {
+  const text = pack.map((p) => [p.title, p.description, ...(p.headings || []), p.text].join(" ")).join(" · ");
+  return options.filter((o) => (o.vocab || []).some((re) => new RegExp(re.source, re.flags.replace("g", "")).test(text)));
+}
+
+/**
+ * This is a short extraction task: reasoning models (gpt-5 family, o-series) are
+ * asked for minimal/low reasoning and a bounded answer, so they answer within the
+ * deadline (field run 7 Nov: 46 of 49 calls hit 8 s with default reasoning).
+ * OPENAI_SECTOR_REASONING overrides ("none" disables the parameter).
+ */
+export function reasoningParams(model: string, env: Record<string, string | undefined> = process.env): Record<string, unknown> {
+  const forced = String(env.OPENAI_SECTOR_REASONING || "").trim();
+  const bounded = { max_completion_tokens: 1500 };
+  if (forced === "none") return bounded;
+  if (forced) return { ...bounded, reasoning_effort: forced };
+  if (/^gpt-5(?:-mini|-nano)?(?:-\d{4}-\d{2}-\d{2})?$/i.test(model)) return { ...bounded, reasoning_effort: "minimal" };
+  if (/^(?:gpt-5|o\d)/i.test(model)) return { ...bounded, reasoning_effort: "low" };
+  return bounded;
+}
+
 /** One call, hard timeout, never throws. */
 export async function verifySectorWithAi(input: {
   profile: { sector?: string; key?: string; confidenceScore?: number };
@@ -130,6 +152,11 @@ export async function verifySectorWithAi(input: {
   const model = env.OPENAI_SECTOR_MODEL || env.OPENAI_MODEL || "gpt-5.6-luna";
   const pack = buildEvidencePack(input.pages);
   if (pack.length < 2) return { status: "rejected", reason: "Minder dan 2 eigen pagina's beschikbaar als bewijs", model };
+  // Only keys whose own activity vocabulary occurs in the evidence can ever be
+  // verified (verifyProposal requires it in every counted quote). Sending the
+  // others only makes the prompt longer and the answer slower.
+  const options = relevantOptions(input.options, pack);
+  if (!options.length) return { status: "unknown", reason: "Geen enkele sector heeft activiteitswoorden in de eigen paginatekst: AI niet nodig", model };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.timeoutMs ?? 8000);
   const started = Date.now();
@@ -137,18 +164,26 @@ export async function verifySectorWithAi(input: {
   const withUsage = <T extends AiVerification>(result: T): T & { usage: AiUsage } => ({ ...result, usage: { ...usage, durationMs: Date.now() - started } });
   try {
     const doFetch = input.fetchImpl || ((u, i) => fetch(u, i));
-    const response = await doFetch("https://api.openai.com/v1/chat/completions", {
+    const send = (extra: Record<string, unknown>) => doFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { "content-type": "application/json", authorization: `Bearer ${String(env.OPENAI_API_KEY).trim()}` },
-      body: JSON.stringify({ model, response_format: { type: "json_object" }, messages: [{ role: "user", content: buildPrompt(pack, input.options) }] }),
+      body: JSON.stringify({ model, response_format: { type: "json_object" }, ...extra, messages: [{ role: "user", content: buildPrompt(pack, options) }] }),
     });
+    let response = await send(reasoningParams(model, env));
+    // A model that does not know reasoning_effort / max_completion_tokens answers
+    // 400: one retry without them, within the same deadline.
+    if (response.status === 400) {
+      const body = await response.text().catch(() => "");
+      if (/reasoning|max_completion_tokens|unsupported/i.test(body)) response = await send({});
+      else return withUsage({ status: "error", reason: "AI-dienst antwoordde HTTP 400", model });
+    }
     if (!response.ok) return withUsage({ status: "error", reason: `AI-dienst antwoordde HTTP ${response.status}`, model });
     const data = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
     usage = { promptTokens: data.usage?.prompt_tokens ?? null, completionTokens: data.usage?.completion_tokens ?? null, durationMs: 0 };
     let proposal: AiProposal;
     try { proposal = JSON.parse(String(data.choices?.[0]?.message?.content || "")); } catch { return withUsage({ status: "error", reason: "AI-antwoord was geen geldige JSON", model }); }
     if (!proposal || proposal.key === "unknown") return withUsage({ status: "unknown", reason: "AI vond onvoldoende of tegenstrijdig bewijs", model });
-    const check = verifyProposal(proposal, pack, input.options);
+    const check = verifyProposal(proposal, pack, options);
     if (!check.ok) return withUsage({ status: "rejected", reason: check.reason, model, proposal, quoteChecks: check.quoteChecks });
     const ruleSector = input.profile.sector && input.profile.sector !== "unknown" ? input.profile.sector : null;
     const agrees = !ruleSector || ruleSector === check.option.sector;

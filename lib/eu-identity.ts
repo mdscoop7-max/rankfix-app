@@ -567,7 +567,10 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const countSources = (test: (s: string) => boolean) => Object.values(sources).filter((s) => s && test(s)).length;
   // A blog, magazine, guide or comparison site writes ABOUT trains, banks or
   // hospitals; it is not the operator. Operator sectors then abstain.
-  const publication = isPublication(title + " " + site, [...schema]);
+  // Fresh144 7 Nov (Rode Kruis "blog/publicaties"): a homepage listing news teasers
+  // carries BlogPosting items; that is content, not the organisation's identity.
+  // On a homepage only the Blog type (or "blog/magazine" in the title) counts.
+  const publication = isPublication(title + " " + site, input.homepage ? [...schema].filter((t) => t !== "blogposting") : [...schema]);
   // Search widgets, reviews and meta-search content are not evidence of operating a carrier.
   const transportIntermediary = /(?:compare|comparison|comparateur|comparador|vergleich|vergelijk|porównyw|confronta|metasearch|aggregator|flight reviews?|airline reviews?|travel blog|reisblog)/iu.test(title);
   const retailer = retailSelfDescription(own) || [...schema].some((t) => /store$|^store$|^onlinestore$/.test(t));
@@ -841,7 +844,11 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const namesSystems = HARDWARE.test(own) || titleIndustrial.some((w) => /syst[eé]m|anlag|rendszer|järjestelm|układ/i.test(w));
   // Buyer guides and tests write about components; they do not make them.
   const aboutComponents = /(?<![\p{L}])(?:best|top \d+|beste|besten|meilleurs?|migliori|mejores|najlepsze|test|tests|tested|reviewed|review|guide|gids|ratgeber|kaufberatung|vergelijk\p{L}*|vergleich\p{L}*|how to|hoe )(?![\p{L}])/iu.test(title);
-  if (!retailer && !softwareOnly && !aboutComponents && !SOFTWARE.test(own) && titleIndustrial.length >= 1 && namesSystems && (repeated || oemSupply)) {
+  // Own identity only: on a sub-page a title naming products ("Componenten - SSD
+  // Solid state drive | Shop") is a product or category page of whoever sells
+  // them (Fresh144 7 Nov, a computer shop typed "industry"). Manufacturers are
+  // still recognised on sub-pages through maker words (7b) and on their homepage.
+  if (input.homepage !== false && !retailer && !softwareOnly && !aboutComponents && !SOFTWARE.test(own) && titleIndustrial.length >= 1 && namesSystems && (repeated || oemSupply)) {
     return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "medium", confidenceScore: oemSupply && repeated ? 82 : 78,
       evidence: evidence([`Titel noemt industriële systemen/producten (${titleIndustrial.slice(0, 3).join(", ")})`, repeated && "Omschrijving of H1 noemt deze producten opnieuw", oemSupply && "Navigatie of identiteit noemt levering als eerste montage (original equipment) aan fabrikanten"]) };
   }

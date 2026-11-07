@@ -3626,13 +3626,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       || /<select\b[^>]*(?:lang|language|taal|sprache|idioma|lingua)[^>]*>/i.test(html);
     // Bounded reciprocity check for valid same-host hreflang: fetch up to three
     // alternates and verify each links back to this page.
-    const hreflangReciprocity = { checked: 0, reciprocal: 0, missing: [] as string[], failed: 0 };
-    if (hreflangAssessment.kind === "unconfirmed") {
+    // Fresh144 7 Nov: 13 of 30 sites kept hreflang "not confirmed". Alternates on
+    // other hosts (international domains) are checked the same way; hreflang that
+    // only points at this page itself is reciprocal by definition (no request).
+    const hreflangReciprocity = { checked: 0, reciprocal: 0, missing: [] as string[], failed: 0, selfOnly: false };
+    if (hreflangAssessment.kind === "unconfirmed" || hreflangAssessment.kind === "external_hosts") {
       const selfNormalized = normalizeScanUrl(finalUrl.toString());
       const alternates = [...new Set(hreflangEntries
         .filter((entry) => entry.language !== "x-default")
         .map((entry) => { try { return new URL(entry.href, finalUrl).toString(); } catch { return ""; } })
         .filter((url) => url && normalizeScanUrl(url) !== selfNormalized))].slice(0, 3);
+      hreflangReciprocity.selfOnly = alternates.length === 0 && hreflangAssessment.kind === "unconfirmed";
       await Promise.all(alternates.map(async (alternate) => {
         try {
           const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
@@ -4196,6 +4200,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.total} hreflang-link(s) gevonden, maar ${hreflangAssessment.invalid} bevat een ongeldige of ontbrekende taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
           : hreflangAssessment.kind === "self_mismatch"
             ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${hreflangAssessment.documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
+          : hreflangAssessment.kind === "external_hosts" && hreflangReciprocity.missing.length > 0
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangReciprocity.missing.length} van ${hreflangReciprocity.checked} gecontroleerde taalversie(s) op een ander domein verwijst niet terug naar deze pagina, bijvoorbeeld ${shortUrl(hreflangReciprocity.missing[0])}. Hreflang werkt alleen als alle taalversies naar elkaar verwijzen.`, "Laat elke taalversie met hreflang terugverwijzen naar alle andere taalversies, ook over domeinen heen.", 2, 5)
+          : hreflangAssessment.kind === "external_hosts" && hreflangReciprocity.checked > 0 && hreflangReciprocity.failed === 0
+            ? check("pass", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.count} hreflang-doel(en) op andere domeinen; ${hreflangReciprocity.reciprocal} gecontroleerde taalversie(s) verwijzen correct terug naar deze pagina.`, "Houd hreflang en canonicals per taalversie consistent bij nieuwe pagina's.", 5, 5)
           : hreflangAssessment.kind === "external_hosts"
             ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.count} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
           : hreflangAssessment.kind === "conflict"
@@ -4204,6 +4212,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${hreflangAssessment.targets.map(([language, url]) => `${language} => ${url}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
               : hreflangReciprocity.missing.length > 0
                 ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangReciprocity.missing.length} van ${hreflangReciprocity.checked} gecontroleerde taalversie(s) verwijst niet terug naar deze pagina, bijvoorbeeld ${shortUrl(hreflangReciprocity.missing[0])}. Hreflang werkt alleen als alle taalversies naar elkaar verwijzen.`, "Voeg op de genoemde taalversie(s) een hreflang-link terug naar deze pagina toe, zodat de set wederkerig is.", 3, 5)
+              : hreflangReciprocity.selfOnly
+                ? check("pass", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} geldige hreflang-link(s) die alleen naar deze pagina zelf verwijzen (één taalversie); daarmee is de verwijzing per definitie wederkerig.`, "Voeg per extra taalversie een hreflang-link toe zodra dezelfde content in een andere taal bestaat.", 5, 5)
               : hreflangReciprocity.checked > 0 && hreflangReciprocity.failed === 0
                 ? check("pass", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} geldige hreflang-link(s) gevonden; ${hreflangReciprocity.reciprocal} gecontroleerde taalversie(s) verwijzen correct terug naar deze pagina.`, "Houd hreflang en canonicals per taalversie consistent bij nieuwe pagina's.", 5, 5)
               : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
