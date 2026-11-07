@@ -10,6 +10,7 @@ import { validJsonLdBlockTexts, hasExecutableScripts, microdataTypes, rdfaTypes 
 import { detectGoogleTagManager } from "@/lib/tag-manager";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
+import { gateSchemaCheck, gateTitleCheck, brandFromTitle, countListedLocations } from "@/lib/evidence-gated-advice";
 import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
@@ -7432,6 +7433,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           linkRecords: brokenLinkRecords(linkAuditResults, finalUrl.toString()),
         });
       }
+    }
+    // Evidence-gated advice (P0-3, 7 Nov): schema and title advice were chosen from
+    // keywords before the final sector/role decision. Re-check each against the final
+    // identity and the site's own evidence; record why an advice was changed.
+    {
+      const adviceIdentity = {
+        sector: String(sectorProfile.sector || "unknown"), key: String(sectorProfile.key || ""), label: String(sectorProfile.label || ""),
+        confidence: Number(sectorProfile.confidenceScore || 0),
+        expectedType: sectorSchemaType({ sector: sectorProfile.sector, key: sectorProfile.key, identityText: [title, description, h1s.join(" ")].join(" "), schemaTypes }),
+        ownLocalEvidence: hasTrustedLocalEvidence || Boolean(localBusinessDetails),
+        pageSchemaTypes: schemaTypes,
+        listedLocations: countListedLocations(text),
+      };
+      gateSchemaCheck(geoChecks.find((item) => item.key === "schema"), recommendedSchema, adviceIdentity);
+      const brand = brandFromTitle(title, decode(organizationName || ""));
+      gateTitleCheck(seoChecks.find((item) => item.key === "title"), adviceIdentity, brand);
     }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     // Evidence gate (3.5): a check only carries points or a deduction when it has
