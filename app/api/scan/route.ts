@@ -13,7 +13,8 @@ import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { LOCAL_TRADE_KEYS, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
+import { verifySectorWithAi, mediationRole } from "@/lib/ai-sector-verifier";
+import { LOCAL_TRADE_KEYS, declaredIndustryKeys, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules, sectorConfidenceGuard } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -6780,6 +6781,43 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       });
       for (const moduleKey of ["ecommerce","product"]) if (!sectorProfile.applicableModules.includes(moduleKey)) sectorProfile.applicableModules.push(moduleKey);
       masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    // AI sector verification (owner request 7 Nov): only when the rules did not
+    // confirm a sector; one call, hard timeout; AI proposals count only with quotes
+    // RankFix finds verbatim on >=2 own pages (lib/ai-sector-verifier.ts).
+    {
+      const aiOptions = [
+        ...declaredIndustryKeys(),
+        ...sectorSignals.map((item) => ({ sector: item.sector, key: item.sector, label: item.label, vocab: item.patterns })),
+        { sector: "transport_travel", key: "travel", label: "Reisbemiddeling (online reisbureau)", vocab: [/(?<![\p{L}])(?:reisbureau\p{L}*|reisorganisatie\p{L}*|online travel agency|travel agency|reisbemiddel\p{L}*|vluchten|vliegtickets?|flights?|pakketreizen|vakanties?|hotels?)(?![\p{L}])/iu] },
+        { sector: "service_marketplace", key: "comparison_platform", label: "Vergelijkings- / offerteplatform", vocab: [/(?<![\p{L}])(?:vergelijk\p{L}*|compare|comparison|offertes?|quotes?|platform)(?![\p{L}])/iu] },
+      ].filter((o, i, all) => all.findIndex((x) => x.key === o.key) === i);
+      const aiResult = await verifySectorWithAi({
+        profile: sectorProfile,
+        options: aiOptions,
+        pages: auditedRawPages.filter((item) => !isAudiencePagePath(item.url)).map((item) => ({ url: item.url, type: item.type, title: item.title, description: item.description, headings: item.identityHeadings, text: item.identityText })),
+      });
+      const previousSector = sectorProfile.sector;
+      const sectorModules = (sector: string) => sectorSignals.find((item) => item.sector === sector)?.modules || [];
+      if (aiResult.status === "confirmed" && !(mediationRole(aiResult.role) && LOCAL_TRADE_KEYS.has(aiResult.option.key))) {
+        Object.assign(sectorProfile, {
+          sector: aiResult.option.sector, key: aiResult.option.key, label: aiResult.option.label,
+          confidence: "medium", confidenceScore: previousSector === aiResult.option.sector ? Math.max(sectorProfile.confidenceScore, 82) : 80,
+          evidence: [...aiResult.quotes.map((q) => `AI-citaat, letterlijk teruggevonden op ${q.url}: "${q.quote}"`), `Rol: ${aiResult.role}`].slice(0, 6),
+        });
+        if (previousSector !== aiResult.option.sector) {
+          sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules.filter((m) => !sectorModules(previousSector).includes(m)), ...sectorModules(aiResult.option.sector)])];
+          masterEvidence.activeModules = sectorProfile.applicableModules;
+        }
+      } else if (aiResult.status === "conflict" && previousSector !== "unknown") {
+        Object.assign(sectorProfile, {
+          sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidence: "low", confidenceScore: 0,
+          evidence: [`Tegenstrijdig bewijs: regels wezen op ${sectorProfile.label} (niet bevestigd); AI vond met letterlijke citaten ${aiResult.option.label}`],
+        });
+        if (!finalCommerceDecision.confirmed) sectorProfile.applicableModules = sectorProfile.applicableModules.filter((m) => !sectorModules(previousSector).includes(m));
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      }
+      Object.assign(sectorProfile, { aiVerification: aiResult });
     }
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
