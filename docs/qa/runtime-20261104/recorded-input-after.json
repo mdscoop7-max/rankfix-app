@@ -1,0 +1,10 @@
+{
+  "mode": "offline recorded-input regression; not a live scan",
+  "sourceHost": "vdlgroep.com",
+  "htmlBytes": 836602,
+  "htmlSha256": "797aac23f620c91b29ac5d4b47e7a3c238b820e606edef92d58e4561d556955b",
+  "status": 200,
+  "success": true,
+  "elapsedMs": 936,
+  "descriptionState": "missing"
+}

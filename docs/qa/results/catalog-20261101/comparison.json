@@ -1,0 +1,11 @@
+{
+  "fixtureSha256": "cc79340997457ce5dfc95ee97c07b4892ffac4290f9631355688a56743c7163d",
+  "baselineCommit": "1907e2fdf0e7995c20b122240c7ad5c8129b00a9",
+  "candidateCommit": "73ddfb95301bd2a616e9f1ce5300ff7281f73591",
+  "fixed": [],
+  "regressions": [],
+  "changedRows": [],
+  "qualityScore": null,
+  "accepted": false,
+  "conclusion": "Hybrid development cases improved; unseen catalog evaluation unchanged and primary-sector recognition below 90%. No rules tuned after freeze."
+}

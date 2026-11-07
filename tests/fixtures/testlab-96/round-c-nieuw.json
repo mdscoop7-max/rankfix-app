@@ -1,0 +1,247 @@
+{
+  "id": "round-c-nieuw",
+  "description": "Nieuwe gemengde Europese sectoren; labels niet onafhankelijk gevalideerd",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Mollie",
+      "hosts": [
+        "mollie.com"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Allianz",
+      "hosts": [
+        "allianz.de"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Argenta",
+      "hosts": [
+        "argenta.be"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "EDF",
+      "hosts": [
+        "edf.fr"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Erasmus MC",
+      "hosts": [
+        "erasmusmc.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "TU München",
+      "hosts": [
+        "tum.de"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Vlaanderen",
+      "hosts": [
+        "vlaanderen.be"
+      ],
+      "group": "government",
+      "expected": "government",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Carrefour",
+      "hosts": [
+        "carrefour.fr"
+      ],
+      "group": "retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Transavia",
+      "hosts": [
+        "transavia.com"
+      ],
+      "group": "travel",
+      "expected": "travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Deutsche Telekom",
+      "hosts": [
+        "telekom.de"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "H.Essers",
+      "hosts": [
+        "essers.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Renault",
+      "hosts": [
+        "renault.fr"
+      ],
+      "group": "automotive",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Achmea",
+      "hosts": [
+        "achmea.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "PAYONE",
+      "hosts": [
+        "payone.com"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "UZ Leuven",
+      "hosts": [
+        "uzleuven.be"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Société Générale",
+      "hosts": [
+        "societegenerale.com"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vattenfall",
+      "hosts": [
+        "vattenfall.nl"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Steigenberger",
+      "hosts": [
+        "steigenberger.com"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Delhaize",
+      "hosts": [
+        "delhaize.be"
+      ],
+      "group": "retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Sorbonne Université",
+      "hosts": [
+        "sorbonne-universite.fr"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "AFAS",
+      "hosts": [
+        "afas.nl"
+      ],
+      "group": "software",
+      "expected": "software",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Charité",
+      "hosts": [
+        "charite.de"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Proximus",
+      "hosts": [
+        "proximus.be"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "GEODIS",
+      "hosts": [
+        "geodis.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

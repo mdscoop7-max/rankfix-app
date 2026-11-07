@@ -1,0 +1,66 @@
+{
+ "group": "professional-firms",
+ "note": "sector80 (6 Nov): accountancy firm with healthcare client practice typed as health care; skin/beauty clinic typed as health.",
+ "sites": {
+  "accountancy.test": {
+   "title": "Accountancy, belastingadvies en consultancy | Telmo",
+   "desc": "Telmo is een accountancy- en adviesorganisatie voor ondernemers, zorginstellingen en non-profitorganisaties. Audit & assurance, belastingadvies en advies.",
+   "h1": "Samen vooruit met ondernemers",
+   "nav": [
+    "Diensten",
+    "Accountancy",
+    "Belastingadvies",
+    "Sectoren",
+    "Zorg",
+    "Overheid",
+    "Nieuws",
+    "Werken bij"
+   ],
+   "h2": [
+    "Accountancy voor het mkb",
+    "Advies voor de zorgsector",
+    "Belastingadvies"
+   ],
+   "expect": {
+    "sector": "professional_services"
+   }
+  },
+  "skinclinic.test": {
+   "title": "Huidverbetering en gezichtsbehandelingen | Glowa",
+   "desc": "Glowa is een beautysalon voor gezichtsbehandelingen, facials en wimperextensions. Maak online een afspraak.",
+   "h1": "Gezichtsbehandelingen in Amsterdam",
+   "nav": [
+    "Behandelingen",
+    "Facials",
+    "Prijzen",
+    "Afspraak maken",
+    "Contact"
+   ],
+   "h2": [
+    "Onze gezichtsbehandelingen",
+    "Facials op maat"
+   ],
+   "expect": {
+    "sector": "beauty"
+   }
+  },
+  "careclinic.test": {
+   "title": "Huidtherapie bij acne en littekens | Huidtherapie Oost",
+   "desc": "Huidtherapeuten behandelen acne, littekens en huidaandoeningen, deels vergoed door de zorgverzekeraar. Verwijzing van de huisarts niet nodig.",
+   "h1": "Huidtherapie bij huidaandoeningen",
+   "nav": [
+    "Behandelingen",
+    "Vergoeding",
+    "Afspraak",
+    "Contact"
+   ],
+   "h2": [
+    "Acnebehandeling",
+    "Vergoeding zorgverzekeraar"
+   ],
+   "expect": {
+    "sector": "health_wellness"
+   }
+  }
+ }
+}

@@ -1,0 +1,14 @@
+{
+  "internal": {
+    "probes": 13,
+    "healthy": 13,
+    "failed": 0,
+    "maximumMs": 33
+  },
+  "outbound": {
+    "probes": 13,
+    "healthy": 9,
+    "failed": 4,
+    "maximumMs": 77
+  }
+}

@@ -16,8 +16,7 @@ globalThis.fetch = async (input) => {
   if (u.pathname === "/") return new Response(page(CASES[current]), { status: 200, headers: { "content-type": "text/html" } });
   return new Response(`<html><head><title>Sub | Merk</title></head><body><h1>Sub</h1></body></html>`, { status: 200, headers: { "content-type": "text/html" } });
 };
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
 console.info = () => {}; console.warn = () => {}; console.error = () => {};
 let slow = 0;
 for (const name of (process.env.CASES ? process.env.CASES.split(",") : Object.keys(CASES))) {

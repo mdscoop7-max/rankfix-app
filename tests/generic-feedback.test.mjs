@@ -149,7 +149,7 @@ test("oversized HTML keeps a complete head without claiming full document covera
 test("scanner integrates all feedback policies and the report explains limitations",async()=>{
  const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
  const report=await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx",import.meta.url),"utf8");
- const browser=await readFile(new URL("../lib/headless-render.ts",import.meta.url),"utf8");
+ const browser=await readFile(new URL("../lib/headless-render.ts",import.meta.url),"utf8")+await readFile(new URL("../lib/axe-script.ts",import.meta.url),"utf8");
  for(const token of ["isJavaScriptFramework(rawHtml)","isJavaScriptFramework(representativeRawHtml)","renderWithRetry(","readHtmlSampleHeadFirst(","applyJsEvidenceUncertainty(","scoreBreakdown(checks)","subscription_price_visibility","booking_transaction","lead_form_presence","partialHeadOnly"]) assert.ok(route.includes(token),token);
  assert.match(route,/!hydratedAccessibility/);
  assert.match(browser,/ctx\.measureText\(t\)/);

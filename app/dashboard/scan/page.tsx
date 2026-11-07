@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import "../dashboard.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
-import { headlineDisplay } from "@/lib/score-qualifier";
+import { saveQaAudit } from "@/lib/testlab-audit-store";
+import { dimensionScoreText, headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = { status: string };
 type Result = {
@@ -34,19 +35,48 @@ export default function DashboardScan() {
   const searchParams = useSearchParams();
   const verificationUrl = searchParams.get("url") || "";
   const verificationIssue = searchParams.get("verify_issue") || "";
+  const fixIssue = searchParams.get("fix_issue") || "";
+  const startFix=searchParams.get("start_fix")==="1";
+  const autoStarted=useRef(false);
+  const [fixAuth,setFixAuth]=useState<"checking"|"ready"|"error">(fixIssue?"checking":"ready");
   const [language,setLanguage]=useState<Locale>("nl");
-  const [url,setUrl]=useState("");
+  const [url,setUrl]=useState(()=>verificationUrl?( /^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}` ):"");
   const [websites,setWebsites]=useState<string[]>([]);
   const [urlError,setUrlError]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
-  const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
-  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:any)=>item?.scanned_url).filter(Boolean).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
+  const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null;qaTester?:boolean}>({plan:"",used:0,limit:null});
+  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.user?.plan_code)setUsage(current=>({...current,plan:d.user.plan_code}))}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:{scanned_url?:string})=>item?.scanned_url).filter((value):value is string=>typeof value==="string"&&Boolean(value)).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
   const t=text[language];
-  async function run(event:React.FormEvent){
-    event.preventDefault(); setError(""); setUrlError(""); setResult(null);
-    const clean=url.trim();
+  // The public Fix button may be used by visitors who are not signed in.
+  // Preserve their selected website and issue through the safe account login.
+  useEffect(()=>{
+    // Without a Fix to resume, fixAuth starts as "ready" (see its useState).
+    if(!fixIssue)return;
+    let active=true;
+    fetch("/api/auth/me",{cache:"no-store"})
+      .then(async r=>{if(!r.ok)throw Error("ACCOUNT_CHECK_UNAVAILABLE");return r.json()})
+      .then(d=>{
+        if(!active)return;
+        if(!d.user){
+          const next=window.location.pathname+window.location.search;
+          window.location.replace("/account?next="+encodeURIComponent(next));
+          return;
+        }
+        setFixAuth("ready");
+      })
+      .catch(()=>{if(active)setFixAuth("error");});
+    return ()=>{active=false};
+  },[fixIssue]);
+  function run(event:React.FormEvent){
+    event.preventDefault();
+    if(fixIssue&&fixAuth!=="ready")return;
+    void runScan(url);
+  }
+  async function runScan(requestedUrl:string){
+    setError(""); setUrlError(""); setResult(null);
+    const clean=requestedUrl.trim();
     if(!clean){setUrlError(t.failed);return;}
     const normalized=/^https?:\/\//i.test(clean)?clean:`https://${clean}`;
     try{new URL(normalized);}catch{setUrlError(language==="nl"?"Vul een geldige website in, bijvoorbeeld example.com.":"Enter a valid website, for example example.com.");return;}
@@ -54,9 +84,34 @@ export default function DashboardScan() {
     try{
       const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalized,mode:"both",dashboard:true,language})});
       const data=await response.json();
+      if(response.status===401&&fixIssue){window.location.replace("/account?next="+encodeURIComponent(window.location.pathname+window.location.search));return;}
       if(!response.ok) throw new Error(data.error||t.failed);
       if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",normalized);
-      if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
+      if(data.scanId){
+        // Only a current, saved scan with the same unresolved rule may open Fix.
+        const allChecks=[...(Array.isArray(data.seo?.checks)?data.seo.checks:[]),...(Array.isArray(data.geo?.checks)?data.geo.checks:[])];
+        const matching=fixIssue&&allChecks.some((c: {issue_id?:string;rule_id?:string;status?:string})=>
+          String(c.issue_id||c.rule_id||"").toUpperCase()===fixIssue.toUpperCase() &&
+          (c.status==="warning"||c.status==="fail")
+        );
+        if(matching){
+          const params=new URLSearchParams({scan_id:String(data.scanId),issue_id:fixIssue,url:String(data.finalUrl||normalized)});
+          router.push("/dashboard/github?"+params.toString());
+          return;
+        }
+        const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):"");
+        router.push(target);
+        return;
+      }
+      // A local, authenticated QA session may finish without a Neon scan ID.
+      // Keep the complete evidence in this browser instead of losing the scan.
+      // Never treat this as a production audit or enable GitHub Fix without a saved scan.
+      if (process.env.NODE_ENV === "development" && !fixIssue && data.success === true) {
+        const qaId = "manual-" + crypto.randomUUID();
+        await saveQaAudit(qaId, data, new URL(normalized).hostname);
+        router.push("/dashboard/testlab/report?id=" + encodeURIComponent(qaId));
+        return;
+      }
       throw new Error(t.reportFailed);
     }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
     finally{setBusy(false);}
@@ -64,16 +119,27 @@ export default function DashboardScan() {
   const checks=[...(result?.seo?.checks||[]),...(result?.geo?.checks||[])];
   const issues=checks.filter(c=>c.status==="fail"||c.status==="warning").length;
   const passed=checks.filter(c=>c.status==="pass").length;
+  useEffect(()=>{
+    if(!startFix||!fixIssue||!verificationUrl||fixAuth!=="ready"||autoStarted.current)return;
+    autoStarted.current=true;
+    // The user explicitly clicked "Start veilige Fix" on the previous screen.
+    // A saved, authenticated scan is necessary before requesting a GitHub edit.
+    void runScan(verificationUrl);
+  },[startFix,fixIssue,verificationUrl,fixAuth]);
   return <main className="rf-page" lang={language}><div className="rf-shell">
     <header className="rf-header"><Link href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></Link><Link href="/dashboard/account" className="rf-avatar" aria-label="Account">D</Link></header>
     <DashboardNav current={1}/>
     <div className="rf-body"><Link href="/dashboard" className="rf-page-back">← {language==="nl"?"Terug naar Overzicht":language==="de"?"Zurück zur Übersicht":language==="fr"?"Retour à l’aperçu":language==="it"?"Torna alla panoramica":language==="es"?"Volver al resumen":"Back to Overview"}</Link>
       <div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
+      {fixIssue&&fixAuth==="checking"&&<p role="status" className="mb-4 rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">RankFix controleert je account en bereidt de Fix voor…</p>}
+      {fixIssue&&fixAuth==="error"&&<p role="alert" className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">De accountcontrole kon niet worden voltooid. Vernieuw de pagina of log opnieuw in via RankFix.</p>}
+      {fixIssue&&<div className="mb-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100"><strong>{language==="nl"?"Veilige Fix voorbereiden":"Prepare a safe Fix"}</strong><p className="mt-1 text-slate-300">{language==="nl"?"RankFix start automatisch een veilige, opgeslagen scan. Daarna opent het gekozen verbeterpunt als het nog voorkomt. Je website verandert niet zonder jouw toestemming.":"Review the website and start a saved scan. RankFix will then open the selected issue if it is still present. Nothing goes live without your permission."}</p></div>}
       {verificationIssue&&<div className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 text-sm text-emerald-100"><strong>{language==="nl"?"Fix controleren":language==="de"?"Fix prüfen":language==="fr"?"Vérifier le correctif":language==="it"?"Verifica correzione":language==="es"?"Verificar corrección":"Verify fix"}</strong><p className="mt-1 text-slate-300">{language==="nl"?"RankFix scant de live website opnieuw en controleert of hetzelfde verbeterpunt nu is opgelost.":language==="de"?"RankFix scannt die Live-Website erneut und prüft, ob derselbe Punkt jetzt gelöst ist.":language==="fr"?"RankFix analyse à nouveau le site en ligne et vérifie si le même point est maintenant résolu.":language==="it"?"RankFix esegue una nuova scansione del sito live e verifica se lo stesso problema è stato risolto.":language==="es"?"RankFix vuelve a analizar la web en vivo y comprueba si el mismo punto está resuelto.":"RankFix rescans the live website and checks whether the same improvement is now resolved."}</p></div>}
-      {usage.plan==="free"&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<Link className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</Link>}</section>}
+      {usage.qaTester&&<section className="rf-plan-card"><div><span className="rf-eyebrow">{language==="nl"?"QA-testaccount":language==="de"?"QA-Testkonto":language==="fr"?"Compte test QA":language==="it"?"Account di test QA":language==="es"?"Cuenta de prueba QA":"QA test account"}</span><h2>{language==="nl"?"Scans beschikbaar voor testen":language==="de"?"Scans für Tests verfügbar":language==="fr"?"Analyses disponibles pour les tests":language==="it"?"Scansioni disponibili per i test":language==="es"?"Análisis disponibles para pruebas":"Scans available for testing"}</h2><p>{language==="nl"?"Alleen dit interne testaccount is vrijgesteld van de maandlimiet op deze QA-omgeving. Voor gewone klanten blijven de abonnementslimieten gelden.":language==="de"?"Nur dieses interne Testkonto ist in dieser QA-Umgebung von der Monatsgrenze ausgenommen. Für Kunden gelten weiterhin die Tarifgrenzen.":language==="fr"?"Seul ce compte de test interne est exempté de la limite mensuelle dans cet environnement QA. Les limites des clients restent inchangées.":language==="it"?"Solo questo account di test interno è esente dal limite mensile in questo ambiente QA. I limiti per i clienti non cambiano.":language==="es"?"Solo esta cuenta interna de pruebas está exenta del límite mensual en este entorno QA. Los límites para clientes no cambian.":"Only this internal test account is exempt from the monthly limit in this QA environment. Customer plan limits remain unchanged."}</p></div></section>}
+      {usage.plan==="free"&&!usage.qaTester&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<Link className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</Link>}</section>}
       <section className="rf-dashboard-scan rf-shared-scan">
         <div className="rf-shared-scan-badge">SEO + GEO · Google & AI Search</div>
-        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>{const next=e.target.value;const embedded=next.slice(1).search(/https?:\/\//i);setUrl(embedded>=0?next.slice(embedded+1):next)}} onFocus={e=>e.currentTarget.select()} placeholder="https://example.com" list="rankfix-saved-websites" required/><datalist id="rankfix-saved-websites">{websites.map(site=><option key={site} value={site}/>)}</datalist><button className="rf-primary" type="submit" disabled={busy}>{busy?t.running:t.run}</button></div></form>
+        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>{const next=e.target.value;const embedded=next.slice(1).search(/https?:\/\//i);setUrl(embedded>=0?next.slice(embedded+1):next)}} onFocus={e=>e.currentTarget.select()} placeholder="https://example.com" list="rankfix-saved-websites" required/><datalist id="rankfix-saved-websites">{websites.map(site=><option key={site} value={site}/>)}</datalist><button className="rf-primary" type="submit" disabled={busy||(Boolean(fixIssue)&&fixAuth!=="ready")}>{busy?t.running:(fixIssue?language==="nl"?"Scan opnieuw starten":t.run:t.run)}</button></div></form>
         <div className="rf-shared-scan-meta" aria-label="Scanonderdelen"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div>
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}
@@ -82,7 +148,7 @@ export default function DashboardScan() {
         <div className="rf-scan-progress-copy"><span className="rf-eyebrow">RankFix Motor</span><strong>{t.running}</strong><p>{language==="nl"?"We controleren je website stap voor stap. Je rapport opent automatisch zodra de scan klaar is.":language==="de"?"Wir prüfen deine Website Schritt für Schritt. Der Bericht öffnet sich automatisch, sobald der Scan fertig ist.":language==="fr"?"Nous vérifions votre site étape par étape. Le rapport s’ouvre automatiquement dès que l’analyse est terminée.":language==="it"?"Controlliamo il sito passo dopo passo. Il report si apre automaticamente al termine.":language==="es"?"Comprobamos tu web paso a paso. El informe se abrirá automáticamente al terminar.":"We check your website step by step. Your report opens automatically when the scan is complete."}</p>
         <div className="rf-scan-stage-track"><span/><span/><span/><span/><span/><span/></div><div className="rf-scan-stage-labels"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div></div>
       </section>}
-      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><ScoreQualifier result={result as never} locale={language}/><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
+      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {dimensionScoreText(result as never,"seo",language)} · GEO {dimensionScoreText(result as never,"geo",language)} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><ScoreQualifier result={result as never} locale={language}/><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
     </div>
   </div><AiAssistant dashboard/></main>;
 }

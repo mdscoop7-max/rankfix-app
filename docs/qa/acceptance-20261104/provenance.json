@@ -1,0 +1,15 @@
+{
+  "scannerCommit": "ce240ef827542f276fc67f3628cfe2336f663247",
+  "catalog": "tests/fixtures/testlab-144/catalog-fresh-144-20261029.json",
+  "catalogSha256": "fd748c5810706152b2e3e6e6d4a0fd879a99664c05b88c1a01b3c63b366dc051",
+  "catalogCount": 144,
+  "node": "v24.22.1",
+  "source": "live local API; no replay; interrupted, not a complete 144-site run",
+  "browserExecutable": "/usr/bin/chromium",
+  "browserLimitations": [
+    "BROWSER_UNAVAILABLE: chrome_crashpad_handler --database is required",
+    "Separate browser probe: net::ERR_CERT_AUTHORITY_INVALID (-202)",
+    "Persistent NSS proxy CA import rejected by automatic approval review; not executed"
+  ],
+  "baselineComparison": "No independently verified prior live export supplied; no live improvement or regression rates claimed"
+}

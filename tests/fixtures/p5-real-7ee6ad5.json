@@ -1,0 +1,166 @@
+{
+ "source": "Echte P5-audits via de scanroute, commit 7ee6ad52d951 (1 Nov 2026, 21:00 UTC); alleen beslisbewijs, geen pagina-inhoud",
+ "sites": {
+  "nu.nl": {
+   "sector": "news_media",
+   "key": "news_media",
+   "salesChannel": "unknown",
+   "physicalEvidence": [],
+   "classification": "Website",
+   "websiteProfile": "Publicatie / nieuws & content",
+   "commerce": "absent",
+   "sitewideCommerceEvidence": {
+    "confirmed": false,
+    "sampleCount": 0,
+    "urls": [],
+    "evidence": []
+   },
+   "structuredDataAbsence": {
+    "observation": "not_observed",
+    "basis": "render_network_busy",
+    "proven": false
+   }
+  },
+  "alternate.nl": {
+   "sector": "ecommerce",
+   "key": "ecommerce",
+   "salesChannel": "online_store",
+   "physicalEvidence": [],
+   "classification": "Webshop",
+   "websiteProfile": "Webshop",
+   "commerce": "confirmed",
+   "sitewideCommerceEvidence": {
+    "confirmed": true,
+    "sampleCount": 5,
+    "urls": [
+     "https://www.alternate.nl/iFixit/Pro-Tech-Go-Toolkit-gereedschapsset/html/product/100139820",
+     "https://www.alternate.nl/Masterbuilt/Gravity-Series-1050-Digital-Charcoal-Grill-plus-Smoker-houtskoolbarbecue/html/product/1688165",
+     "https://www.alternate.nl/Ducky/OK-M-75-RGB-mechanisch-toetsenbord/html/product/1945500"
+    ],
+    "evidence": [
+     {
+      "url": "https://www.alternate.nl/iFixit/Pro-Tech-Go-Toolkit-gereedschapsset/html/product/100139820",
+      "type": "category",
+      "productSchema": true,
+      "itemListSchema": true,
+      "storeSchema": false,
+      "strongCommerceAction": true,
+      "repeatedProductLinks": true,
+      "priceSignals": 2
+     },
+     {
+      "url": "https://www.alternate.nl/Masterbuilt/Gravity-Series-1050-Digital-Charcoal-Grill-plus-Smoker-houtskoolbarbecue/html/product/1688165",
+      "type": "category",
+      "productSchema": true,
+      "itemListSchema": true,
+      "storeSchema": false,
+      "strongCommerceAction": true,
+      "repeatedProductLinks": true,
+      "priceSignals": 8
+     },
+     {
+      "url": "https://www.alternate.nl/Ducky/OK-M-75-RGB-mechanisch-toetsenbord/html/product/1945500",
+      "type": "product",
+      "productSchema": true,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": true,
+      "repeatedProductLinks": true,
+      "priceSignals": 3
+     }
+    ]
+   },
+   "structuredDataAbsence": {
+    "observation": "proven_absent",
+    "basis": "rendered_dom",
+    "proven": true
+   }
+  },
+  "charite.de": {
+   "sector": "health_wellness",
+   "key": "healthcare_academic",
+   "salesChannel": "unknown",
+   "physicalEvidence": [],
+   "classification": "Website",
+   "websiteProfile": "Dienstverlener / organisatie",
+   "commerce": "absent",
+   "sitewideCommerceEvidence": {
+    "confirmed": false,
+    "sampleCount": 0,
+    "urls": [],
+    "evidence": []
+   },
+   "structuredDataAbsence": {
+    "observation": "proven_absent",
+    "basis": "rendered_dom",
+    "proven": true
+   }
+  },
+  "uzleuven.be": {
+   "sector": "health_wellness",
+   "key": "healthcare_academic",
+   "salesChannel": "service_location",
+   "physicalEvidence": [
+    "Vestigings-/winkelpagina: /nl/vestigingen"
+   ],
+   "classification": "Website",
+   "websiteProfile": "Dienstverlener / organisatie",
+   "commerce": "absent",
+   "sitewideCommerceEvidence": {
+    "confirmed": false,
+    "sampleCount": 0,
+    "urls": [],
+    "evidence": []
+   },
+   "structuredDataAbsence": {
+    "observation": "proven_absent",
+    "basis": "rendered_dom",
+    "proven": true
+   }
+  },
+  "ns.nl": {
+   "sector": "transport_travel",
+   "key": "passenger_transport",
+   "salesChannel": "unknown",
+   "physicalEvidence": [],
+   "classification": "Website",
+   "websiteProfile": "Dienstverlener / organisatie",
+   "commerce": "unconfirmed",
+   "sitewideCommerceEvidence": {
+    "confirmed": true,
+    "sampleCount": 2,
+    "urls": [
+     "https://www.ns.nl/dagje-uit/evenementen/lichtfestivals",
+     "https://www.ns.nl/producten/deur-tot-deur/ov-fiets"
+    ],
+    "evidence": [
+     {
+      "url": "https://www.ns.nl/dagje-uit/evenementen/lichtfestivals",
+      "type": "event",
+      "productSchema": false,
+      "itemListSchema": true,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": true,
+      "priceSignals": 3
+     },
+     {
+      "url": "https://www.ns.nl/producten/deur-tot-deur/ov-fiets",
+      "type": "product",
+      "productSchema": true,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": true,
+      "priceSignals": 5
+     }
+    ]
+   },
+   "structuredDataAbsence": {
+    "observation": "proven_absent",
+    "basis": "rendered_dom",
+    "proven": true
+   }
+  }
+ }
+}

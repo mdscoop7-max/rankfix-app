@@ -1,0 +1,438 @@
+{
+ "group": "trades-holdout",
+ "note": "Onafhankelijke controleset bouw/vakberoepen, opgesteld na de tuning (1 Nov); niet gebruikt om regels af te stemmen",
+ "sites": {
+  "kozijnspecialist.test": {
+   "lang": "nl",
+   "title": "Kozijnen Oost | Kunststof kozijnen laten plaatsen",
+   "desc": "Kozijnspecialist: kunststof en aluminium kozijnen inmeten, leveren en plaatsen in Twente.",
+   "h1": "Kozijnspecialist in Twente",
+   "nav": [
+    "Kozijnen",
+    "Deuren",
+    "Werkwijze",
+    "Offerte"
+   ],
+   "body": "<p>Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. Wij meten in, produceren op maat en plaatsen uw kozijnen met eigen montageploeg. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "type": "services"
+   }
+  },
+  "cvmonteur.test": {
+   "lang": "nl",
+   "title": "CV-Monteur Rijnmond – Cv-ketel vervangen en onderhoud",
+   "desc": "Uw cv-monteur in Rotterdam voor ketelvervanging, onderhoud en storingen.",
+   "h1": "Cv-ketel vervangen",
+   "nav": [
+    "Cv-ketels",
+    "Onderhoud",
+    "Storing melden",
+    "Contact"
+   ],
+   "body": "<p>Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. Onze monteurs vervangen en onderhouden cv-ketels en verhelpen storingen binnen 24 uur. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "elektro-weber.test": {
+   "lang": "de",
+   "title": "Elektro Weber – Elektriker in Stuttgart",
+   "desc": "Elektroinstallation, E-Check und Photovoltaik vom Elektriker-Meisterbetrieb in Stuttgart.",
+   "h1": "Ihr Elektriker in Stuttgart",
+   "nav": [
+    "Leistungen",
+    "Photovoltaik",
+    "E-Check",
+    "Kontakt"
+   ],
+   "body": "<p>Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. Wir planen und installieren Elektroanlagen, Wallboxen und Photovoltaikanlagen. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "dachdecker-braun.test": {
+   "lang": "de",
+   "title": "Dachdecker Braun – Dachsanierung und Reparatur",
+   "desc": "Dachdeckermeister in Hannover: Steildach, Flachdach, Dachfenster und Reparaturen.",
+   "h1": "Dachdecker in Hannover",
+   "nav": [
+    "Steildach",
+    "Flachdach",
+    "Reparatur",
+    "Kontakt"
+   ],
+   "body": "<p>Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. Wir decken Dächer neu, sanieren Flachdächer und reparieren Sturmschäden. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "fliesen-koch.test": {
+   "lang": "de",
+   "title": "Fliesen Koch – Fliesenleger in Leipzig",
+   "desc": "Fliesenlegermeister für Bad, Küche und Terrasse in Leipzig und Umgebung.",
+   "h1": "Fliesenleger in Leipzig",
+   "nav": [
+    "Bad",
+    "Küche",
+    "Terrasse",
+    "Angebot"
+   ],
+   "body": "<p>Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. Wir verlegen Fliesen in Bädern, Küchen und auf Terrassen. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "plombier-lefevre.test": {
+   "lang": "fr",
+   "title": "Plomberie Lefèvre – Plombier chauffagiste à Lille",
+   "desc": "Plombier chauffagiste à Lille : dépannage fuite, installation chaudière, entretien.",
+   "h1": "Plombier à Lille",
+   "nav": [
+    "Dépannage",
+    "Chaudières",
+    "Entretien",
+    "Devis"
+   ],
+   "body": "<p>Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. Nous intervenons pour fuites, débouchage et installation de chaudières. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "couvreur-bernard.test": {
+   "lang": "fr",
+   "title": "Couverture Bernard – Couvreur à Nantes",
+   "desc": "Couvreur à Nantes : réfection de toiture, zinguerie et démoussage. Devis gratuit.",
+   "h1": "Couvreur à Nantes",
+   "nav": [
+    "Toiture",
+    "Zinguerie",
+    "Démoussage",
+    "Contact"
+   ],
+   "body": "<p>Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. Nous refaisons vos toitures et assurons zinguerie et démoussage. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "carrelage-moreau.test": {
+   "lang": "fr",
+   "title": "Moreau Carrelage – Carreleur à Toulouse",
+   "desc": "Carreleur à Toulouse pour salles de bain, terrasses et sols.",
+   "h1": "Carreleur à Toulouse",
+   "nav": [
+    "Salle de bain",
+    "Terrasse",
+    "Réalisations",
+    "Devis"
+   ],
+   "body": "<p>Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. Pose de carrelage, faïence et sols pour particuliers et professionnels. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "elettricista-bianchi.test": {
+   "lang": "it",
+   "title": "Bianchi Impianti – Elettricista a Torino",
+   "desc": "Elettricista a Torino: impianti elettrici, domotica e pronto intervento.",
+   "h1": "Elettricista a Torino",
+   "nav": [
+    "Impianti",
+    "Domotica",
+    "Pronto intervento",
+    "Contatti"
+   ],
+   "body": "<p>Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. Realizziamo impianti elettrici civili e industriali e interveniamo in emergenza. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "idraulico-verdi.test": {
+   "lang": "it",
+   "title": "Idraulico Verdi – Idraulico e caldaie a Roma",
+   "desc": "Idraulico a Roma per perdite, caldaie e bagni. Preventivo gratuito.",
+   "h1": "Idraulico a Roma",
+   "nav": [
+    "Servizi",
+    "Caldaie",
+    "Bagni",
+    "Preventivo"
+   ],
+   "body": "<p>Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. Ripariamo perdite, installiamo caldaie e rifacciamo bagni. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "electricista-lopez.test": {
+   "lang": "es",
+   "title": "Electricista López – Electricista en Valencia",
+   "desc": "Electricista en Valencia: instalaciones eléctricas, boletines y averías 24h.",
+   "h1": "Electricista en Valencia",
+   "nav": [
+    "Servicios",
+    "Averías",
+    "Boletines",
+    "Contacto"
+   ],
+   "body": "<p>Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. Realizamos instalaciones eléctricas y reparamos averías las 24 horas. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "plumber-uk.test": {
+   "lang": "en",
+   "title": "Jones Plumbing & Heating – Plumbers in Manchester",
+   "desc": "Gas Safe plumbers in Manchester for boiler installs, servicing and leaks.",
+   "h1": "Plumbers in Manchester",
+   "nav": [
+    "Boilers",
+    "Leaks",
+    "Servicing",
+    "Contact"
+   ],
+   "body": "<p>We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. We install and service boilers and fix leaks across Greater Manchester. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "electrician-us.test": {
+   "lang": "en",
+   "title": "Bright Electric – Licensed Electrician in Austin, TX",
+   "desc": "Licensed electrician serving Austin: panel upgrades, EV chargers, rewiring.",
+   "h1": "Austin Electrician",
+   "nav": [
+    "Services",
+    "EV chargers",
+    "Service area",
+    "Contact"
+   ],
+   "body": "<p>We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. We upgrade panels, install EV chargers and rewire older homes in Austin. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "painters-au.test": {
+   "lang": "en",
+   "title": "Harbour Painters – Painting contractor in Sydney",
+   "desc": "Residential painters in Sydney: interior and exterior painting, free quotes.",
+   "h1": "Painting contractor in Sydney",
+   "nav": [
+    "Interior",
+    "Exterior",
+    "Gallery",
+    "Free quote"
+   ],
+   "body": "<p>Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. Our painters handle interior and exterior repaints for homes across Sydney. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "sloopbedrijf.test": {
+   "lang": "nl",
+   "title": "Sloopbedrijf Van Leeuwen – Sloop en asbestsanering",
+   "desc": "Sloopwerk, asbestsanering en grondwerk voor particulieren en bedrijven.",
+   "h1": "Sloopwerk en asbest",
+   "nav": [
+    "Sloopwerk",
+    "Asbest",
+    "Grondwerk",
+    "Contact"
+   ],
+   "body": "<p>Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. Wij slopen gebouwen en verwijderen asbest volgens de regels. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "tuinman.test": {
+   "lang": "nl",
+   "title": "Tuinonderhoud Smit – Hovenier voor uw tuin",
+   "desc": "Hovenier voor tuinonderhoud, snoeien en bestrating in Leiden.",
+   "h1": "Tuinonderhoud in Leiden",
+   "nav": [
+    "Onderhoud",
+    "Snoeien",
+    "Bestrating",
+    "Contact"
+   ],
+   "body": "<p>Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. Wij onderhouden tuinen, snoeien bomen en leggen bestrating. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services",
+    "shopChecks": "not_applicable",
+    "type": "services"
+   }
+  },
+  "installateur-shop.test": {
+   "lang": "nl",
+   "title": "Installatiebedrijf Kramer – Installateur voor cv en sanitair",
+   "desc": "Installateur in Groningen. Ook onderdelen en filters bestellen in onze webshop.",
+   "h1": "Installateur in Groningen",
+   "nav": [
+    "Cv",
+    "Sanitair",
+    "Onderhoud",
+    "Webshop",
+    "Contact"
+   ],
+   "body": "<p>Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. Wij installeren cv-ketels en badkamers en verzorgen onderhoud. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "home_services"
+   }
+  },
+  "energie-leverancier.test": {
+   "lang": "nl",
+   "title": "GroenStroom – Energieleverancier voor groene stroom en gas",
+   "desc": "Energieleverancier met groene stroom. Ook zonnepanelen en warmtepomp via partners.",
+   "h1": "Groene stroom en gas",
+   "nav": [
+    "Tarieven",
+    "Overstappen",
+    "Zonnepanelen",
+    "Klantenservice"
+   ],
+   "body": "<p>Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. Stap over naar groene stroom en gas met een vast tarief. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "sector": "energy_utilities"
+   }
+  },
+  "kunstschilder.test": {
+   "lang": "nl",
+   "title": "Atelier Lisa – Schilderijen en kunst",
+   "desc": "Abstracte schilderijen en kunstwerken van kunstenares Lisa. Bekijk de galerie.",
+   "h1": "Schilderijen van Lisa",
+   "nav": [
+    "Galerie",
+    "Exposities",
+    "Over mij",
+    "Contact"
+   ],
+   "body": "<p>Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. Mijn schilderijen zijn te zien in exposities in heel Nederland. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "advocaat-maurer.test": {
+   "lang": "de",
+   "title": "Kanzlei Maurer – Rechtsanwalt für Arbeitsrecht",
+   "desc": "Rechtsanwalt Maurer berät zu Arbeitsrecht und Vertragsrecht in Berlin.",
+   "h1": "Kanzlei Maurer",
+   "nav": [
+    "Arbeitsrecht",
+    "Vertragsrecht",
+    "Team",
+    "Kontakt"
+   ],
+   "body": "<p>Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. Wir beraten Arbeitnehmer und Arbeitgeber im Arbeitsrecht. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "websitebuilder.test": {
+   "lang": "en",
+   "title": "SiteForge – Website builder for small businesses",
+   "desc": "Build a website in minutes with our drag-and-drop website builder. Free plan.",
+   "h1": "Website builder for small business",
+   "nav": [
+    "Features",
+    "Templates",
+    "Pricing",
+    "Login"
+   ],
+   "body": "<p>Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. Pick a template, drag and drop blocks and publish your site. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "warmtepompshop.test": {
+   "lang": "nl",
+   "title": "Warmtepompwinkel – Warmtepompen online kopen",
+   "desc": "Warmtepompen en airco's online kopen. Snel geleverd, inclusief verzending.",
+   "h1": "Warmtepompen online kopen",
+   "nav": [
+    "Warmtepompen",
+    "Airco's",
+    "Accessoires",
+    "Winkelwagen"
+   ],
+   "body": "<p>Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. Bestel uw warmtepomp online. </p><div class=\"product\"><a href=\"/p/item-1-9112\">Item 1</a><span class=\"price\">€ 19,95</span><button>In winkelwagen</button></div><div class=\"product\"><a href=\"/p/item-2-9212\">Item 2</a><span class=\"price\">€ 29,95</span><button>In winkelwagen</button></div><div class=\"product\"><a href=\"/p/item-3-9312\">Item 3</a><span class=\"price\">€ 39,95</span><button>In winkelwagen</button></div>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "sanitairgroothandel.test": {
+   "lang": "nl",
+   "title": "Sanitairgroothandel Midden – Groothandel voor installateurs",
+   "desc": "Groothandel in sanitair en installatiemateriaal voor installateurs. Zakelijk account aanvragen.",
+   "h1": "Groothandel voor installateurs",
+   "nav": [
+    "Assortiment",
+    "Vestigingen",
+    "Zakelijk account",
+    "Contact"
+   ],
+   "body": "<p>Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. Installateurs bestellen bij ons sanitair, leidingen en verwarming. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "dakpannenfabriek.test": {
+   "lang": "de",
+   "title": "Ziegelwerk Nord – Hersteller von Dachziegeln",
+   "desc": "Hersteller von Dachziegeln und Zubehör. Händler und Dachdecker in Ihrer Nähe finden.",
+   "h1": "Dachziegel aus Norddeutschland",
+   "nav": [
+    "Produkte",
+    "Für Dachdecker",
+    "Händlersuche",
+    "Kontakt"
+   ],
+   "body": "<p>Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. Unsere Dachziegel werden im eigenen Werk gebrannt und über Händler vertrieben. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  },
+  "vakopleiding.test": {
+   "lang": "nl",
+   "title": "Bouwopleidingen Nederland – Opleiding tot elektricien of loodgieter",
+   "desc": "Mbo-opleidingen in de bouw en installatietechniek. Schrijf je in voor een open dag.",
+   "h1": "Word elektricien of loodgieter",
+   "nav": [
+    "Opleidingen",
+    "Open dag",
+    "Inschrijven",
+    "Contact"
+   ],
+   "body": "<p>Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. Volg een opleiding tot elektricien, loodgieter of timmerman. </p><p>Tel 020 555 12 12 · mail@firma.test · Hoofdstraat 5</p>",
+   "expect": {
+    "notSector": "home_services"
+   }
+  }
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "group": "tyres-garage",
+ "note": "Banden/autoservice met webshop (Kwik-Fit e.a.)",
+ "sites": {
+  "kwikfit.test": {
+   "title": "Kwik-Fit | Banden kopen, APK en onderhoud",
+   "desc": "Banden kopen inclusief montage, APK en onderhoud bij Kwik-Fit. Bestel online, kies je vestiging en profiteer van 25% korting.",
+   "h1": "Banden, APK en onderhoud",
+   "nav": [
+    "Banden",
+    "Velgen",
+    "APK",
+    "Onderhoud",
+    "Vestigingen"
+   ],
+   "body": "<div class=\"promo\">Nu 25% korting op alle winterbanden</div><div class=\"product-card\"><a href=\"/p/0\">Michelin Primacy 4 205/55 R16</a> <span class=\"price\">€ 109,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">Continental WinterContact</a> <span class=\"price\">€ 124,95</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/shoppingcart\">Winkelwagen</a><a href=\"/webshopapi/cart\">cart</a><img src=\"/binaries/content/gallery/kwikfit/banners/winter.jpg\" alt=\"Winterbanden\">",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "sector": "automotive",
+    "type": "ecommerce_store",
+    "platform": "Bloomreach (Hippo)",
+    "discountCheck": "active",
+    "schemaType": "AutoRepair"
+   }
+  },
+  "bandenexpert.test": {
+   "title": "BandenExpert | Banden online bestellen met montage",
+   "desc": "Bestel zomer-, winter- en all-season banden online en laat ze monteren bij een garage in de buurt.",
+   "h1": "Banden online bestellen",
+   "nav": [
+    "Zomerbanden",
+    "Winterbanden",
+    "All-season",
+    "Montagepartners"
+   ],
+   "body": "<div class=\"product-card\"><a href=\"/p/0\">Pirelli Cinturato 195/65 R15</a> <span class=\"price\">€ 89,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
+   "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
+   "expect": {
+    "sector": "automotive",
+    "type": "ecommerce_store",
+    "schemaType": "AutoRepair"
+   }
+  },
+  "garagejansen.test": {
+   "title": "Garage Jansen | APK en onderhoud in Zwolle",
+   "desc": "Garage Jansen in Zwolle voor APK, onderhoud, banden wisselen en reparatie van alle merken. Maak online een afspraak.",
+   "h1": "Garage Jansen",
+   "nav": [
+    "APK",
+    "Onderhoud",
+    "Banden",
+    "Afspraak maken",
+    "Contact"
+   ],
+   "expect": {
+    "sector": "automotive",
+    "shopChecks": "not_applicable",
+    "schemaType": "AutoRepair"
+   }
+  }
+ }
+}

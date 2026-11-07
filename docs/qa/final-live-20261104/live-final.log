@@ -1,0 +1,101 @@
+(node:47613) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/safe-fetch.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"at":"2026-11-04T13:40:39.868Z","round":1,"action":"start canonical live runner"}
+
+> rankfix-app@0.1.0 qa:144
+> node scripts/testlab/run-fresh144-local.mjs
+
+RankFix QA: 144 websites | versie 0de0835757b3 | resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+1/144 nxp.com
+2/144 vdlgroep.com
+Technische fout bij vdlgroep.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+3/144 zeiss.com
+Technische fout bij zeiss.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+Twee opeenvolgende technische fouten. QA gestopt om de lokale server niet te overbelasten.
+Resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+Bewijs (voeg dit bestand toe in de chat): /workspace/rankfix-app/qa-results/fresh144-latest/fresh144-evidence-0de0835757b3.json
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+{"at":"2026-11-04T13:41:11.188Z","round":1,"action":"runner finished","code":1,"signal":null,"summary":{"attempted":3,"success":1,"technicalFailures":2,"websiteOutcomes":0,"remaining":143}}
+{"at":"2026-11-04T13:41:11.240Z","action":"external recovery control","status":503,"error":null,"consecutiveHealthy":0}
+{"at":"2026-11-04T13:41:41.283Z","action":"external recovery control","status":503,"error":null,"consecutiveHealthy":0}
+{"at":"2026-11-04T13:42:11.365Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:42:21.409Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":2}
+{"at":"2026-11-04T13:42:21.410Z","action":"resume remaining real targets; no replay of completed sites"}
+{"at":"2026-11-04T13:42:21.410Z","round":2,"action":"start canonical live runner"}
+
+> rankfix-app@0.1.0 qa:144
+> node scripts/testlab/run-fresh144-local.mjs
+
+RankFix QA: 144 websites | versie 0de0835757b3 | resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+2/144 vdlgroep.com
+Technische fout bij vdlgroep.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+3/144 zeiss.com
+Technische fout bij zeiss.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+Twee opeenvolgende technische fouten. QA gestopt om de lokale server niet te overbelasten.
+Resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+Bewijs (voeg dit bestand toe in de chat): /workspace/rankfix-app/qa-results/fresh144-latest/fresh144-evidence-0de0835757b3.json
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+{"at":"2026-11-04T13:42:23.269Z","round":2,"action":"runner finished","code":1,"signal":null,"summary":{"attempted":3,"success":1,"technicalFailures":2,"websiteOutcomes":0,"remaining":143}}
+{"at":"2026-11-04T13:42:23.287Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:42:33.314Z","action":"external recovery control","status":503,"error":null,"consecutiveHealthy":0}
+{"at":"2026-11-04T13:43:03.368Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:43:13.420Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":2}
+{"at":"2026-11-04T13:43:13.420Z","action":"resume remaining real targets; no replay of completed sites"}
+{"at":"2026-11-04T13:43:13.420Z","round":3,"action":"start canonical live runner"}
+
+> rankfix-app@0.1.0 qa:144
+> node scripts/testlab/run-fresh144-local.mjs
+
+RankFix QA: 144 websites | versie 0de0835757b3 | resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+2/144 vdlgroep.com
+3/144 zeiss.com
+Technische fout bij zeiss.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+4/144 basf.com
+Technische fout bij basf.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+Twee opeenvolgende technische fouten. QA gestopt om de lokale server niet te overbelasten.
+Resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+Bewijs (voeg dit bestand toe in de chat): /workspace/rankfix-app/qa-results/fresh144-latest/fresh144-evidence-0de0835757b3.json
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+{"at":"2026-11-04T13:43:32.095Z","round":3,"action":"runner finished","code":1,"signal":null,"summary":{"attempted":4,"success":2,"technicalFailures":2,"websiteOutcomes":0,"remaining":142}}
+{"at":"2026-11-04T13:43:32.127Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:43:42.148Z","action":"external recovery control","status":503,"error":null,"consecutiveHealthy":0}
+{"at":"2026-11-04T13:44:12.230Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:44:22.264Z","action":"external recovery control","status":503,"error":null,"consecutiveHealthy":0}
+{"at":"2026-11-04T13:44:52.327Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":1}
+{"at":"2026-11-04T13:45:02.359Z","action":"external recovery control","status":200,"error":null,"consecutiveHealthy":2}
+{"at":"2026-11-04T13:45:02.359Z","action":"resume remaining real targets; no replay of completed sites"}
+{"at":"2026-11-04T13:45:02.359Z","round":4,"action":"start canonical live runner"}
+
+> rankfix-app@0.1.0 qa:144
+> node scripts/testlab/run-fresh144-local.mjs
+
+RankFix QA: 144 websites | versie 0de0835757b3 | resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+3/144 zeiss.com
+4/144 basf.com
+Technische fout bij basf.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+5/144 sandvik.com
+Technische fout bij sandvik.com: SCAN_INFRASTRUCTURE_EGRESS; niet als websitefout beoordeeld. JSON bewaard.
+Twee opeenvolgende technische fouten. QA gestopt om de lokale server niet te overbelasten.
+Resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+Bewijs (voeg dit bestand toe in de chat): /workspace/rankfix-app/qa-results/fresh144-latest/fresh144-evidence-0de0835757b3.json
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+{"at":"2026-11-04T13:45:18.839Z","round":4,"action":"runner finished","code":1,"signal":null,"summary":{"attempted":5,"success":3,"technicalFailures":2,"websiteOutcomes":0,"remaining":141}}
+{"at":"2026-11-04T13:45:18.839Z","action":"blocked: maximum four bounded resume rounds reached"}

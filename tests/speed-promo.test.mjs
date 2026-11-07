@@ -9,7 +9,8 @@ const dashboard = readFileSync(new URL("../app/dashboard/audit/[id]/page.tsx", i
 const printable = readFileSync(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
 
 test("Same general scan runs both device speed checks; no standalone Speed scan", () => {
-  assert.match(scanRoute, /measureWebsiteSpeed\(finalUrl\.toString\(\)\)/);
+  // The call may pass the remaining scan budget as options (engine branch).
+  assert.match(scanRoute, /measureWebsiteSpeed\(finalUrl\.toString\(\)[,)]/);
   assert.match(scanRoute, /summary: scanSummary, websiteSpeed, rendering/);
   assert.match(scanRoute, /summary: scanSummary,\s*websiteSpeed,\s*rendering/);
   assert.match(home, /Website Speed: mobiel \+ desktop \(in ontwikkeling\)/);

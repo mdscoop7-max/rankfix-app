@@ -1,0 +1,290 @@
+{
+ "source": "Fresh144 live scan 5 Nov 2026 (liander.nl), page identity fields only",
+ "pages": [
+  {
+   "url": "https://www.liander.nl/",
+   "type": "homepage",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Home - Thuis en kleinzakelijk | Liander",
+   "description": "Liander werkt aan het energienet van vandaag en morgen. Lees hier alle informatie over de aansluiting, meter en meterkast.",
+   "identityHeadings": [
+    "Wij werken aan uw energienet van vandaag en morgen",
+    "Wij werken aan uw energienet van vandaag en morgen"
+   ],
+   "schemaTypes": [
+    "organization",
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/contact/pers-en-woordvoering",
+   "type": "contact",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Pers en woordvoering | Liander",
+   "description": "Journalisten kunnen voor persvragen en interviewverzoeken contact opnemen met onze woordvoerders. Bekijk de contactgegevens.",
+   "identityHeadings": [
+    "Pers en woordvoering",
+    "Pers en woordvoering"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons/nieuws",
+   "type": "article",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Nieuws | Liander",
+   "description": "Liander werkt aan het energienet voor gas en elektriciteit. Lees hier over het laatste nieuws en ontwikkelingen van ons net.",
+   "identityHeadings": [
+    "Nieuws",
+    "Nieuws"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons/cookies",
+   "type": "legal",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Cookies | Liander",
+   "description": "Op onze website maken we gebruik van cookies. Lees hier welke cookies we gebruiken en wat ze doen.",
+   "identityHeadings": [],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons/toegankelijkheid",
+   "type": "legal",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Toegankelijkheid | Liander",
+   "description": "Liander streeft naar een toegankelijke digitale omgeving voor iedereen, ongeacht beperking of hulpmiddel.",
+   "identityHeadings": [
+    "Digitale toegankelijkheid",
+    "Digitale toegankelijkheid"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons",
+   "type": "corporate",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Over ons | Liander",
+   "description": "Liander is een netbeheerder. We werken aan het energienet van vandaag en morgen.",
+   "identityHeadings": [
+    "Over Liander"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons/werken-bij-liander",
+   "type": "corporate",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Werken bij Liander | Liander",
+   "description": "In 2030 de energietransitie klaar? Onmogelijk. Maar met jou erbij kan het wél! Bekijk onze vacatures en kom werken bij Liander.",
+   "identityHeadings": [
+    "De energietransitie is onmogelijk, zonder jou. Kom ook werken bij Liander.",
+    "De energietransitie is onmogelijk, zonder jou. Kom ook werken bij Liander."
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/over-ons/disclaimer",
+   "type": "legal",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Disclaimer | Liander",
+   "description": "Door Liander.nl te benaderen en/of de op of via Liander.nl aangeboden informatie te gebruiken, verklaart u zich akkoord met onze disclaimer. Lees de disclaimer.",
+   "identityHeadings": [
+    "Disclaimer",
+    "Disclaimer"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/inloggen-in-mijn-liander",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Inloggen in Mijn Liander | Liander",
+   "description": "Maak een keuze tussen Mijn Liander Consument & Kleinzakelijk of Mijn Liander Grootzakelijk.",
+   "identityHeadings": [
+    "Inloggen in Mijn Liander",
+    "Inloggen in Mijn Liander"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/stroom-vooruit/slim-met-stroom",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Slim met stroom | Liander",
+   "description": "Samenwerken met energieleveranciers en jou om slim met energie om te gaan. Ons energienet in jouw buurt ontlasten en bereikbaar houden",
+   "identityHeadings": [
+    "Het maakt uit wanneer je stroom gebruikt",
+    "Het maakt uit wanneer je stroom gebruikt"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/aansluitingen/stroomnet-vol/stroomnetchecker",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Stroomnet checker | Liander",
+   "description": "Bekijk of het stroomnet op uw adres vol is.",
+   "identityHeadings": [
+    "Krijg direct inzicht in de ruimte op het stroomnet",
+    "Krijg direct inzicht in de ruimte op het stroomnet"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/storingen-en-onderhoud/ik-ruik-gas",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Ik ruik gas | Liander",
+   "description": "Ruikt u een gaslucht? Lees wat u moet doen.",
+   "identityHeadings": [
+    "Gaslucht melden",
+    "Gaslucht melden"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/storingen-en-onderhoud/oorzaak-storing-achterhalen",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Oorzaak storing achterhalen | Liander",
+   "description": "Heeft u een gas- of stroomstoring? Wij helpen u de oorzaak te achterhalen.",
+   "identityHeadings": [
+    "Heeft u een storing of probleem?",
+    "Heeft u een storing of probleem?"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/aansluitingen/nieuwe-aansluiting-aanvragen",
+   "type": "service",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Nieuwe aansluiting aanvragen | Liander",
+   "description": "Wilt u een nieuwe aansluiting aanvragen voor gas of stroom? Lees wat u moet doen.",
+   "identityHeadings": [
+    "Een nieuwe aansluiting aanvragen",
+    "Een nieuwe aansluiting aanvragen"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/aansluitingen/aansluiting-aanpassen",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Aansluiting wijzigen | Liander",
+   "description": "Wilt u de stroom- of gasaansluiting wijzigen? Ga naar ons stappenplan voor het wijzigen van een aansluiting.",
+   "identityHeadings": [
+    "Een aansluiting wijzigen",
+    "Een aansluiting wijzigen"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/meters-en-meterstanden/slimme-meter",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Slimme meter | Liander",
+   "description": "De slimme meter registreert eenvoudig uw meterstanden en energieverbruik. Lees alles over de slimme meter.",
+   "identityHeadings": [
+    "Slimme meter",
+    "Slimme meter"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/storingen-en-onderhoud",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Storingen en onderhoud | Liander",
+   "description": "Controleer of er een storing is in uw buurt, bekijk waar we werkzaamheden uitvoeren en lees wat u kunt doen bij een storing.",
+   "identityHeadings": [
+    "Storingen en onderhoud",
+    "Storingen en onderhoud"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  },
+  {
+   "url": "https://www.liander.nl/meterkast/meterkast-voorbereiden-voor-werkzaamheden",
+   "type": "other",
+   "status": "audited",
+   "partialHead": false,
+   "title": "Meterkast voorbereiden voor werkzaamheden | Liander",
+   "description": "Stappenplan voorbereiden op werkzaamheden",
+   "identityHeadings": [
+    "Wat kunt u zelf nog doen voordat Liander bij u langskomt?",
+    "Wat kunt u zelf nog doen voordat Liander bij u langskomt?"
+   ],
+   "schemaTypes": [
+    "breadcrumblist",
+    "listitem"
+   ]
+  }
+ ]
+}

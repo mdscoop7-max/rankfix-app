@@ -1,0 +1,32 @@
+
+> rankfix-app@0.1.0 qa:144
+> node scripts/testlab/run-fresh144-local.mjs
+
+RankFix QA: 144 websites | versie ce240ef82754 | resultaten: /workspace/rankfix-app/qa-results/fresh144-latest/fresh144.json
+1/144 nxp.com
+2/144 vdlgroep.com
+3/144 zeiss.com
+4/144 basf.com
+5/144 sandvik.com
+6/144 skf.com
+7/144 abb.com
+8/144 wur.nl
+9/144 tudelft.nl
+10/144 kuleuven.be
+11/144 ox.ac.uk
+12/144 nationaleombudsman.nl
+13/144 autoriteitpersoonsgegevens.nl
+14/144 ema.europa.eu
+15/144 eea.europa.eu
+16/144 lezen.nl
+17/144 natuurmonumenten.nl
+18/144 oxfam.org.uk
+19/144 concertgebouw.nl
+20/144 mauritshuis.nl
+21/144 musee-orsay.fr
+Terminated
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

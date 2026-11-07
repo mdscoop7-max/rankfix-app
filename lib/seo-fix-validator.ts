@@ -1,4 +1,4 @@
-import { getFixPolicy, FixCategory } from "./fix-policy";
+import { getFixPolicy, type FixCategory } from "./fix-policy";
 
 export type FixValidation = { valid: boolean; errors: string[]; warnings: string[] };
 

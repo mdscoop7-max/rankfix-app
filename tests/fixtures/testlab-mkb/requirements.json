@@ -1,0 +1,21 @@
+{
+  "total": 144,
+  "sectors": {
+    "webshops_dropshipping": 30,
+    "trades": 20,
+    "construction_installation": 12,
+    "hair_beauty": 10,
+    "fitness": 10,
+    "driving_schools": 10,
+    "legal": 10,
+    "accounting": 10,
+    "payments_fintech": 8,
+    "restaurants_hospitality": 8,
+    "physiotherapy_healthcare": 8,
+    "real_estate": 8
+  },
+  "baselineFilename": "rankfix-testlab-144-fresh144-20f1effd.json",
+  "status": "blocked_pending_real_catalog_and_original_baseline",
+  "activationAllowed": false,
+  "note": "No invented domains. Original export and stored real-site sector evidence are required. This file is a requirement, not 144 accepted websites."
+}

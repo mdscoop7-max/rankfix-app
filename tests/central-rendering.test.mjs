@@ -50,7 +50,10 @@ test("capacity limits and missing Chrome become stable report messages", () => {
 test("scan route reuses a single primary and representative render attempt", async () => {
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const headless = await readFile(new URL("../lib/headless-render.ts", import.meta.url), "utf8");
-  assert.equal((scanner.match(/await renderPrimaryOnce\(\)/g) || []).length, 3);
+  // Four call sites (primary, timeout recovery, 403/405 recovery, start-page 404
+  // verification, QA #204); renderPrimaryOnce is memoised, so one browser attempt.
+  assert.equal((scanner.match(/await renderPrimaryOnce\(\)/g) || []).length, 4);
+  assert.match(scanner, /const renderPrimaryOnce = renderOnce\(/);
   assert.equal((scanner.match(/await renderRepresentativeOnce\(\)/g) || []).length, 2);
   assert.match(scanner, /representativeNeedsJavaScriptRendering\(/);
   assert.match(scanner, /representativeEvidenceSource !== "rendered_html"/);

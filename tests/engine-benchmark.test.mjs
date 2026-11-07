@@ -69,7 +69,7 @@ test("pilot 2 plan is blind: 40 real sites, no overlap with EU-81, every family 
 test("pilot runner output is measurable by the export pipeline", async () => {
   const { spawnSync } = await import("node:child_process");
   const { writeFileSync, mkdtempSync } = await import("node:fs");
-  const dir = mkdtempSync("/tmp/rf-pilot-");
+  const dir = mkdtempSync((await import("node:path")).join((await import("node:os")).tmpdir(), "rf-pilot-"));
   writeFileSync(`${dir}/s.json`, JSON.stringify([{ scanned_url: "https://ns.nl/", overall_score: 90, created_at: "2026-10-17T10:00:00Z", result: { sectorProfile: { sector: "transport_travel", confidenceScore: 90 }, coverage: { coveragePercent: 92 } } }]));
   writeFileSync(`${dir}/a.json`, JSON.stringify([{ requested_url: "https://ns.nl/", http_status: 200, outcome: "success", category: "success" }, { requested_url: "https://ing.nl/", http_status: 422, outcome: "failed", category: "site_blocked", error_code: "HTTP_BLOCKED" }]));
   const r = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/engine-benchmark/eu81.mjs", "export", `${dir}/s.json`, `${dir}/a.json`], { env: { ...process.env, RF_PLAN: "tests/fixtures/eu-pilot2/plan.json" }, encoding: "utf8" });
@@ -88,7 +88,7 @@ test("frozen plans stay unchanged; exposed cases are reported apart from blind r
   assert.ok(reg.some((x) => x.host === "charite.de" && x.originalVerdict.startsWith("wrong")));
   const { spawnSync } = await import("node:child_process");
   const { writeFileSync, mkdtempSync } = await import("node:fs");
-  const dir = mkdtempSync("/tmp/rf-exp-");
+  const dir = mkdtempSync((await import("node:path")).join((await import("node:os")).tmpdir(), "rf-exp-"));
   writeFileSync(`${dir}/s.json`, JSON.stringify([
     { scanned_url: "https://www.charite.de/", created_at: "2026-10-17T10:00:00Z", result: { sectorProfile: { sector: "health_wellness", confidenceScore: 92 } } },
     { scanned_url: "https://hus.fi/", created_at: "2026-10-17T10:00:00Z", result: { sectorProfile: { sector: "education", confidenceScore: 90 } } },

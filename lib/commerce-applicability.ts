@@ -5,7 +5,7 @@
 export type CommerceApplicability =
   | { state: "confirmed" }
   | { state: "absent"; reason: "service_identity" | "no_commerce_evidence" }
-  | { state: "unconfirmed"; reason: "market_selector" | "thin_shell" | "weak_commerce_signals" | "low_coverage" };
+  | { state: "unconfirmed"; reason: "market_selector" | "thin_shell" | "weak_commerce_signals" | "low_coverage" | "sample_refused" | "referral_platform" };
 
 export function commerceApplicability(input: {
   confirmed: boolean;
@@ -15,8 +15,28 @@ export function commerceApplicability(input: {
   marketSelector: boolean;
   auditedRepresentativePages: number;
   verifiedSecondaryCommerce?: boolean;
+  /** Product/category pages that refused RankFix (401/403/405/429/202); QA commerce 72/72. */
+  refusedRetailPages?: number;
+  /** A comparison/quote platform without its own cart (QA #207/#209). */
+  referralPlatform?: boolean;
+  /** Keep "unable to confirm" for a thin sample even without any shop signal. */
+  requireSampleForAbsence?: boolean;
+  /** The primary sector could not be established. */
+  sectorUnknown?: boolean;
+  /** Cart link/API, add-to-cart, price + order button or payment logos were found. */
+  hardCommerceSignals?: boolean;
 }): CommerceApplicability {
+  if (input.referralPlatform) return { state: "unconfirmed", reason: "referral_platform" };
   if (input.confirmed) return { state: "confirmed" };
+  // The shop pages themselves refused RankFix: whether checkout works is unknowable,
+  // never "absent" and never a weak-signal verdict about the shop.
+  if ((input.refusedRetailPages || 0) >= 2 && (input.commerceHints || input.verifiedSecondaryCommerce)) return { state: "unconfirmed", reason: "sample_refused" };
+  // Unknown sector and no hard store signal: store checks are N.v.t. instead of a pile of
+  // "unconfirmed" items. A JS shell, country picker, verified secondary commerce or an
+  // explicitly requested thin-sample verdict still cannot prove absence.
+  if (input.sectorUnknown && !input.hardCommerceSignals && !input.marketSelector && !input.thinShell && !input.verifiedSecondaryCommerce && !input.requireSampleForAbsence) {
+    return { state: "absent", reason: "no_commerce_evidence" };
+  }
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
   // A primary service identity may also sell real products (e.g. phones at a
@@ -25,17 +45,23 @@ export function commerceApplicability(input: {
   if (input.verifiedSecondaryCommerce) return { state: "unconfirmed", reason: "weak_commerce_signals" };
   if (input.primaryNonCommerceIdentity) return { state: "absent", reason: "service_identity" };
   if (input.commerceHints) return { state: "unconfirmed", reason: "weak_commerce_signals" };
-  if (input.auditedRepresentativePages < 2) return { state: "unconfirmed", reason: "low_coverage" };
+  // 31 Oct (PDF P2): a fully read page (no JS shell, no country picker) without
+  // ANY product, price, cart or shop signal is evidence that this is not a shop;
+  // webshop checks are then N.v.t., also when few other pages could be read.
+  // An explicitly requested thin sample keeps the old, cautious verdict.
+  if (input.auditedRepresentativePages < 2 && input.requireSampleForAbsence) return { state: "unconfirmed", reason: "low_coverage" };
   return { state: "absent", reason: "no_commerce_evidence" };
 }
 
 export const COMMERCE_APPLICABILITY_COPY: Record<string, string> = {
-  service_identity: "Scanbewijs bevestigt een primaire dienstverlenersidentiteit zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn.",
+  service_identity: "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn.",
   no_commerce_evidence: "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing.",
   market_selector: "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling.",
   thin_shell: "De opgehaalde HTML is een dunne JavaScript-shell zonder uitgevoerde rendering. Of hier een webshop is, kan niet betrouwbaar worden vastgesteld.",
   weak_commerce_signals: "Er zijn product- of webshopsignalen gevonden, maar niet alle betaal-, winkelwagen- en retailfuncties zijn onafhankelijk bevestigd. Relevante productcontroles blijven mogelijk; onbevestigde shopfuncties zijn niet automatisch afwezig.",
   low_coverage: "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+  referral_platform: "Dit is een vergelijkings- of offerteplatform: bestellen, betalen en leveren gebeuren bij aangesloten winkels of aanbieders. Een eigen winkelwagen of checkout is daarom geen vereiste; productgegevens, doorverwijzingen en partnerinformatie blijven relevant.",
+  sample_refused: "De product- en categoriepagina's weigerden RankFix (bijvoorbeeld HTTP 403, 405 of 429). De webshop is daarom niet te bevestigen; dit is geen bewijs dat er geen webshop is. RankFix omzeilt deze beveiliging niet.",
 };
 
 // Existing report reason codes, so dashboard and PDF explain the status correctly.
@@ -44,6 +70,8 @@ export const UNCONFIRMED_COMMERCE_REASON_CODE = {
   thin_shell: "needs_js",
   weak_commerce_signals: "weak_evidence",
   low_coverage: "insufficient_pages",
+  sample_refused: "access_refused",
+  referral_platform: "type_uncertain",
 } as const;
 
 // Shop wording ("webshophomepage", "productlinks", OnlineStore advice) is only
@@ -105,7 +133,42 @@ export function confirmedRetailEvidenceForService(input: {
   productDetailSchema: boolean;
   addToCart: boolean;
   productAndPrice: boolean;
+  /**
+   * 31 Oct (Kwik-Fit: tyres with cart and payment logos typed as a garage): the
+   * hard storefront chain on the site's own page: add-to-cart + visible prices with
+   * a currency + its own cart, without subscription pricing. A service business with a real
+   * shop (tyres, parts, phones) is then also a webshop.
+   */
+  storefrontChain?: boolean;
+  /** Hard store signals: cart link/API together with add-to-cart, price + order button or payment logos. */
+  storefrontProven?: boolean;
 }): boolean {
-  return input.representativePurchase ||
-    (input.productDetailSchema && input.addToCart && input.productAndPrice);
+  return input.representativePurchase || Boolean(input.storefrontProven) ||
+    (input.productDetailSchema && input.addToCart && input.productAndPrice) ||
+    Boolean(input.storefrontChain && input.addToCart);
+}
+
+/**
+ * Does a sampled product page carry an OFFER (something for sale), not just a
+ * product description? Product schema with only a name is published by software
+ * vendors and manufacturers too (live QA scan 2627bab0: 12 security-software pages,
+ * none with price, stock or cart). An offer is price + currency, a stock status,
+ * a visible price, or a buy/add-to-cart action.
+ */
+export function hasProductOffer(evidence: { product?: { price?: string | null; currency?: string | null; availability?: string | null } | null; priceSignals?: number; strongCommerceAction?: boolean } | null | undefined): boolean {
+  if (!evidence) return false;
+  const p = evidence.product;
+  return Boolean((p?.price && p?.currency) || p?.availability || (evidence.priceSignals || 0) > 0 || evidence.strongCommerceAction);
+}
+
+/**
+ * P5 (NS): for a passenger carrier, a sampled page proves a separate webshop
+ * (one such page is enough)
+ * only with a retail purchase chain in its own markup: a purchase action (add to
+ * cart / buy) on a product with its own Product data. An events list (ItemList +
+ * priced links) or a priced service page (OV-fiets with Product schema but no
+ * purchase action) is the transport service itself.
+ */
+export function hasTransportRetailChain(evidence?: { strongCommerceAction?: boolean; productSchema?: boolean; financialOffer?: boolean } | null): boolean {
+  return Boolean(evidence?.strongCommerceAction && evidence?.productSchema && !evidence?.financialOffer);
 }

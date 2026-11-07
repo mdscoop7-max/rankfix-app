@@ -1,0 +1,24 @@
+{
+  "sourceCommitBeforeRepair": "9c728fecaf14a701d9e1ea11dc5c14811633cbf3",
+  "sourceUrl": "https://vdlgroep.com/",
+  "lastResolvedUrl": "https://www.vdlgroep.com/nl",
+  "evidenceKinds": [
+    "real live scan stalled",
+    "real process CPU profile",
+    "offline synthetic route regressions",
+    "offline check of captured public HTML; not a live scan"
+  ],
+  "originalPublicHtmlKeptLocally": "qa-results/runtime-block/vdl-stuck-input.html.gz",
+  "googleDriveQueries": [
+    "20f1effd",
+    "rankfix-testlab-144",
+    "RankFix"
+  ],
+  "googleDriveMatches": 0,
+  "githubIssueMatchesFor20f1effd": 0,
+  "certificateAlreadyPresent": true,
+  "certificateAlias": "OpenAI-nebula-dns",
+  "certificateSha256": "C7:1B:4D:1E:9D:77:75:C5:38:C6:88:AB:10:CE:A9:CE:41:7D:73:12:E8:98:38:F9:D1:5F:F7:32:56:CD:7F:C3",
+  "userExplicitAuthorizationReceived": true,
+  "browserSandboxFix": "explicit write grant for the existing NSS database plus temporary XDG paths and configured proxy; TLS verification enabled"
+}

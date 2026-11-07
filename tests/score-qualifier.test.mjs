@@ -15,7 +15,7 @@ test("headline qualifier: insufficient evidence is never presented as final, in 
 });
 
 test("complete evidence shows no range and no caveat", () => {
-  const q = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete", range: { low: 98, high: 99 } } }, "nl");
+  const q = scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete", range: { low: 98, high: 98 } } }, "nl");
   assert.equal(q.level, "complete");
   assert.doesNotMatch(q.detail, /bereik/);
   assert.equal(q.note, "");
@@ -30,10 +30,14 @@ test("homepage score and site sample are named together", () => {
 
 test("'complete evidence' wording only at 100% coverage", async () => {
   const { scoreQualifier } = await import("../lib/score-qualifier.ts");
-  const at97 = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete" } }, "nl");
-  assert.equal(at97.label, "Definitief");
+  // A report stored before 3.5 as "complete" at 97% coverage is shown as provisional
+  // with its range: "Definitief" next to unconfirmed checks contradicts itself.
+  const at97 = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete", range: { low: 92, high: 99 } } }, "nl");
+  assert.equal(at97.level, "provisional");
+  assert.match(at97.label, /^Voorlopig/);
   assert.match(at97.detail, /bewijsdekking 97%/);
-  assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: volledig bewijs");
+  assert.match(at97.detail, /mogelijk bereik 92–99/);
+  assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: alle toepasselijke controles bevestigd");
 });
 
 test("provisional only because of an ambiguous sector says so, and a one-value range is hidden", async () => {
@@ -60,4 +64,23 @@ test("an unknown primary sector is provisional, never 'Definitief' (field scan 1
   assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90 }).level, "complete");
   // A browser snapshot of a page that did not finish loading is provisional too.
   assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90, renderPartial: true }).level, "provisional");
+});
+
+test("score qualifier uses a valid HTML container around its caution paragraph", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const qualifier = await readFile(new URL("../components/score-qualifier.tsx", import.meta.url), "utf8");
+  const caution = await readFile(new URL("../components/sitewide-issues.tsx", import.meta.url), "utf8");
+
+  // A <p> inside another <p> is auto-corrected by the browser and hydrates differently.
+  assert.match(qualifier, /<div className="rf-score-qualifier"/);
+  assert.doesNotMatch(qualifier, /<p className="rf-score-qualifier"/);
+  assert.match(qualifier, /<ScoreCaution scope=/);
+  assert.match(caution, /<p className="rf-score-caution"/);
+});
+
+test("PDF P6: 'Definitief' only for a rendered scan; a fully confirmed raw-HTML scan says so", () => {
+  const base = { coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } };
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: true } }, "nl").label, "Definitief: alle toepasselijke controles bevestigd");
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: false } }, "nl").label, "Volledig bevestigd in de server-HTML (zonder browserweergave)");
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: false } }, "en").label, "Fully confirmed in the server HTML (no browser rendering)");
 });

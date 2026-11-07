@@ -1,0 +1,247 @@
+{
+  "id": "round-f-service-retail",
+  "description": "Handmatig opgestarte QA-TestLab: diverse dienstverleners, kappers, opticiens en webshops. Verwachte sectorlabels zijn voorstellen en dienen onafhankelijk te worden gecontroleerd.",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "GB",
+      "name": "Rush Hair",
+      "hosts": [
+        "rush.co.uk"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Vision Express",
+      "hosts": [
+        "visionexpress.com"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Boots",
+      "hosts": [
+        "boots.com"
+      ],
+      "group": "pharmacy_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Halfords",
+      "hosts": [
+        "halfords.com"
+      ],
+      "group": "auto_parts_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Peter Mark",
+      "hosts": [
+        "petermark.ie"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Specsavers Ireland",
+      "hosts": [
+        "specsavers.ie"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Woodie's",
+      "hosts": [
+        "woodies.ie"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Irish Rail",
+      "hosts": [
+        "irishrail.ie"
+      ],
+      "group": "railway",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "Jean Louis David Portugal",
+      "hosts": [
+        "jeanlouisdavid.pt"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "Multiópticas Portugal",
+      "hosts": [
+        "multiopticas.pt"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "Continente",
+      "hosts": [
+        "continente.pt"
+      ],
+      "group": "supermarket",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "Zaask",
+      "hosts": [
+        "zaask.pt"
+      ],
+      "group": "service_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "KLIPP Frisör",
+      "hosts": [
+        "klipp.at"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "Hartlauer",
+      "hosts": [
+        "hartlauer.at"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "Wiener Linien",
+      "hosts": [
+        "wienerlinien.at"
+      ],
+      "group": "public_transport",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "XXXLutz",
+      "hosts": [
+        "xxxlutz.at"
+      ],
+      "group": "furniture_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "GIDOR Coiffure",
+      "hosts": [
+        "gidor.ch"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Visilab",
+      "hosts": [
+        "visilab.ch"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Migros",
+      "hosts": [
+        "migros.ch"
+      ],
+      "group": "supermarket",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "AXA Schweiz",
+      "hosts": [
+        "axa.ch"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Cutters",
+      "hosts": [
+        "cutters.se"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Synsam",
+      "hosts": [
+        "synsam.se"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "ICA",
+      "hosts": [
+        "ica.se"
+      ],
+      "group": "supermarket",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "SJ",
+      "hosts": [
+        "sj.se"
+      ],
+      "group": "railway",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

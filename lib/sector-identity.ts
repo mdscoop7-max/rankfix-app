@@ -41,12 +41,32 @@ const ORGANIZATION_SCHEMA_TYPES = new Set([
   ...RETAIL_STORE_SCHEMA_TYPES,
 ]);
 
+// Organization types that are not a typed local entity: plain/umbrella parents.
+const GENERIC_ORGANIZATION_TYPES = new Set([
+  "organization", "corporation", "onlinebusiness", "ngo", "consortium", "cooperative", "fundingscheme",
+  "politicalparty", "workersunion", "researchorganization", "librarysystem", "performinggroup",
+  "sportsteam", "sportsorganization", "airline", "newsmediaorganization", "governmentorganization",
+  "educationalorganization", "collegeoruniversity", "onlinestore",
+]);
+/**
+ * A declared LocalBusiness subtype (Dentist, Restaurant, Store…) or a medical
+ * organization (MedicalOrganization, Hospital) is a typed local entity: it
+ * satisfies "local business schema present" even when it is not the exact
+ * subtype RankFix would recommend.
+ */
+export function hasTypedLocalEntitySchema(schemaTypes: Iterable<string>): boolean {
+  return [...schemaTypes].some((type) => {
+    const t = String(type).toLowerCase();
+    return t === "localbusiness" || t === "hospital" || t === "medicalorganization" || (ORGANIZATION_SCHEMA_TYPES.has(t) && !GENERIC_ORGANIZATION_TYPES.has(t));
+  });
+}
+
 export function hasOrganizationSchema(schemaTypes: Iterable<string>): boolean {
   return [...schemaTypes].some((type) => ORGANIZATION_SCHEMA_TYPES.has(String(type).toLowerCase()));
 }
 
 // Retail self-description in the page identity (title, description, h1, URL).
-const RETAIL_ASSORTMENT = /\b(?:kleding|schoenen|accessoires|accessories|woonaccessoires|mode|fashion|elektronica|home.elektronica|apparaten|witgoed|wasmachines|televisies|laptops|meubels|meubelen|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|speelgoed|producten|products)\b/i;
+const RETAIL_ASSORTMENT = /\b(?:kleding|schoenen|accessoires|accessories|woonaccessoires|mode|fashion|elektronica|home.elektronica|apparaten|witgoed|wasmachines|televisies|laptops|meubels|meubelen|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|speelgoed|boodschappen|supermarkt|supermarch\w*|supermarket|groceries|lebensmittel|producten|products)\b/i;
 // Both word orders: "online bestellen" and "bestel online".
 const ONLINE_SALES = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|bestel(?:len)? (?:direct |eenvoudig |snel )?online|koop (?:direct )?online|webshop|webwinkel|online winkel|shop online|buy online|order online|online store)\b/i;
 // Compounds such as "woonwinkels" or "webwinkel" count; "winkelwagen" does not.

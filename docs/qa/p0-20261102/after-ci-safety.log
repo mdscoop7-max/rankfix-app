@@ -1,0 +1,11 @@
+✔ CI audit and lint failures are blocking and installation uses the lockfile (1.126404ms)
+✔ known critical Next and browser dependency advisories are addressed by pinned versions (0.209475ms)
+✔ lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy (4.290394ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14.266041

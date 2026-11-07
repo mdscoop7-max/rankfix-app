@@ -1,0 +1,25 @@
+{
+  "kind": "browser-regression-with-simulated-scans",
+  "checks": [
+    {
+      "check": "unauthenticated catalog denied",
+      "status": 401
+    },
+    {
+      "check": "real MKB catalog and all sector filters",
+      "sites": 48,
+      "groups": 12,
+      "perGroup": 4
+    },
+    {
+      "check": "client catalog switch 48→144→48",
+      "passed": true
+    },
+    {
+      "check": "selected-group start, completion and JSON export",
+      "simulatedScans": 4,
+      "exportedSites": 48
+    }
+  ],
+  "pageErrors": []
+}

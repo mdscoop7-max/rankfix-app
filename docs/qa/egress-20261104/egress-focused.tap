@@ -1,0 +1,56 @@
+TAP version 13
+# (node:45268) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-egress.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+ok 1 - only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+  ---
+  duration_ms: 0.877027
+  type: 'test'
+  ...
+# Subtest: safe fetch rejects the proxy outage before reporting a website HTTP status
+ok 2 - safe fetch rejects the proxy outage before reporting a website HTTP status
+  ---
+  duration_ms: 25.220406
+  type: 'test'
+  ...
+# Subtest: ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+ok 3 - ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+  ---
+  duration_ms: 1.913822
+  type: 'test'
+  ...
+# Subtest: a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+ok 4 - a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+  ---
+  duration_ms: 1000.925052
+  type: 'test'
+  ...
+# Subtest: the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+ok 5 - the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+  ---
+  duration_ms: 0.746184
+  type: 'test'
+  ...
+# Subtest: real scan route: primary proxy outage never becomes a proven website or broken-link fault
+ok 6 - real scan route: primary proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 517.145032
+  type: 'test'
+  ...
+# Subtest: real scan route: sample proxy outage never becomes a proven website or broken-link fault
+ok 7 - real scan route: sample proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 1706.780558
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3363.487588

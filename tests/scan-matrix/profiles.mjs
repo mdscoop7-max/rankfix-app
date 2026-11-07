@@ -26,6 +26,56 @@ export const PROFILES = [
   { id: "insurer-nl", host: "verzekeraar.test", expect: ["financial_services"], home: { title: "Autoverzekering en zorgverzekering | Verzekeraar", desc: "Vergelijk en sluit direct je verzekering af.", h1: "Verzekeringen", body: "<p>Premie vanaf € 12,50 per maand. Polis direct online.</p>", lds: [org("Verzekeraar", "InsuranceAgency"), site] } },
   // Telecom
   { id: "telecom-nl", host: "telco.test", expect: ["telecom_technology"], home: { title: "Sim only en glasvezel internet | Telco", desc: "Mobiele abonnementen, glasvezel internet en tv. 5G netwerk met dekking in heel Nederland.", h1: "Het netwerk van Nederland", body: "<p>Sim only vanaf € 10 per maand.</p><a href='/shop'>Shop</a> <a href='/shop/telefoons'>Telefoons</a>", lds: [org("Telco"), site] } },
+  // QA #186 (96-site report): generic failure classes behind wrong sectors.
+  { id: "qa186-telecom-bundle-shop", host: "operator.test", expect: ["telecom_technology"], commerce: true,
+    home: { title: "Operator | Internet, TV, mobiel en vaste lijn", desc: "Ontdek onze packs met internet, tv en mobiel. Bestel ook je smartphone.", h1: "Alles voor thuis en onderweg",
+      body: "<div class='product-card'>Smartphone X <span>€ 499,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><div class='product-card'>Smartphone Y <span>€ 299,00</span></div><p><a href='/winkelwagen'>Winkelwagen</a> <a href='/checkout'>Afrekenen</a></p>" } },
+  { id: "qa186-car-maker-fr", host: "marque.test", expect: ["automotive"], notExpect: ["government"],
+    home: { lang: "fr", title: "Marque France | Site officiel", desc: "Bienvenue sur le site officiel Marque : voitures neuves, électriques et hybrides, configurateur et essai.", h1: "La nouvelle gamme électrique", body: "<p>Découvrez nos modèles et réservez un essai chez un concessionnaire.</p>" } },
+  { id: "qa186-academic-hospital-nl", host: "stadmc.test", expect: ["health_wellness"], notExpect: ["education"],
+    home: { title: "Home | Stad MC", desc: "Stad MC: patiëntenzorg, onderzoek en onderwijs van de universiteit voor de regio.", h1: "Welkom bij Stad MC", body: "<p>Afspraak maken, patiënteninformatie, opleidingen en onderzoek.</p>" } },
+  { id: "qa186-news-fr-info", host: "paysinfo.test", expect: ["news_media"], notExpect: ["ecommerce"],
+    home: { lang: "fr", title: "Paysinfo - L'info en continu", desc: "Toute l'actualité en France et dans le monde, à la une.", h1: "À la une", body: "<p>Politique, Monde, Économie, Sport, Culture.</p><div class='product-card'>Mug <span>€ 12,00</span><form action='/cart/add' method='post'><button>Ajouter au panier</button></form></div>" } },
+  { id: "qa186-payments-de-industries", host: "zahlung.test", expect: ["financial_services"], notExpect: ["transport_travel"],
+    home: { lang: "de", title: "Anbieter – Ihr Payment-Partner", desc: "Zahlungsabwicklung für den Handel: Kartenzahlung, Bezahllösungen und Terminals.", h1: "Bezahlen, einfach gemacht",
+      body: "<p><a href='/de/branchen/transport'>Transport</a> <a href='/de/branchen/logistik'>Logistik</a> <a href='/de/kontakt'>Kontakt</a></p>" },
+    files: {
+      "/de/branchen/transport": { body: page({ lang: "de", title: "Payment für Transport & Logistik | Anbieter", desc: "Transport und Logistik: Spedition, Frachttransport und Zahlungen.", h1: "Transport und Logistik" }) },
+      "/de/branchen/logistik": { body: page({ lang: "de", title: "Logistik: Zahlungen für Spedition | Anbieter", desc: "Logistik, Spedition und Güterverkehr mit Kartenzahlung.", h1: "Logistik" }) },
+    } },
+  // QA #186 round 2 (96-site run 23 Oct): commerce is a channel, not the identity, when
+  // the site never calls itself a shop and its own pages name another activity.
+  { id: "qa186b-operator-shop-pages", host: "operator2.test", expect: ["telecom_technology"], commerce: true, secondary: ["ecommerce"],
+    home: { title: "Welkom | Operator", desc: "Alles voor thuis en onderweg.", h1: "Welkom", body: "<div class='product-card'>Toestel A <span>€ 499,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><div class='product-card'>Toestel B <span>€ 299,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><p><a href='/winkelwagen'>Winkelwagen</a> <a href='/checkout'>Afrekenen</a></p><p><a href='/glasvezel'>Glasvezel</a> <a href='/mobiel'>Mobiel</a> <a href='/contact'>Contact</a></p>" },
+    files: {
+      "/glasvezel": { body: page({ title: "Glasvezel internet en tv-abonnementen | Operator", desc: "Snel glasvezel internet met tv en vaste telefonie. Kies je abonnement.", h1: "Glasvezel internet" }) },
+      "/mobiel": { body: page({ title: "Sim only en mobiele abonnementen met 5G | Operator", desc: "Mobiele abonnementen op ons 5G netwerk met dekking in heel het land.", h1: "Mobiel" }) },
+    } },
+  { id: "qa186b-brand-manufacturer-shop", host: "maker.test", expect: ["manufacturing_industrial"], commerce: true, secondary: ["ecommerce"],
+    home: { lang: "en", title: "Maker - United States | Maker", desc: "Learn more about Maker and how we improve everyday life through meaningful innovation.", h1: "Innovation for life", body: "<div class='product-card'>Toestel A <span>€ 499,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><div class='product-card'>Toestel B <span>€ 299,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><p><a href='/winkelwagen'>Winkelwagen</a> <a href='/checkout'>Afrekenen</a></p><p><a href='/support/register-your-product'>Register your product</a> <a href='/support/parts-and-accessories'>Parts</a> <a href='/contact'>Contact</a></p>" },
+    files: {
+      "/support/register-your-product": { body: page({ lang: "en", title: "Product registration | Maker", desc: "To register a new purchase, have the product at hand and log into your account.", h1: "Register your product" }) },
+      "/support/parts-and-accessories": { body: page({ lang: "en", title: "Parts & accessories | Maker", desc: "Replacement parts and accessories for your Maker product.", h1: "Parts & accessories" }) },
+    } },
+  // Negative control: a shop that calls itself a webshop stays e-commerce, even with a registration page.
+  { id: "qa186b-webshop-with-registration", host: "elektroshop.test", expect: ["ecommerce"], commerce: true,
+    home: { title: "Elektronica webshop – online bestellen | ElektroShop", desc: "Laptops, televisies en witgoed online kopen. Gratis verzending.", h1: "Elektronica", body: "<div class='product-card'>Toestel A <span>€ 499,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><div class='product-card'>Toestel B <span>€ 299,00</span><form action='/cart/add' method='post'><button>In winkelwagen</button></form></div><p><a href='/winkelwagen'>Winkelwagen</a> <a href='/checkout'>Afrekenen</a></p><p><a href='/product-registreren'>Product registreren</a></p>" },
+    files: { "/product-registreren": { body: page({ title: "Product registreren | ElektroShop", desc: "Registreer je aankoop voor de garantie van ons huismerk.", h1: "Product registreren" }) } } },
+  // Maintenance pages in the sample are not evidence and are not scored.
+  { id: "qa186b-maintenance-sample", host: "partmaint.test", expect: ["transport_travel"], sampleUnconfirmed: ["/diensten", "/over-ons"],
+    home: { title: "Wegtransport en logistiek | Vervoerder", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a></p>" },
+    files: {
+      "/diensten": { body: "<!doctype html><html><head><title>Our site is currently undergoing maintenance | Vervoerder</title></head><body><p>We are performing maintenance. Back soon.</p></body></html>" },
+      "/over-ons": { body: "<!doctype html><html><head><title>Human Verification</title></head><body><p>Please verify you are a human.</p></body></html>" },
+    } },
+  { id: "qa186b-parallel-reset", host: "burst.test", expect: ["transport_travel"], resetParallelSubpages: true, sampleRecoveredMin: 3, retryPass: { triggered: true },
+    home: { title: "Wegtransport en logistiek | Burst", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
+  // Refuses every sub-page, also one at a time: exactly one extra request, then stop.
+  { id: "qa186b-reset-always", host: "refuseall.test", expect: ["transport_travel"], resetAllSubpages: true, retryPass: { triggered: true, attempted: 1, recovered: 0, stoppedReason: "still_refused" },
+    home: { title: "Wegtransport en logistiek | Refuse", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
+  // Only one page fails: no retry pass (it is not a parallel-connection limit).
+  { id: "qa186b-one-failure", host: "onefail.test", expect: ["transport_travel"], resetOnePath: "/opslag", retryPass: { triggered: false, attempted: 0 },
+    home: { title: "Wegtransport en logistiek | Onefail", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
   // Retail
   { id: "shop-nl", host: "sneakers.test", expect: ["ecommerce"], commerce: true, home: { title: "Sneakers webshop – online bestellen", desc: "Sneakers online kopen. Gratis verzending en retourneren.", h1: "Sneakers", body: "<div class='product-card' data-price='89.99'>Air <span>€ 89,99</span><form action='/cart/add'><button>In winkelwagen</button></form></div><div class='product-card' data-price='99.99'>Run <span>€ 99,99</span><form action='/cart/add'><button>In winkelwagen</button></form></div><a href='/winkelwagen'>Winkelwagen</a> <a href='/product/air'>Air</a> <a href='/product/run'>Run</a> <a href='/verzending'>Verzending</a> <a href='/retour'>Retour</a>", lds: [{ ...org("Sneakers", "OnlineStore") }, site] } },
   { id: "shop-de", host: "moebel.test", expect: ["ecommerce"], commerce: true, home: { lang: "de", title: "Möbel online kaufen | Möbelshop", desc: "Möbel und Wohnaccessoires online bestellen. Kostenloser Versand.", h1: "Möbel", body: "<div class='product-card'>Sofa <span>€ 499,00</span><form action='/warenkorb/add'><button>In den Warenkorb</button></form></div><div class='product-card'>Tisch <span>€ 199,00</span><form action='/cart/add'><button>In den Warenkorb</button></form></div><a href='/warenkorb'>Warenkorb</a> <a href='/product/sofa'>Sofa</a> <a href='/product/tisch'>Tisch</a> <a href='/versand'>Versand</a> <a href='/ruecksendung'>Rücksendung</a>", lds: [org("Möbelshop", "FurnitureStore"), site] } },
@@ -43,7 +93,7 @@ export const PROFILES = [
   // WooCommerce shop: a /product-categorie/ grid (several Product objects, add-to-cart
   // buttons) and a store finder are never the representative product page.
   { id: "woo-category-vs-product", host: "argan.test", expect: ["ecommerce"], commerce: true,
-    sampleTypes: { "/product-categorie/maskers/": ["category"], "/winkels/": ["other", "contact", "service"] }, productSample: /^\/producten\/kleimasker-250-gram\/$/,
+    sampleTypes: { "/product-categorie/maskers/": ["category"], "/winkels/": ["location", "other", "contact", "service"] }, productSample: /^\/producten\/kleimasker-250-gram\/$/,
     home: { title: "Arganolie en natuurlijke verzorging | Argan Winkel", desc: "Natuurlijke huidverzorging online bestellen. Gratis verzending vanaf € 35.", h1: "Natuurlijke verzorging",
       extraHead: "<link rel='stylesheet' href='/wp-content/plugins/woocommerce/assets/css/woocommerce.css'>",
       body: "<p><a href='/product-categorie/maskers/'>Maskers</a> <a href='/winkels/'>Onze winkels</a> <a href='/producten/kleimasker-250-gram/'>Kleimasker 250 gram</a> <a href='/winkelwagen/'>Winkelwagen</a></p><div class='product-card'>Kleimasker <span>€ 13,95</span><button class='add_to_cart_button'>In winkelwagen</button></div>" },
@@ -64,7 +114,7 @@ export const PROFILES = [
   // Shopify theme shop (Intersport-like): collections are categories, store finder and
   // franchise pages are not product ranges, a product page is the product sample.
   { id: "shopify-collections-stores", host: "sportshop.test", expect: ["ecommerce"], commerce: true, tech: { commercePlatform: "Shopify" },
-    sampleTypes: { "/collections/hardloopschoenen": ["category"], "/pages/winkels": ["other", "contact", "service"], "/pages/franchise": ["other", "service", "contact"] }, productSample: /^\/products\/hardloopschoen-x$/,
+    sampleTypes: { "/collections/hardloopschoenen": ["category"], "/pages/winkels": ["location", "other", "contact", "service"], "/pages/franchise": ["other", "service", "contact"] }, productSample: /^\/products\/hardloopschoen-x$/,
     home: { title: "Sportshop – sportkleding en schoenen online", desc: "Sportkleding, hardloopschoenen en outdoor online bestellen. Gratis retour.", h1: "Sportshop", extraHead: "<link rel='stylesheet' href='//__HOST__/cdn/shop/t/12/assets/base.css'><script src='https://cdn.shopify.com/s/files/1/0001/t/1/assets/global.js'></script><script>window.Shopify = window.Shopify || {}; Shopify.theme = {name:'Dawn'};</script>",
       body: "<div class='shopify-section'><a href='/collections/hardloopschoenen'>Hardloopschoenen</a> <a href='/pages/winkels'>Winkels</a> <a href='/pages/franchise'>Franchise</a> <a href='/products/hardloopschoen-x'>Hardloopschoen X</a> <a href='/cart'>Winkelwagen</a></div><div class='product-card'>Hardloopschoen X <span class='price-item price-item--regular'>€129,95</span><button name='add'>In winkelwagen</button></div>" },
     files: {
@@ -126,6 +176,17 @@ export const PROFILES = [
       "/produkty/konto-osobiste": { body: page({ lang: "pl", title: "Konto osobiste za 0 zł – Bank", desc: "Otwórz konto osobiste online w 10 minut.", h1: "Konto osobiste", body: "<p>Prowadzenie konta 0 zł. <a href='/wniosek/konto'>Otwórz konto</a></p>", lds: [{ "@type": ["Product", "FinancialProduct"], name: "Konto osobiste", image: "https://__HOST__/img/konto.png", offers: { "@type": "Offer", price: "0", priceCurrency: "PLN" } }] }) },
       "/produkty/karta-kredytowa": { body: page({ lang: "pl", title: "Karta kredytowa – Bank", desc: "Karta kredytowa z limitem do 50 000 zł.", h1: "Karta kredytowa", body: "<p>RRSO 19,8%. <a href='/wniosek/karta'>Złóż wniosek</a></p>", lds: [{ "@type": "CreditCard", name: "Karta kredytowa", annualPercentageRate: 19.8 }] }) },
     } },
+  // CMS that puts Article schema on every page, homepage included: service pages are not
+  // articles; a dated news item still is (field scan 16-10, FR).
+  { id: "template-article-schema-fr", host: "poste-fr.test", expect: ["transport_travel"], notExpect: ["news_media"],
+    sampleTypes: { "/outils/suivre-vos-envois": ["other", "service"], "/lettre-recommandee-en-ligne": ["other", "service"], "/actualites/nouveaux-tarifs": ["article"] },
+    home: { lang: "fr", title: "Achetez des timbres, envoyez courrier et colis - Poste FR", desc: "Timbres, lettres recommandées, envoi de colis et suivi de vos envois.", h1: "La Poste en ligne",
+      body: "<nav><a href='/outils/suivre-vos-envois'>Suivre un colis</a> <a href='/lettre-recommandee-en-ligne'>Lettre recommandée</a> <a href='/actualites/nouveaux-tarifs'>Actualités</a></nav><p>Envoyer un colis, acheter des timbres, bureau de poste.</p>", lds: [{ "@type": "Article", headline: "Accueil" }, org("Poste FR")] },
+    files: {
+      "/outils/suivre-vos-envois": { body: page({ lang: "fr", title: "Suivre une lettre ou un colis - Poste FR", desc: "Suivez votre envoi avec votre numéro de suivi.", h1: "Suivre un envoi", body: "<form><input name='numero'></form>", lds: [{ "@type": "Article", headline: "Suivre un envoi" }] }) },
+      "/lettre-recommandee-en-ligne": { body: page({ lang: "fr", title: "Envoyez une lettre recommandée en ligne - Poste FR", desc: "Lettre recommandée en ligne, sans vous déplacer.", h1: "Lettre recommandée en ligne", body: "<p>Envoi le jour même.</p>", lds: [{ "@type": "Article", headline: "Lettre recommandée" }] }) },
+      "/actualites/nouveaux-tarifs": { body: page({ lang: "fr", title: "Nouveaux tarifs 2027 - Poste FR", desc: "Les tarifs postaux changent au 1er janvier.", h1: "Nouveaux tarifs", body: "<p>Publié le 10 octobre 2026.</p>", lds: [{ "@type": "NewsArticle", headline: "Nouveaux tarifs", datePublished: "2026-10-10" }] }) },
+    } },
   // A long homepage description is advice without deduction (report text and points agree).
   { id: "long-description-home", host: "langdesc.test", expect: ["professional_services", "unknown", "general_business"], checkStatus: { description: ["pass"] },
     home: { title: "Adviesbureau Noord – advies voor ondernemers", desc: "Wij zijn een adviesbureau voor ondernemers in Noord-Nederland en helpen met financiering, strategie, groei en overname, met een vast team van adviseurs die uw sector kennen en snel schakelen bij elke vraag.", h1: "Advies voor ondernemers", body: "<p>Ons team helpt met strategie en financiering. <a href='/contact'>Contact</a></p>" } },
@@ -166,6 +227,28 @@ export const PROFILES = [
   { id: "news-nl", host: "nieuws.test", expect: ["news_media"], home: { title: "Nieuws – het laatste nieuws uit binnen- en buitenland", desc: "Breaking news, politiek, sport en economie.", h1: "Laatste nieuws", body: "<article><h2>Kabinet presenteert plan</h2><time datetime='2026-10-16'>16 okt</time> door redactie</article>", lds: [org("Nieuws", "NewsMediaOrganization")] } },
   { id: "tourism-nl", host: "visitzeeland.test", expect: ["tourism_recreation"], home: { title: "VVV Zeeland – toeristische informatie", desc: "Bezienswaardigheden, evenementen en overnachten in Zeeland.", h1: "Ontdek Zeeland", body: "<p>Agenda, activiteiten, attracties.</p>" } },
   { id: "school-nl", host: "hogeschool.test", expect: ["education"], home: { title: "Hogeschool Noord – hbo opleidingen", desc: "Bekijk onze opleidingen en meld je aan voor de open dag.", h1: "Hogeschool Noord", body: "<p>Studenten, inschrijven, studiegids.</p>", lds: [org("Hogeschool Noord", "CollegeOrUniversity")] } },
+  // Regression class (QA 2 nov 2026): mission organisations without the word "stichting", with news/stories in
+  // title and description, were read as business services or as a publisher.
+  { id: "conservation-association-nl", host: "natuurvereniging.test", expect: ["nonprofit"], notExpect: ["professional_services", "news_media"], home: { title: "Natuurbescherming in Nederland | Word lid of doneer", desc: "Wij beschermen natuurgebieden en natuurmonumenten. Word lid, steun de natuur of doneer. Lees ook ons nieuws en verhalen.", h1: "Samen beschermen we de natuur", body: "<p>Beheer van natuurgebieden, boswachters en vrijwilligers. Word lid of doneer.</p>", links: [["/lid-worden", "Word lid"], ["/doneren", "Doneren"], ["/nieuws", "Nieuws"]], lds: [org("Natuurvereniging")] } },
+  { id: "relief-organisation-news-nl", host: "hulporg.test", expect: ["nonprofit"], notExpect: ["news_media"], home: { title: "Nieuws en verhalen over noodhulp | Hulporganisatie", desc: "Het laatste nieuws over onze noodhulp en humanitaire projecten. Steun ons, doneer of word vrijwilliger.", h1: "Hulp aan mensen in nood", body: "<p>Nieuws, verhalen, vrijwilligerswerk, doneren.</p>", links: [["/nieuws", "Nieuws"], ["/doneren", "Doneer"], ["/vrijwilliger", "Vrijwilliger worden"]], lds: [org("Hulporganisatie")] } },
+  // Integration 2 Nov: the engine branch types construction/infrastructure groups as
+  // "Bouw & infrastructuur (B2B)" (manufacturing_industrial); both are construction, never unknown.
+  { id: "construction-group-nl", host: "bouwgroep.test", expect: ["home_services", "manufacturing_industrial"], notExpect: ["professional_services", "unknown"], home: { title: "Bouwgroep | Bouw, infra en vastgoedontwikkeling", desc: "Wij realiseren bouwprojecten, wegenbouw en infrastructuur in Nederland en Europa. Utiliteitsbouw, woningbouw en gebiedsontwikkeling.", h1: "Bouwen aan de toekomst", body: "<p>Onze projecten: viaducten, scholen, woningen. Bouwt, ontwikkelt en onderhoudt.</p>", links: [["/projecten", "Projecten"], ["/vacatures", "Werken bij"]], lds: [org("Bouwgroep")] } },
+  { id: "infra-contractor-en", host: "infra.test", expect: ["home_services", "manufacturing_industrial"], notExpect: ["unknown"], home: { lang: "en", title: "Civil engineering and infrastructure contractor", desc: "General contractor delivering infrastructure projects, civil engineering and building construction across Europe.", h1: "Infrastructure that lasts", body: "<p>Projects, design and build, maintenance.</p>", links: [["/projects", "Projects"]], lds: [org("Infra Contractor")] } },
+  // Negative controls: a real publisher with donate/membership wording stays news; a shop with a donate button stays a shop.
+  { id: "newspaper-with-membership-nl", host: "krant.test", expect: ["news_media"], notExpect: ["nonprofit"], home: { title: "Dagblad voor de regio | Nieuws, sport en opinie", desc: "De krant met het laatste nieuws uit de regio. Word lid van onze lezersclub of neem een abonnement.", h1: "Het laatste nieuws", body: "<p>Nieuws, sport, opinie. Abonneren.</p>", links: [["/nieuws", "Nieuws"]], lds: [org("Regiokrant", "NewsMediaOrganization")] } },
+  // Content integrity (QA 2 nov 2026): test product, order button that cannot work, contradicting review claims.
+  { id: "shop-integrity-problems", host: "integriteit.test", path: "/product/testproduct/", expect: ["ecommerce"], page: "product", commerce: true,
+    checkStatus: { test_content: ["warning"], order_button: ["warning"], review_claims: ["warning"] },
+    raw: page({ title: "Testproduct kopen | Winkel", desc: "Testproduct online bestellen voor € 19,95. Op voorraad, morgen in huis.", h1: "Testproduct",
+      body: "<p>Prijs € 19,95</p><p>Op voorraad</p><p><section data-review-entity=\"https://__HOST__/product/testproduct/#product\">Dit product krijgt 3,9 van 5 op basis van 40 reviews.</section></p><a href='#'>In winkelwagen</a><a href='/winkelwagen'>Winkelwagen</a><p>SKU: T-1</p>",
+      lds: [{ "@type": "Product", "@id": "https://__HOST__/product/testproduct/#product", name: "Testproduct", image: "https://__HOST__/p.jpg", sku: "T-1", aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "400" }, offers: { "@type": "Offer", price: "19.95", priceCurrency: "EUR", availability: "https://schema.org/InStock", url: "https://__HOST__/product/testproduct/" } }] }) },
+  { id: "shop-integrity-clean", host: "integriteit-ok.test", path: "/product/leren-tas/", expect: ["ecommerce"], page: "product", commerce: true,
+    absentChecks: ["test_content", "order_button", "review_claims"],
+    raw: productPage("Leren tas", 79) },
+  // Remedies must fit the sector: physiotherapy never gets hairdresser/beauty advice (QA 2 nov 2026).
+  { id: "physio-no-hair-advice", host: "fysio-praktijk.test", expect: ["health_wellness"], notExpect: ["beauty"], noMessage: { schema: /Hairdresser|BeautySalon|kapper|HairSalon/i },
+    home: { title: "Fysiotherapie Centrum | Manuele therapie en sportfysiotherapie", desc: "Fysiotherapeuten voor klachten aan rug, nek en schouder. Maak een afspraak voor behandeling.", h1: "Fysiotherapie in de buurt", body: "<p>Behandeling, manuele therapie, afspraak maken. Vergoed vanuit aanvullende verzekering.</p>", links: [["/afspraak", "Afspraak maken"], ["/behandelingen", "Behandelingen"]] } },
   { id: "charity-nl", host: "goeddoel.test", expect: ["nonprofit"], home: { title: "Stichting Help – goed doel voor kinderen", desc: "Doneer en steun ons werk. ANBI-erkend.", h1: "Stichting Help", body: "<p>Doneren, vrijwilliger worden, missie.</p>", lds: [org("Stichting Help", "NGO")] } },
   { id: "energy-nl", host: "energie.test", expect: ["energy_utilities"], home: { title: "Groene stroom en gas | Energieleverancier Zon", desc: "Energiecontract afsluiten met vaste tarieven. Bereken je kosten.", h1: "Energieleverancier Zon", body: "<p>Tarieven per kWh, terugleveren, meterstand.</p>" } },
   { id: "museum-nl", host: "museum.test", expect: ["events_culture"], home: { title: "Museum Kunst – tentoonstellingen en tickets", desc: "Bekijk de tentoonstellingen en koop tickets online.", h1: "Museum Kunst", body: "<p>Openingstijden, programma, tickets € 15.</p>", lds: [org("Museum", "Museum")] } },
@@ -222,6 +305,12 @@ const EXTRA = [
   { id: "hotel-booking-engine", host: "hotelboek.test", expect: ["hospitality"], notExpect: ["ecommerce"], home: { lang: "en", title: "Grand Hotel – rooms & suites in Vienna", desc: "Book your stay at our 5-star hotel. Best rate guarantee.", h1: "Grand Hotel Vienna", body: "<p>Rooms from €189 per night. Check-in, check-out, guests.</p><form action='/booking/checkout'><button>Book now</button></form><a href='/checkout'>Checkout</a>", lds: [org("Grand Hotel", "Hotel")] } },
   { id: "multilang-hreflang", host: "multi.test", path: "/en/", expect: ["saas_b2b"], page: "homepage", home: { lang: "en", title: "Invoicing software for freelancers | Invo", desc: "Send invoices, track payments and manage expenses. SaaS with integrations. Start a free trial.", h1: "Invoicing software", body: "<p>Features, dashboard, integrations. Book a demo.</p>", extraHead: "<link rel='alternate' hreflang='en' href='https://multi.test/en/'><link rel='alternate' hreflang='nl' href='https://multi.test/nl/'><link rel='alternate' hreflang='x-default' href='https://multi.test/'>", lds: [org("Invo"), { "@type": "SoftwareApplication", name: "Invo" }] } },
   { id: "noindex-page", host: "noindex.test", expect: ["unknown", "general_business", "professional_services"], home: { title: "Bedankt voor je aanvraag | Advies", desc: "Bedankt, we nemen snel contact op.", h1: "Bedankt", body: "<p>Advies.</p>", extraHead: "<meta name='robots' content='noindex,follow'>" } },
+  // Registrar placeholder for a reserved domain: no website, no score (field scan 16-10, NL).
+  { id: "parked-domain-nl", host: "gereserveerd.test", expectHttp: [422], expectCode: "PARKED_DOMAIN", home: { title: "Registrar - Domeinnaam gereserveerd", desc: "", h1: "", body: "<p>Deze domeinnaam is gereserveerd. Oostplein 1, 3000 AA Rotterdam. Email info@registrar.test</p>" } },
+  // A hosting provider that sells domain names is a real website, not a placeholder.
+  { id: "hosting-provider-not-parked", host: "hosting.test", expectHttp: [200], home: { title: "Domeinnaam registreren en webhosting | Hosting NL", desc: "Registreer je domeinnaam, kies webhosting en e-mail. Check of je domein nog vrij is.", h1: "Domeinnaam registreren", body: "<p>Is jouw domeinnaam nog vrij? Zoek en registreer direct. Webhosting vanaf € 2,99 per maand.</p>" } },
+  // A short static page without scripts is complete HTML, not a "thin JavaScript shell".
+  { id: "short-static-no-js", host: "kort.test", expect: ["unknown", "professional_services", "general_business"], checkStatus: { broken_links: ["pass", "warning", "fail"] }, home: { title: "Atelier Kort – meubelmaker", desc: "Maatwerk meubels uit eigen werkplaats.", h1: "Atelier Kort", body: "<p>Maatwerk meubels. <a href='/contact'>Contact</a></p>" } },
   { id: "http-404", host: "dood.test", status: 404, expectHttp: [200, 400, 422, 502], home: { title: "Pagina niet gevonden", desc: "", h1: "404", body: "<p>Niet gevonden</p>" } },
   { id: "http-500", host: "kapot.test", status: 500, expectHttp: [200, 400, 422, 502, 503], home: { title: "Server error", desc: "", h1: "500", body: "" } },
   { id: "bot-challenge", host: "beschermd.test", status: 403, bot: true, expectHttp: [200, 400, 403, 422, 502], home: { lang: "en", title: "Just a moment...", desc: "", h1: "", body: "<p>Checking your browser before accessing. Enable JavaScript and cookies to continue. cf-challenge</p>" } },
@@ -242,6 +331,23 @@ export function installMatrixFetch2() {
     if (p?.redirectTo && u.pathname === "/") return new Response("", { status: 301, headers: { location: p.redirectTo } });
     if (p?.pdf && u.pathname === "/") return new Response("%PDF-1.4 binary", { status: 200, headers: { "content-type": "application/pdf" } });
     if (p?.empty && u.pathname === "/") return new Response("", { status: 200, headers: { "content-type": "text/html" } });
+    // QA #186: a firewall that resets every sub-page request, or only one page.
+    const always = PROFILES.find((x) => x.host === u.host && (x.resetAllSubpages || x.resetOnePath));
+    if (always && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname) && (always.resetAllSubpages || u.pathname === always.resetOnePath)) {
+      always.__subpageRequests = (always.__subpageRequests || 0) + 1;
+      const e = new TypeError("fetch failed"); e.cause = { code: "ECONNRESET", message: "socket hang up" }; throw e;
+    }
+    if (always && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname)) always.__subpageRequests = (always.__subpageRequests || 0) + 1;
+    // QA #186: a firewall that resets parallel connections but serves one at a time.
+    const burst = PROFILES.find((x) => x.host === u.host && x.resetParallelSubpages);
+    if (burst && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname)) {
+      burst.__inFlight = (burst.__inFlight || 0) + 1;
+      try {
+        if (burst.__inFlight > 1) { await new Promise((r) => setTimeout(r, 5)); const e = new TypeError("fetch failed"); e.cause = { code: "ECONNRESET", message: "socket hang up" }; throw e; }
+        await new Promise((r) => setTimeout(r, 10));
+        return await inner(input, init);
+      } finally { burst.__inFlight--; }
+    }
     if (p?.status && u.pathname === "/") {
       const res = await inner(input, init); const body = await res.text();
       return new Response(body, { status: p.status, headers: { "content-type": "text/html", ...(p.bot ? { "set-cookie": "__cf_bm=abc; path=/", "cf-mitigated": "challenge", server: "cloudflare" } : {}) } });

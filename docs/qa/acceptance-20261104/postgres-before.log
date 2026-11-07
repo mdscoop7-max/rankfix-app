@@ -1,0 +1,37 @@
+✖ scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect (3016.443406ms)
+✔ scan persistence on real PostgreSQL: emoji cut by text limits and NUL never fail the save (1369.066794ms)
+✔ scan persistence on real PostgreSQL: schema init never blocks a running save; insert retry stores exactly one row (198.562597ms)
+✔ full chain on real PostgreSQL: free scan, dashboard scan → stored → history → full audit (1076.498406ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5760.445586
+
+✖ failing tests:
+
+test at tests/scan-matrix.test.mjs:80:1
+✖ scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect (3016.443406ms)
+  AssertionError [ERR_ASSERTION]:  - https://missing.test/: category site_blocked (expected site_unavailable)
+   - https://missing.test/: error_code UNVERIFIED_NOT_FOUND (expected HTTP_NOT_FOUND)
+  6 attempts recorded; 2 problems
+  SCAN_MATRIX_RESULT {"total":6,"failed":2}
+  
+  
+  2 !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/rankfix-app/tests/scan-matrix.test.mjs:82:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

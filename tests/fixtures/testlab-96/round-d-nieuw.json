@@ -1,0 +1,247 @@
+{
+  "id": "round-d-nieuw",
+  "description": "Nieuwe gemengde Europese sectoren; labels niet onafhankelijk gevalideerd",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "ES",
+      "name": "BBVA",
+      "hosts": [
+        "bbva.es"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Generali",
+      "hosts": [
+        "generali.it"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "VERBUND",
+      "hosts": [
+        "verbund.com"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Stripe",
+      "hosts": [
+        "stripe.com"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Iberia",
+      "hosts": [
+        "iberia.com"
+      ],
+      "group": "travel",
+      "expected": "travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Esselunga",
+      "hosts": [
+        "esselunga.it"
+      ],
+      "group": "retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "Erste Bank",
+      "hosts": [
+        "sparkasse.at"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "eir",
+      "hosts": [
+        "eir.ie"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Quirónsalud",
+      "hosts": [
+        "quironsalud.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Fiat",
+      "hosts": [
+        "fiat.it"
+      ],
+      "group": "automotive",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "oesterreich.gv.at",
+      "hosts": [
+        "oesterreich.gv.at"
+      ],
+      "group": "government",
+      "expected": "government",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Trinity College Dublin",
+      "hosts": [
+        "tcd.ie"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "MAPFRE",
+      "hosts": [
+        "mapfre.es"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Enel",
+      "hosts": [
+        "enel.it"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "BILLA",
+      "hosts": [
+        "billa.at"
+      ],
+      "group": "retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "AIB",
+      "hosts": [
+        "aib.ie"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Correos",
+      "hosts": [
+        "correos.es"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "TIM",
+      "hosts": [
+        "tim.it"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "AKH Wien",
+      "hosts": [
+        "akhwien.at"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Aer Lingus",
+      "hosts": [
+        "aerlingus.com"
+      ],
+      "group": "travel",
+      "expected": "travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Universidad Complutense",
+      "hosts": [
+        "ucm.es"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Nexi",
+      "hosts": [
+        "nexi.it"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "AT",
+      "name": "UNIQA",
+      "hosts": [
+        "uniqa.at"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IE",
+      "name": "Dunnes Stores",
+      "hosts": [
+        "dunnesstores.com"
+      ],
+      "group": "retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

@@ -140,7 +140,8 @@ test("viewport and zoom are derived from one canonical viewport source",async()=
 });
 
 test("hydrated buttons get axe testing but raw-HTML accessibility stays indicative",async()=>{
- const browser=await source("lib/headless-render.ts");
+ // The axe rule run lives in lib/axe-script.ts (plain script, QA 144).
+ const browser=(await source("lib/headless-render.ts"))+(await source("lib/axe-script.ts"));
  const report=await source("app/dashboard/audit/[id]/report/page.tsx");
  assert.match(browser,/axeCore\.source/);
  assert.match(browser,/domAccessibility/);

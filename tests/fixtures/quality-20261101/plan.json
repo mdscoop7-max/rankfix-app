@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "frozenAt": "2026-11-01T19:00:19.345340+00:00",
+  "fixtureSha256": "cc79340997457ce5dfc95ee97c07b4892ffac4290f9631355688a56743c7163d",
+  "baselineCommit": "1907e2fdf0e7995c20b122240c7ad5c8129b00a9",
+  "candidateCommit": "73ddfb95301bd2a616e9f1ce5300ff7281f73591",
+  "catalogSize": 66,
+  "caseCount": 68,
+  "tuningForbiddenAfterFreeze": true,
+  "independentReviewer": null,
+  "qualityScore": null,
+  "certificationBlockers": [
+    "same_author_synthetic_cases",
+    "no_independent_label_review",
+    "no_live_browser_or_database_report_flow",
+    "one_case_per_catalog_subtype_insufficient_external_generalisation"
+  ],
+  "criteria": {
+    "sector": "exact expected broad engine sector from published catalog mapping; unknown is a separately counted abstention, not a correct explicit identity",
+    "subtype": "exact catalog key, informational due broad legacy aliases; never substituted after measurement",
+    "applicability": "non-retail cases must not receive ecommerce/product/checkout/merchant modules or retail warnings/fails; retail case must receive ecommerce/product/checkout modules",
+    "falsePositives": "each forbidden module or warning/fail on non-retail checks counts one FP; incorrect non-unknown sector counts one sector FP",
+    "falseNegatives": "missing required retail module counts one FN; unknown/wrong explicit sector counts one sector FN",
+    "seoGeoEvidence": "exact title, description, canonical and JSON-LD count; warning/fail evidence must include URL, source and concrete found/details; this is limited evidence integrity, not a full semantic audit",
+    "coverage": "PAGE_SAMPLE only; selected count reconciles outcomes; reported audited count equals actual audited page entries; no full-site claim",
+    "consistency": "classification sector agrees; page type agrees; check status agrees with issue_status and score breakdown; summary counts reconcile; N/A/unknown earn no points"
+  },
+  "acceptance": "No 9/10 certification from synthetic data. Each dimension >=90%, no new baseline regressions, plus external independent evidence, security/browser/data review still required."
+}

@@ -1,0 +1,133 @@
+TAP version 13
+# (node:46849) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/rankfix-egress-before-6b/lib/scan-egress.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/rankfix-egress-before-6b/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+ok 1 - only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+  ---
+  duration_ms: 0.874754
+  type: 'test'
+  ...
+# Subtest: safe fetch rejects the proxy outage before reporting a website HTTP status
+not ok 2 - safe fetch rejects the proxy outage before reporting a website HTTP status
+  ---
+  duration_ms: 23.345417
+  type: 'test'
+  location: '/tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    message: 'SCAN_INFRASTRUCTURE_EGRESS'
+  operator: 'rejects'
+  stack: |-
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async TestContext.<anonymous> (file:///tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:21:2)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+ok 3 - ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+  ---
+  duration_ms: 1.760705
+  type: 'test'
+  ...
+# Subtest: a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+ok 4 - a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+  ---
+  duration_ms: 1003.104646
+  type: 'test'
+  ...
+# Subtest: the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+not ok 5 - the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+  ---
+  duration_ms: 1.209509
+  type: 'test'
+  location: '/tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:37:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'FETCH_FAILED'
+    - 'SCAN_INFRASTRUCTURE_EGRESS'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'SCAN_INFRASTRUCTURE_EGRESS'
+  actual: 'FETCH_FAILED'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:38:50)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: real scan route: primary proxy outage never becomes a proven website or broken-link fault
+not ok 6 - real scan route: primary proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 2250.733481
+  type: 'test'
+  location: '/tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:45:40'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    422 !== 503
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 503
+  actual: 422
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:58:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: real scan route: sample proxy outage never becomes a proven website or broken-link fault
+not ok 7 - real scan route: sample proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 1269.279309
+  type: 'test'
+  location: '/tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:45:40'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'warning'
+    - 'unable_to_confirm'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'unable_to_confirm'
+  actual: 'warning'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/rankfix-egress-before-6b/tests/scan-egress.test.mjs:60:75)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 3
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4676.02026

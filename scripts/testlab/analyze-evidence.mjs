@@ -1,0 +1,89 @@
+#!/usr/bin/env node
+// Read-only analysis of a fresh144 terminal run (QA 30 Oct). No scans.
+// Usage: node scripts/testlab/analyze-evidence.mjs <run-dir> [baseline-export.json] [--out report.md]
+//   <run-dir>: qa-results/fresh144-latest (needs fresh144-evidence-<sha>.json and audits-<sha>/)
+//   baseline: a TestLab browser export (e.g. rankfix-testlab-144-fresh144-871aa20d.json)
+import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { gunzipSync } from "node:zlib";
+import { sectorVerdict } from "./labels.mjs";
+import { auditReportClaims } from "../../lib/report-claim-audit.mjs";
+
+export function analyzeRun({ evidence, audits, baseline }) {
+  const rows = evidence.rows || [];
+  const pct = (n, d) => d ? `${(100 * n / d).toFixed(1)} %` : "—";
+  const ok = rows.filter((r) => r.evidenceState === "available");
+  const verdicts = {}; for (const r of ok) verdicts[r.verdict || "none"] = (verdicts[r.verdict || "none"] || 0) + 1;
+  const failures = {}; for (const r of rows.filter((r) => r.run && r.evidenceState !== "available")) { const k = `${r.failure?.code || r.run.reason || "?"}${r.failure?.httpStatus ? " (HTTP " + r.failure.httpStatus + ")" : ""}`; failures[k] = (failures[k] || 0) + 1; }
+  const base = new Map((baseline?.sites || []).map((s) => [s.host, s]));
+  const changes = [];
+  for (const r of rows) {
+    const b = base.get(r.host)?.result; if (!b) continue;
+    const before = b.status === "succes" ? sectorVerdict(r.expected, { sector: b.sector, key: b.sectorKey, websiteType: b.websiteType }).verdict : `niet_geslaagd:${b.status}`;
+    const after = r.evidenceState === "available" ? r.verdict : `niet_geslaagd:${r.failure?.code || r.run?.status}`;
+    const sectorBefore = b.sector ? `${b.sector}/${b.sectorKey}` : null; const sectorAfter = r.evidence?.sectorProfile ? `${r.evidence.sectorProfile.sector}/${r.evidence.sectorProfile.key}` : null;
+    if (before !== after || sectorBefore !== sectorAfter) changes.push({ host: r.host, expected: r.expected, before, after, sectorBefore, sectorAfter });
+  }
+  const rank = { exact: 3, equivalent: 3, partial: 2, unconfirmed: 1, mismatch: 0 };
+  const better = changes.filter((c) => (rank[c.after] ?? -1) > (rank[c.before] ?? -1));
+  const worse = changes.filter((c) => (rank[c.after] ?? -1) < (rank[c.before] ?? -1));
+  const violations = {};
+  for (const [host, report] of audits) for (const v of auditReportClaims(report)) (violations[v.code] ||= []).push(`${host}: ${v.detail}`);
+  const auditedHosts = new Set(audits.filter(([, report]) => report?.success === true).map(([host]) => host));
+  const missingFullAudits = ok.filter(r => !auditedHosts.has(r.host)).map(r => r.host);
+  const claimAuditComplete = ok.length > 0 && missingFullAudits.length === 0;
+  const sampleH1 = { pass: 0, warning: 0, unconfirmed: 0 };
+  for (const r of ok) for (const p of r.evidence?.sample?.pages || []) for (const c of p.checks || []) if (c.key === "h1") sampleH1[c.status === "PASS" ? "pass" : c.status === "WARNING" ? "warning" : "unconfirmed"]++;
+  const review = ok.filter((r) => r.verdict === "mismatch" || r.verdict === "partial" || r.verdict === "unconfirmed").map((r) => ({ host: r.host, expected: r.expected, verdict: r.verdict, got: `${r.evidence?.sectorProfile?.sector}/${r.evidence?.sectorProfile?.key} ${r.evidence?.sectorProfile?.confidenceScore ?? ""}`, title: r.evidence?.page?.title, description: r.evidence?.page?.description, h1: (r.evidence?.page?.h1s || []).slice(0, 2), nav: (r.evidence?.page?.navigationLabels || []).slice(0, 15), schema: r.evidence?.page?.schemaTypes, evidence: (r.evidence?.sectorProfile?.evidence || []).slice(0, 2) }));
+  const levels = {}; for (const r of ok) { const l = r.evidence?.score?.evidenceLevel || "?"; levels[l] = (levels[l] || 0) + 1; }
+  // 1 Nov: missing data is never silent. A site without a baseline, without a run
+  // or only in the baseline is listed, and the comparison is marked incomplete.
+  const rowHosts = new Set(rows.map((r) => r.host));
+  const noBaseline = baseline ? rows.filter((r) => r.run && !base.has(r.host)).map((r) => r.host) : [];
+  const notTested = rows.filter((r) => !r.run).map((r) => r.host);
+  const baselineOnly = baseline ? [...base.keys()].filter((h) => !rowHosts.has(h)) : [];
+  const noAudit = rows.filter((r) => r.run && r.evidenceState !== "available").map((r) => r.host);
+  const comparisonComplete = Boolean(baseline) && !noBaseline.length && !notTested.length && !baselineOnly.length;
+  return { commit: evidence.commitSha, total: rows.length, success: ok.length, successPct: pct(ok.length, rows.length), verdicts, failures, levels, sampleH1, changes, better, worse, violations, review, noBaseline, notTested, baselineOnly, noAudit, comparisonComplete, hasBaseline: Boolean(baseline), missingFullAudits, claimAuditComplete };
+}
+
+export function toMarkdown(a) {
+  const L = [];
+  L.push(`# fresh144 bewijsanalyse @${String(a.commit).slice(0, 12)}`, "", `Geslaagd: ${a.success}/${a.total} (${a.successPct}) · oordelen: ${JSON.stringify(a.verdicts)} · bewijsniveau: ${JSON.stringify(a.levels)}`, "");
+  L.push(`## Vergelijking met nulmeting`, a.hasBaseline ? `Verbeterd: ${a.better.length} · Verslechterd: ${a.worse.length} · Gewijzigd totaal: ${a.changes.length} · vergelijking ${a.comparisonComplete ? "volledig" : "ONVOLLEDIG (zie hieronder)"}` : "GEEN nulmeting opgegeven: verbeteringen en regressies zijn niet vastgesteld.", "");
+  if (a.noBaseline.length) L.push(`- **zonder nulmeting (niet vergeleken)**: ${a.noBaseline.length} — ${a.noBaseline.slice(0, 20).join(", ")}`);
+  if (a.baselineOnly.length) L.push(`- **alleen in nulmeting (niet opnieuw getest)**: ${a.baselineOnly.length} — ${a.baselineOnly.slice(0, 20).join(", ")}`);
+  if (a.notTested.length) L.push(`- **niet getest in deze run**: ${a.notTested.length} — ${a.notTested.slice(0, 20).join(", ")}`);
+  if (a.noAudit.length) L.push(`- **geen bruikbare audit (telt niet als geslaagd)**: ${a.noAudit.length} — ${a.noAudit.slice(0, 20).join(", ")}`);
+  for (const c of a.worse) L.push(`- **REGRESSIE** ${c.host} (${c.expected}): ${c.before} → ${c.after} · ${c.sectorBefore} → ${c.sectorAfter}`);
+  for (const c of a.better) L.push(`- verbeterd ${c.host} (${c.expected}): ${c.before} → ${c.after} · ${c.sectorBefore} → ${c.sectorAfter}`);
+  L.push("", `## Niet geslaagd`, ...Object.entries(a.failures).map(([k, v]) => `- ${k}: ${v}`));
+  L.push("", `## Claim-audit op volledige rapporten`, `Dekking: ${a.success - a.missingFullAudits.length}/${a.success} succesvolle scans; ${a.claimAuditComplete ? "volledig" : "ONVOLLEDIG"}.`);
+  if (a.missingFullAudits.length) L.push(`- Volledig rapport ontbreekt: ${a.missingFullAudits.join(", ")}`);
+  L.push(...(Object.keys(a.violations).length ? Object.entries(a.violations).map(([k, v]) => `- ${k}: ${v.length} (${v.slice(0, 3).join("; ")})`) : [a.claimAuditComplete ? "- geen overtredingen" : "- Onvoldoende bewijs voor een definitieve claim-audit."]));
+  L.push("", `## H1 op steekproefpagina's`, `pass ${a.sampleH1.pass} · waarschuwing ${a.sampleH1.warning} · niet te bevestigen ${a.sampleH1.unconfirmed}`);
+  L.push("", `## Te beoordelen sectoren (${a.review.length})`);
+  for (const r of a.review) L.push(`- ${r.host} [${r.verdict}] verwacht ${r.expected}, kreeg ${r.got} · titel: ${r.title} · omschrijving: ${(r.description || "").slice(0, 160)} · H1: ${JSON.stringify(r.h1)} · nav: ${JSON.stringify(r.nav)} · schema: ${JSON.stringify(r.schema)}`);
+  return L.join("\n") + "\n";
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const dir = process.argv[2]; if (!dir) { console.error("Gebruik: node scripts/testlab/analyze-evidence.mjs <run-dir> [baseline.json] [--out report.md]"); process.exit(1); }
+  const exports = readdirSync(dir).filter((f) => /^fresh144-evidence-.*\.json$/.test(f));
+  const runFile = join(dir, "fresh144.json");
+  const currentCommit = existsSync(runFile) ? JSON.parse(readFileSync(runFile, "utf8")).currentCommit : null;
+  const evFile = currentCommit ? `fresh144-evidence-${String(currentCommit).slice(0, 12)}.json` : exports.length === 1 ? exports[0] : null;
+  if (currentCommit && !exports.includes(evFile)) { console.error("Bewijsexport ontbreekt voor de actieve commit " + currentCommit); process.exit(1); }
+  if (!currentCommit && exports.length > 1) { console.error("Meerdere bewijsexports: fresh144.json met currentCommit is vereist."); process.exit(1); }
+  if (!evFile) { console.error("Geen fresh144-evidence-*.json in " + dir); process.exit(1); }
+  const evidence = JSON.parse(readFileSync(join(dir, evFile), "utf8"));
+  if (currentCommit && evidence.commitSha !== currentCommit) { console.error("Bewijsexport hoort niet bij de actieve commit."); process.exit(1); }
+  const auditDir = join(dir, `audits-${String(evidence.commitSha).slice(0, 12)}`);
+  const audits = existsSync(auditDir) ? readdirSync(auditDir).filter((f) => f.endsWith(".json.gz")).map((f) => [f.replace(/\.json\.gz$/, ""), JSON.parse(gunzipSync(readFileSync(join(auditDir, f))).toString("utf8"))]).filter(([, r]) => r?.success) : [];
+  const baseArg = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : null;
+  const a = analyzeRun({ evidence, audits, baseline: baseArg ? JSON.parse(readFileSync(baseArg, "utf8")) : null });
+  const md = toMarkdown(a);
+  const outIdx = process.argv.indexOf("--out");
+  if (outIdx > 0) writeFileSync(process.argv[outIdx + 1], md); else process.stdout.write(md);
+}

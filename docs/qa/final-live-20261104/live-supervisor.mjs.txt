@@ -1,0 +1,31 @@
+// QA orchestration only. Every result comes from canonical npm run qa:144.
+// Completed sites are retained solely within this same real run and commit.
+import {spawn} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {readResponseTextLimited} from '/workspace/rankfix-app/lib/safe-fetch.ts';
+const events=[];
+const save=()=>writeFileSync('qa-results/fresh144-latest/supervisor.json',JSON.stringify({events},null,2));
+const event=(data)=>{events.push({at:new Date().toISOString(),...data});save();console.log(JSON.stringify(events.at(-1)));};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+for(let round=1;round<=4;round++){
+ event({round,action:'start canonical live runner'});
+ const child=spawn('npm',['run','qa:144'],{stdio:'inherit',env:{...process.env,LOCALAPPDATA:'/tmp/rankfix-local',RF_QA_PAUSE_MS:'1000'}});
+ const exit=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('exit',(code,signal)=>resolve({code,signal}));});
+ const report=JSON.parse(readFileSync('qa-results/fresh144-latest/fresh144.json','utf8'));
+ event({round,action:'runner finished',...exit,summary:report.summary});
+ const pending=report.results.filter(x=>x.pending);
+ if(report.summary?.remaining===0&&!pending.length){event({action:'all 144 live targets completed'});process.exit(0);}
+ if(!pending.length||pending.some(x=>!['SCAN_INFRASTRUCTURE_EGRESS','SCAN_TIMEOUT'].includes(x.reason))){event({action:'blocked on non-retryable QA/infrastructure issue',pending:pending.map(x=>({host:x.host,reason:x.reason}))});process.exit(1);}
+ if(round===4)break;
+ const deadline=Date.now()+180000;let healthy=0;
+ while(Date.now()<deadline&&healthy<2){
+  let status=null,error=null;
+  try{const r=await fetch('https://example.com/',{signal:AbortSignal.timeout(8000)});status=r.status;const body=await readResponseTextLimited(r,50000,5000);healthy=status===200&&body.includes('Example Domain')?healthy+1:0;}
+  catch(e){error=e.message;healthy=0;}
+  event({action:'external recovery control',status,error,consecutiveHealthy:healthy});
+  if(healthy<2)await sleep(healthy?10000:30000);
+ }
+ if(healthy<2){event({action:'blocked: outbound path did not recover within 180 seconds'});process.exit(1);}
+ event({action:'resume remaining real targets; no replay of completed sites'});
+}
+event({action:'blocked: maximum four bounded resume rounds reached'});process.exit(1);

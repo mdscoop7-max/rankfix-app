@@ -1,0 +1,524 @@
+[
+  {
+    "host": "asr.nl",
+    "requested": "https://asr.nl",
+    "timeUtc": "2026-11-04T21:49:53Z",
+    "dnsAddresses": [
+      "91.216.184.5"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://asr.nl",
+    "bytes": 108050,
+    "sha256": "485443627f746919c9563526d33c00ea863ce8a95ca4549c1e6ece6519e31a89",
+    "title": [
+      "a.s.r. de verzekeringsmaatschappij voor alle verzekeringen | a.s.r."
+    ],
+    "h1": [
+      "Van een uitvaart naar jouw uitvaart"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Verzekeringen - sparen en beleggen - hypotheek - pensioen. We investeren je premie in groene energie, niet in kinderarbeid of de tabaksindustrie.\">"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 6.11
+  },
+  {
+    "host": "rodekruis.nl",
+    "requested": "https://rodekruis.nl",
+    "timeUtc": "2026-11-04T21:49:53Z",
+    "dnsAddresses": [
+      "87.238.163.90"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.rodekruis.nl/",
+    "bytes": 158867,
+    "sha256": "dc37824869163461849c83df7d62fa349de033d9f458b3d397492dc920f57694",
+    "title": [
+      "Het Nederlandse Rode Kruis | Zie je het Rode Kruis, zie je hulp"
+    ],
+    "h1": [
+      "Ook in de toekomst mag niemand in nood er alleen voor staan<!-- notionvc: 860ce848-01cf-4b0f-a24b-9c1d87f485ef -->",
+      "In 5 stappen jouw testament goed geregeld<!-- notionvc: 860ce848-01cf-4b0f-a24b-9c1d87f485ef -->"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Het Rode Kruis staat wereldwijd klaar voor mensen in nood. Bij een natuurramp of conflict helpen we de slachtoffers. Help je mee?\" />",
+      "<meta property=\"og:description\" content=\"Het Rode Kruis staat klaar voor mensen in nood, ver weg \u00e9n dichtbij.\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 64.39
+  },
+  {
+    "host": "hartstichting.nl",
+    "requested": "https://hartstichting.nl",
+    "timeUtc": "2026-11-04T21:49:53Z",
+    "dnsAddresses": [
+      "104.26.5.32"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.hartstichting.nl/",
+    "bytes": 52121,
+    "sha256": "d9a01cdca38f7ce54d0d5a934cefb33fbc2fa8bfd681f16b16f963b31a1167ae",
+    "title": [
+      "Steun hart- en vaatpati&#xEB;nten. Nu en later | Hartstichting"
+    ],
+    "h1": [
+      "Steun de Hartstichting en red levens"
+    ],
+    "metaDescriptions": [
+      "<meta name='description' content='Op dit moment leven er 1,8 miljoen mensen in Nederland met een hart- of vaatziekte. Elke dag sterven 104 mensen aan hart- en vaatziekten en belanden 634 mensen in het ziekenhuis. Als we niet ingrijpen, loopt dit aantal snel op en neemt de druk op de zorg verder toe.'/>",
+      "<meta property='og:description' name=\"og:description\" content='Op dit moment leven er 1,8 miljoen mensen in Nederland met e'/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 1.73
+  },
+  {
+    "host": "zilverenkruis.nl",
+    "requested": "https://zilverenkruis.nl",
+    "timeUtc": "2026-11-04T21:49:53Z",
+    "dnsAddresses": [
+      "145.219.28.21",
+      "2a04:b0c0:13::21"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.zilverenkruis.nl/consumenten",
+    "bytes": 149548,
+    "sha256": "da7171958829823c262cec7fd4703b06a601185c978a59f52b6cde738454d08d",
+    "title": [
+      "Consumenten - Zilveren Kruis"
+    ],
+    "h1": [
+      "\r\n                Check hoe jij iemand mentaal helpt!\r\n            "
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"De verzekeringen van Zilveren Kruis: de grootste collectieve zorgverzekeraar. Vertrouwde service, complete dekking en scherpe tarieven!\">",
+      "<meta name=\"og:description\" content=\"De verzekeringen van Zilveren Kruis: de grootste collectieve zorgverzekeraar. Vertrouwde service, complete dekking en scherpe tarieven!\">"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 3.71
+  },
+  {
+    "host": "welkoop.nl",
+    "requested": "https://welkoop.nl",
+    "timeUtc": "2026-11-04T21:49:54Z",
+    "dnsAddresses": [
+      "185.123.52.199",
+      "2a10:ec6:1:3:185:123:52:199"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.welkoop.nl/",
+    "bytes": 1000000,
+    "sha256": "a21c766bb979ccc6a2c5c4203f71ec4c6b072c97a817eeeeeb5f1cd74f98d3ae",
+    "title": [
+      "Weet wat te doen - Welkoop"
+    ],
+    "h1": [],
+    "metaDescriptions": [
+      "<meta data-react-helmet=\"true\" name=\"og:description\" content=\"Bij Welkoop vind je alles voor tuin en dier. Bestel online of kom langs in \u00e9\u00e9n van onze winkels. \u2714 Breed assortiment \u2714 Deskundig advies \u2714 Handige services\"/>",
+      "<meta data-react-helmet=\"true\" name=\"description\" content=\"Bij Welkoop vind je alles voor tuin en dier. Bestel online of kom langs in \u00e9\u00e9n van onze winkels. \u2714 Breed assortiment \u2714 Deskundig advies \u2714 Handige services\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 7.9
+  },
+  {
+    "host": "feenstra.com",
+    "requested": "https://feenstra.com",
+    "timeUtc": "2026-11-04T21:49:56Z",
+    "dnsAddresses": [
+      "104.20.45.10",
+      "172.66.175.197",
+      "2606:4700:10::6814:2d0a",
+      "2606:4700:10::ac42:afc5"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.feenstra.com/",
+    "bytes": 190708,
+    "sha256": "575b7d98859d8c02dc7cdc7722a2739ee1bda97b19406e1d1a462c6c03986ab8",
+    "title": [
+      "Feenstra. Thuis, daar draait het om."
+    ],
+    "h1": [
+      "\n                    \n                        Thuis, daar draait het om.\n                    \n                "
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"D\u00e9 landelijke expert in installatie en onderhoud van verwarming, koeling, ventilatie, zonne-energie &amp; opslag. Cv-ketel storing? Bel Feenstra: 088 8455 000.\">",
+      "<meta property=\"og:description\" content=\"D\u00e9 landelijke expert in installatie en onderhoud van verwarming, koeling, ventilatie, zonne-energie &amp; opslag. Cv-ketel storing? Bel Feenstra: 088 8455 000.\">"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 7.58
+  },
+  {
+    "host": "treatwell.nl",
+    "requested": "https://treatwell.nl",
+    "timeUtc": "2026-11-04T21:49:59Z",
+    "dnsAddresses": [
+      "65.9.148.111",
+      "65.9.148.56",
+      "65.9.148.88",
+      "65.9.148.98"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.treatwell.nl/",
+    "bytes": 416357,
+    "sha256": "c3bc536045369762c6d07dbc645c6be8bdf6a87067a8cff7956d203a0fd8fa44",
+    "title": [
+      "Afspraak maken bij kapper, massagesalon of nagelstyliste - Treatwell"
+    ],
+    "h1": [
+      "Treatwell"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Treatwell is de slimme manier om je beauty-afspraken te boeken. Vind meer dan 9.000 salons, lees recensies en boek 24/7.\"/>",
+      "<meta property=\"og:description\" content=\"Treatwell is de slimme manier om je beauty-afspraken te boeken. Vind meer dan 9.000 salons, lees recensies en boek 24/7.\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 2.19
+  },
+  {
+    "host": "soaptreatmentstore.com",
+    "requested": "https://soaptreatmentstore.com",
+    "timeUtc": "2026-11-04T21:50:01Z",
+    "dnsAddresses": [
+      "104.21.91.221",
+      "172.67.180.209",
+      "2606:4700:3032::6815:5bdd",
+      "2606:4700:3034::ac43:b4d1"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://atsoap.com/nl",
+    "bytes": 239340,
+    "sha256": "b324998a021d47ddbffd73b39ced10b8013db78a627600d3c1742f077762e2e1",
+    "title": [
+      "Injectables, Facials &amp; Skin Therapy | Best in Beauty | SOAP"
+    ],
+    "h1": [
+      "Best in <span class=\"italic font-secondary tracking-[-0.05em] font-light text-[3.6875rem]/[0.9] tablet:text-[5.5rem]/[0.9] desktop:text-[6.125rem]/[0.9]\">beauty.</span>"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Soap is d\u00e9 go to place voor injectables, skin therapy, beauty en small surgery in Nederland, met de in-house No Trace Face\u00ae methode. Plan je gratis consult.\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 4.59
+  },
+  {
+    "host": "restaurantdekas.com",
+    "requested": "https://restaurantdekas.com",
+    "timeUtc": "2026-11-04T21:50:02Z",
+    "dnsAddresses": [
+      "198.185.159.144",
+      "198.185.159.145",
+      "198.49.23.144",
+      "198.49.23.145"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://restaurantdekas.com",
+    "bytes": 362739,
+    "sha256": "de83fe1685de65abe454d590bddd77c06d9038f93da34776f1a3c6ac63d850b5",
+    "title": [
+      "Restaurant de Kas"
+    ],
+    "h1": [
+      "In de ochtend geoogst, In de middag op het bord"
+    ],
+    "metaDescriptions": [
+      "<meta property=\"og:description\" content=\"PICKED IN THE MORNING, SERVED IN THE AFTERNOON From plant to plate. We\u2019ve been doing it since 2001; it\u2019s in our DNA.  You can\u2019t put a price on the inspiration and freshness of ingredients handpicked from the garden. Working the soil, planting, watering and harvesting: we do them all with pleasure.\"/>",
+      "<meta name=\"description\" content=\"PICKED IN THE MORNING, SERVED IN THE AFTERNOON From plant to plate. We\u2019ve been doing it since 2001; it\u2019s in our DNA.  You can\u2019t put a price on the inspiration and freshness of ingredients handpicked from the garden. Working the soil, planting, watering and harvesting: we do them all with pleasure.\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 0.45
+  },
+  {
+    "host": "klaassenbv.nl",
+    "requested": "https://klaassenbv.nl",
+    "timeUtc": "2026-11-04T21:50:03Z",
+    "dnsAddresses": [
+      "5.61.250.170"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.klaassenbv.nl/",
+    "bytes": 280428,
+    "sha256": "cf3a862c20dc63aad7eb371ca0c24f6779606bcec42b6b28a4064c20ab3f1273",
+    "title": [
+      "Klaassen Horecamakelaars"
+    ],
+    "h1": [
+      "D\u00e9 <strong>onafhankelijke <a href=\"https://www.klaassenbv.nl/diensten/horecamakelaardij/\">horecamakelaar</a></strong> met landelijke dekking"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Klaassen is d\u00e9 onafhankelijke horecamakelaar met een goede landelijke dekking, onze makelaars en bedrijfsadviseurs staan overal voor je klaar.\" />",
+      "<meta property=\"og:description\" content=\"Klaassen is d\u00e9 onafhankelijke horecamakelaar met een goede landelijke dekking, onze makelaars en bedrijfsadviseurs staan overal voor je klaar.\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 2.24
+  },
+  {
+    "host": "sportcity.nl",
+    "requested": "https://sportcity.nl",
+    "timeUtc": "2026-11-04T21:50:04Z",
+    "dnsAddresses": [
+      "76.76.21.21"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.sportcity.nl/",
+    "bytes": 340680,
+    "sha256": "d2da7008eb95b98599673d864226229715a6f6d81d7c3f812f9d2c3f189235cf",
+    "title": [
+      "SportCity | SportCity.nl"
+    ],
+    "h1": [
+      "<span class=\"ResponsiveText-module-scss-module__ILgePG__title\">Welkom in de <span class=\"Highlight-module-scss-module__C9uZZq__highlightedText Highlight-module-scss-module__C9uZZq__yellow\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" fill=\"#F4B52C\" preserveAspectRatio=\"none\" viewBox=\"0 0 224 50\"><path d=\"M188.06 2.679c-50.24-2.88-100.87-1.56-151.1.28-.65.02-1.3.05-1.96.07v44.97c38.74-1.58 77.57-2.18 116.33-1.52 12.25.21 24.5.56 36.73 1.22zm35.83 23.681c-.58-12.93-9.9-21.57-22.5-22.5-4.46-.33-8.92-.923-13.39-1.173v45.007c4.47.24 8.93.846 13.39 1.166 11.77.86 23.02-10.97 22.5-22.5M35.05 3c-4.18.16-8.35.32-12.53.51-11.74.55-23.06 9.96-22.5 22.5.52 11.72 9.91 23.09 22.5 22.5 4.17-.19 8.35-.37 12.53-.54V3\"></path></svg><span class=\"Highlight-module-scss-module__C9uZZq__highlightedTextContent\">City</span></span></span><span class=\"ResponsiveText-module-scss-module__ILgePG__mobileTitle\">Welkom in de <span class=\"Highlight-module-scss-module__C9uZZq__highlightedText Highlight-module-scss-module__C9uZZq__yellow\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" fill=\"#F4B52C\" preserveAspectRatio=\"none\" viewBox=\"0 0 224 50\"><path d=\"M188.06 2.679c-50.24-2.88-100.87-1.56-151.1.28-.65.02-1.3.05-1.96.07v44.97c38.74-1.58 77.57-2.18 116.33-1.52 12.25.21 24.5.56 36.73 1.22zm35.83 23.681c-.58-12.93-9.9-21.57-22.5-22.5-4.46-.33-8.92-.923-13.39-1.173v45.007c4.47.24 8.93.846 13.39 1.166 11.77.86 23.02-10.97 22.5-22.5M35.05 3c-4.18.16-8.35.32-12.53.51-11.74.55-23.06 9.96-22.5 22.5.52 11.72 9.91 23.09 22.5 22.5 4.17-.19 8.35-.37 12.53-.54V3\"></path></svg><span class=\"Highlight-module-scss-module__C9uZZq__highlightedTextContent\">City</span></span></span>",
+      "",
+      ""
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Ontdek zelf wat je beweegt bij SportCity. We zijn een plek voor iedereen, waar je niet hoeft te kiezen. Alle groepslessen zijn bij je lidmaatschap inbegrepen, zonder extra kosten.\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 1.05
+  },
+  {
+    "host": "hutten.eu",
+    "requested": "https://hutten.eu",
+    "timeUtc": "2026-11-04T21:50:05Z",
+    "dnsAddresses": [
+      "185.173.22.78",
+      "2a0b:3100:20::6a"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://www.hutten.eu/",
+    "bytes": 41552,
+    "sha256": "2de11e1220f151f1068eb0245318f53ab9bb1658630411f02ba795d8c0d4404f",
+    "title": [
+      "Hutten - Ambacht en maatwerk sinds 1929 - Catering"
+    ],
+    "h1": [
+      "Hutten"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Op zoek naar een onderscheidende culinaire dienstverlener die uitblinkt met haar duurzame producten en een unieke gastvrije benadering?\" />",
+      "<meta property=\"og:description\" content=\"Op zoek naar een onderscheidende culinaire dienstverlener die uitblinkt met haar duurzame producten en een unieke gastvrije benadering?\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 3.17
+  },
+  {
+    "host": "vermaatgroep.nl",
+    "requested": "https://vermaatgroep.nl",
+    "timeUtc": "2026-11-04T21:50:05Z",
+    "dnsAddresses": [
+      "45.82.189.237"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://vermaatgroep.nl",
+    "bytes": 52955,
+    "sha256": "cf9603b39fe2736b93570dcbd8d76b3bd67f7b9313489f0164231f6f6506056a",
+    "title": [
+      "Welkom in jouw wereld van smaak - Vermaat Groep"
+    ],
+    "h1": [],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Wij zijn Vermaat. Jouw specialist in horeca op maat. Met ons team van culinaire en creatieve professionals werken we elke dag aan unieke oplossingen voor de horeca- en retailmarkt.\"/>",
+      "<meta property=\"og:description\" content=\"Wij zijn Vermaat. Jouw specialist in horeca op maat. Met ons team van culinaire en creatieve professionals werken we elke dag aan unieke oplossingen voor de horeca- en retailmarkt.\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 1.57
+  },
+  {
+    "host": "donkergroep.com",
+    "requested": "https://donkergroep.com",
+    "timeUtc": "2026-11-04T21:50:06Z",
+    "dnsAddresses": [
+      "195.216.246.66"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://donkergroep.com/nl/",
+    "bytes": 93184,
+    "sha256": "9fd183a7f63fbf6f4fa707e5287da6e381399c5863dc40bb00ded2b90344b0e8",
+    "title": [
+      "Donker Groep - Wij verbinden mens en natuur met elkaar"
+    ],
+    "h1": [
+      "Donker Groep"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"We willen mens en natuur opnieuw met elkaar verbinden door als partner van de natuur een inspirerende gezonde leefomgeving te cre\u00ebren, zowel buiten als binnen, die bijdraagt aan herstel van biodiversiteit en omgang met het veranderende klimaat.\" />",
+      "<meta property=\"og:description\" content=\"We willen mens en natuur opnieuw met elkaar verbinden door als partner van de natuur een inspirerende gezonde leefomgeving te cre\u00ebren, zowel buiten als binnen, die bijdraagt aan herstel van biodiversiteit en omgang met het veranderende klimaat.\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 2.02
+  },
+  {
+    "host": "tandartspraktijkdenieuwegracht.nl",
+    "requested": "https://tandartspraktijkdenieuwegracht.nl",
+    "timeUtc": "2026-11-04T21:50:07Z",
+    "dnsError": "[Errno -2] Name or service not known",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>",
+    "elapsedSeconds": 0.08
+  },
+  {
+    "host": "ajloodgieters.nl",
+    "requested": "https://ajloodgieters.nl",
+    "timeUtc": "2026-11-04T21:50:07Z",
+    "dnsError": "[Errno -2] Name or service not known",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>",
+    "elapsedSeconds": 0.07
+  },
+  {
+    "host": "cityspa.nl",
+    "requested": "https://cityspa.nl",
+    "timeUtc": "2026-11-04T21:50:07Z",
+    "dnsAddresses": [
+      "145.131.10.225",
+      "2001:678:76c:3760::30"
+    ],
+    "httpStatus": 503,
+    "finalUrl": "https://cityspa.nl",
+    "bytes": 98,
+    "sha256": "33fbc61ad080ef68dd7a6479f8c53f1bf864dba2930567dbbc4ceb47490a1909",
+    "title": [],
+    "h1": [],
+    "metaDescriptions": [],
+    "infrastructureBody": true,
+    "elapsedSeconds": 3.45
+  },
+  {
+    "host": "thewaxingcompany.nl",
+    "requested": "https://thewaxingcompany.nl",
+    "timeUtc": "2026-11-04T21:50:08Z",
+    "dnsAddresses": [
+      "212.125.139.6",
+      "2a12:5040:2:600:be24:11ff:fe85:e544"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://thewaxingcompany.nl",
+    "bytes": 267690,
+    "sha256": "90bbf8611a1a763378fe47a39ef70722a513d77c173c745b371865acb9bf01c9",
+    "title": [
+      "The Waxing Company - Wij maken je lichaam smooth en sexy!"
+    ],
+    "h1": [
+      "<a href=\"#boeknu\">GET SMOOTH AND SEXY!</a>",
+      "Waarom Waxing?",
+      "WAAROM WAXEN?"
+    ],
+    "metaDescriptions": [],
+    "infrastructureBody": false,
+    "elapsedSeconds": 4.8
+  },
+  {
+    "host": "hoekhoveniers.nl",
+    "requested": "https://hoekhoveniers.nl",
+    "timeUtc": "2026-11-04T21:50:08Z",
+    "dnsAddresses": [
+      "185.238.55.171"
+    ],
+    "httpStatus": 400,
+    "finalUrl": "https://www.hoekhoveniers.nl/",
+    "bytes": 226,
+    "sha256": "a5c402fa795aa7b38c40559c9d1e2904c1e049580e216b292466d6c0634e9ab6",
+    "title": [
+      "400 Bad Request"
+    ],
+    "h1": [
+      "Bad Request"
+    ],
+    "metaDescriptions": [],
+    "infrastructureBody": false,
+    "elapsedSeconds": 3.81
+  },
+  {
+    "host": "akd.eu",
+    "requested": "https://akd.eu",
+    "timeUtc": "2026-11-04T21:50:10Z",
+    "dnsAddresses": [
+      "135.225.14.36"
+    ],
+    "httpStatus": 503,
+    "finalUrl": "https://akd.eu",
+    "bytes": 216,
+    "sha256": "b5b660bc2bb92e97199b4b045f7e21eca39307fa087b8be85bb006cc7d83b34b",
+    "title": [],
+    "h1": [],
+    "metaDescriptions": [],
+    "infrastructureBody": true,
+    "elapsedSeconds": 1.17
+  },
+  {
+    "host": "bbenbdehofnar.nl",
+    "requested": "https://bbenbdehofnar.nl",
+    "timeUtc": "2026-11-04T21:50:11Z",
+    "dnsError": "[Errno -2] Name or service not known",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>",
+    "elapsedSeconds": 0.08
+  },
+  {
+    "host": "cateringgroepnederland.nl",
+    "requested": "https://cateringgroepnederland.nl",
+    "timeUtc": "2026-11-04T21:50:11Z",
+    "dnsAddresses": [
+      "149.210.244.21"
+    ],
+    "httpStatus": 503,
+    "finalUrl": "https://cateringgroepnederland.nl",
+    "bytes": 216,
+    "sha256": "b5b660bc2bb92e97199b4b045f7e21eca39307fa087b8be85bb006cc7d83b34b",
+    "title": [],
+    "h1": [],
+    "metaDescriptions": [],
+    "infrastructureBody": true,
+    "elapsedSeconds": 1.22
+  },
+  {
+    "host": "trainmore.nl",
+    "requested": "https://trainmore.nl",
+    "timeUtc": "2026-11-04T21:50:12Z",
+    "dnsAddresses": [
+      "104.20.24.87",
+      "172.66.153.55",
+      "2606:4700:10::6814:1857",
+      "2606:4700:10::ac42:9937"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://trainmore.com/nl-NL/",
+    "bytes": 455394,
+    "sha256": "f12a821247344f0e9aec0620956c38a377ec912d06ec9dc722b396c310e69c67",
+    "title": [
+      "TrainMore | \u20ac1 korting per workout | Jouw urban gym"
+    ],
+    "h1": [
+      "<div class=\"MuiBox-root mui-1cpua65\"><!--$--><!--/$--></div>"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Zweet, bespaar &amp; verleg je grenzen. Elke workout levert je \u20ac1 korting op. Premium clubs, top fitnessapparatuur en een community met onverslaanbare energie.\"/>",
+      "<meta property=\"og:description\" content=\"Train, bespaar &amp; verleg je grenzen. Elke workout levert je \u20ac1 korting op.\"/>"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 1.31
+  },
+  {
+    "host": "hapjesaanhuis.nl",
+    "requested": "https://hapjesaanhuis.nl",
+    "timeUtc": "2026-11-04T21:50:12Z",
+    "dnsAddresses": [
+      "52.84.199.111",
+      "52.84.199.122",
+      "52.84.199.37",
+      "52.84.199.82"
+    ],
+    "httpStatus": 200,
+    "finalUrl": "https://hapjesaanhuis.nl",
+    "bytes": 48846,
+    "sha256": "4e6da67b1ae0eeb972d9cea84bdc5b80b72173ff5a2d36300d0c2d2593d02421",
+    "title": [
+      "Catering \u2013 Partyservice Buffetten BBQ Tapas High Tea Lunch"
+    ],
+    "h1": [
+      "Catering bestellen bij lokale kwaliteit cateraars in Nederland"
+    ],
+    "metaDescriptions": [
+      "<meta name=\"description\" content=\"Bent u opzoek naar een catering voor Buffetten, BBQ, Tapas, High Tea, Lunch of Hapjes? HapjesAanHuis verzorgt Partyservice met de beste cateraars uit uw regio.\" />",
+      "<meta property=\"og:description\" content=\"Bent u opzoek naar een catering voor Buffetten, BBQ, Tapas, High Tea, Lunch of Hapjes? HapjesAanHuis verzorgt Partyservice met de beste cateraars uit uw regio.\" />"
+    ],
+    "infrastructureBody": false,
+    "elapsedSeconds": 1.88
+  }
+]

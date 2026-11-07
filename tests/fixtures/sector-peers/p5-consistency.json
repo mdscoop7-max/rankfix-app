@@ -1,0 +1,270 @@
+{
+ "group": "p5-consistency",
+ "note": "P5 (1 Nov): eigen identiteit vs redactionele inhoud, boeking als secundaire functie, vervoersdienst vs webshop | veerdienst-shop: sector wordt (al vóór deze wijziging) ecommerce door de webshop-zelfomschrijving; hier alleen gecontroleerd dat de webshop actief blijft",
+ "sites": {
+  "nieuwssite.test": {
+   "lang": "nl",
+   "title": "NieuwsNu - Het laatste nieuws het eerst",
+   "desc": "Het laatste nieuws uit binnen- en buitenland, sport, economie en tech.",
+   "h1": "Winkels in de binnenstad bij jou in de buurt sluiten eerder",
+   "nav": [
+    "Algemeen",
+    "Economie",
+    "Sport",
+    "Tech",
+    "Video"
+   ],
+   "navLinks": [
+    "/algemeen",
+    "/economie",
+    "/sport",
+    "/tech",
+    "/video"
+   ],
+   "body": "<p>Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. Het laatste nieuws uit binnen- en buitenland, sport en economie. </p><article><a href=\"/economie/630451/winkels-moeten-eerder-sluiten.html\">Winkels moeten eerder sluiten door energiecrisis</a></article><article><a href=\"/economie/631451/supermarkt-opent-filialen.html\">Supermarktketen opent tien nieuwe filialen</a></article><article><a href=\"/economie/632451/kapper-in-de-salon.html\">Kappers: klanten komen vaker in de salon</a></article><article><a href=\"/economie/633451/stores.html\">Stores</a></article><article><a href=\"/economie/634451/onze-winkels.html\">Onze winkels</a></article><p>DPG Media, Jacob Bontiusplaats 9, 1018 LL Amsterdam</p>",
+   "head": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"NewsMediaOrganization\",\"name\":\"NieuwsNu\",\"url\":\"https://nieuwssite.test/\"}</script>",
+   "expect": {
+    "sector": "news_media",
+    "notChannel": "service_location",
+    "consistentType": true
+   }
+  },
+  "umc-berlin.test": {
+   "lang": "de",
+   "title": "Universitätsklinikum Berlin – Universitätsmedizin",
+   "desc": "Universitätsklinikum mit Krankenversorgung, Forschung und Lehre. Termin vereinbaren in unseren Kliniken und Ambulanzen.",
+   "h1": "Universitätsmedizin Berlin",
+   "nav": [
+    "Patienten",
+    "Kliniken",
+    "Termin vereinbaren",
+    "Forschung",
+    "Lehre",
+    "Karriere"
+   ],
+   "navLinks": [
+    "/patienten",
+    "/kliniken",
+    "/termin",
+    "/forschung",
+    "/lehre",
+    "/karriere"
+   ],
+   "body": "<p>Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. Unsere Kliniken versorgen jährlich viele Patientinnen und Patienten. Online Termin vereinbaren oder Sprechstunde buchen. </p><a href=\"/termin\">Termin online buchen</a><p>Charitéplatz 1, 10117 Berlin · Tel 030 4505 0</p>",
+   "expect": {
+    "notClassType": "Boekings-/afsprakenwebsite",
+    "consistentType": true
+   }
+  },
+  "hotel-zee.test": {
+   "lang": "nl",
+   "title": "Hotel Aan Zee – Hotel in Scheveningen",
+   "desc": "Hotel aan zee in Scheveningen met 40 kamers. Boek direct uw kamer.",
+   "h1": "Hotel Aan Zee",
+   "nav": [
+    "Kamers",
+    "Reserveren",
+    "Restaurant",
+    "Arrangementen",
+    "Contact"
+   ],
+   "navLinks": [
+    "/kamers",
+    "/reserveren",
+    "/restaurant",
+    "/arrangementen",
+    "/contact"
+   ],
+   "body": "<p>Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. Boek uw kamer direct, reserveer online met de beste prijs garantie. </p><a href=\"/reserveren\">Kamer reserveren</a><p>Strandweg 1, Den Haag · Tel 070 123 4567 · Receptie 24 uur geopend</p>",
+   "expect": {
+    "consistentType": true
+   }
+  },
+  "spoorvervoer.test": {
+   "lang": "nl",
+   "title": "Spoorwegen Nederland – Reisplanner, kaartjes en OV-fiets",
+   "desc": "Plan je reis met de trein, koop kaartjes en abonnementen en huur een OV-fiets op het station.",
+   "h1": "Reizen met de trein",
+   "nav": [
+    "Reisplanner",
+    "Kaartjes",
+    "Abonnementen",
+    "OV-fiets",
+    "Dagje uit",
+    "Klantenservice"
+   ],
+   "navLinks": [
+    "/reisplanner",
+    "/kaartjes",
+    "/abonnementen",
+    "/producten/deur-tot-deur/ov-fiets",
+    "/dagje-uit/evenementen/lichtfestivals",
+    "/klantenservice"
+   ],
+   "body": "<p>Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. Plan je treinreis, check vertrektijden en koop een e-ticket voor de trein. </p>",
+   "pages": {
+    "/producten/deur-tot-deur/ov-fiets": {
+     "title": "OV-fiets huren | Spoorwegen",
+     "h1": "OV-fiets",
+     "body": "<p>Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. Huur een OV-fiets op het station voor 4,75 euro per 24 uur. </p><script type=\"application/ld+json\">[{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\",\"mainEntity\":[{\"@type\":\"Question\",\"name\":\"Wat kost een OV-fiets?\",\"acceptedAnswer\":{\"@type\":\"Answer\",\"text\":\"4,75 euro per 24 uur.\"}}]},{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"OV-fiets\",\"offers\":{\"@type\":\"Offer\",\"price\":\"4.75\",\"priceCurrency\":\"EUR\"}}]</script><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/ov-fiets-dag\">ov-fiets-dag</a><span class=\"price\">€ 4,75</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/ov-e-bike\">ov-e-bike</a><span class=\"price\">€ 9,50</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/abonnement-fiets\">abonnement-fiets</a><span class=\"price\">€ 3,00</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/groepsfiets\">groepsfiets</a><span class=\"price\">€ 15,00</span></div><div class=\"product\"><a href=\"/producten/deur-tot-deur/ov-fiets/extra-dag\">extra-dag</a><span class=\"price\">€ 4,75</span></div>"
+    },
+    "/dagje-uit/evenementen/lichtfestivals": {
+     "title": "Lichtfestivals met de trein | Spoorwegen",
+     "h1": "Lichtfestivals",
+     "body": "<p>Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. Ga met de trein naar een lichtfestival en profiteer van korting op je treinkaartje. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"ItemList\",\"itemListElement\":[{\"@type\":\"ListItem\",\"position\":1,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/a\"},{\"@type\":\"ListItem\",\"position\":2,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/b\"},{\"@type\":\"ListItem\",\"position\":3,\"url\":\"https://spoorvervoer.test/dagje-uit/evenementen/c\"}]}</script><div class=\"product\"><a href=\"/producten/dagje-uit/glow-eindhoven\">glow-eindhoven</a><span class=\"price\">€ 12,50</span></div><div class=\"product\"><a href=\"/producten/dagje-uit/amsterdam-light\">amsterdam-light</a><span class=\"price\">€ 19,00</span></div><div class=\"product\"><a href=\"/producten/dagje-uit/lichtjesroute\">lichtjesroute</a><span class=\"price\">€ 9,00</span></div>"
+    },
+    "/kaartjes": {
+     "title": "Kaartjes kopen | Spoorwegen",
+     "h1": "Treinkaartjes kopen",
+     "body": "<p>Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. Koop een enkele reis of dagkaart voor de trein. </p><span class=\"price\">€ 12,40</span><a href=\"/kaartjes/kopen\">Kaartje kopen</a>"
+    }
+   },
+   "expect": {
+    "sector": "transport_travel",
+    "notShopUnconfirmed": true,
+    "commerceNot": "unconfirmed"
+   }
+  },
+  "microdata-bureau.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Adviesbureau Veld – Advies voor gemeenten",
+   "desc": "Adviesbureau voor ruimtelijke ordening en omgevingsrecht voor gemeenten.",
+   "h1": "Adviesbureau Veld",
+   "body": "<div itemscope itemtype=\"https://schema.org/Organization\"><span itemprop=\"name\">Adviesbureau Veld</span><a itemprop=\"url\" href=\"https://microdata-bureau.test/\">site</a></div><p>Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. Wij adviseren gemeenten over ruimtelijke ordening en het omgevingsplan. </p>",
+   "expect": {
+    "microdataType": "Organization",
+    "noAbsenceClaim": true,
+    "orgStatus": "warning"
+   }
+  },
+  "rdfa-stichting.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Stichting Groen – Natuur in de stad",
+   "desc": "Stichting voor meer natuur in de stad. Doneer of word vrijwilliger.",
+   "h1": "Stichting Groen",
+   "body": "<div vocab=\"https://schema.org/\" typeof=\"Organization\"><span property=\"name\">Stichting Groen</span></div><div typeof=\"WebSite\"><span property=\"name\">Stichting Groen</span></div><p>Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. Wij leggen tuinen aan in de stad samen met vrijwilligers. </p>",
+   "expect": {
+    "rdfaType": "WebSite",
+    "noAbsenceClaim": true,
+    "orgStatus": "pass"
+   }
+  },
+  "zonder-schema.test": {
+   "lang": "nl",
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Contact"
+   ],
+   "navLinks": [
+    "/diensten",
+    "/over-ons",
+    "/contact"
+   ],
+   "title": "Bureau Zonder – Vertaalbureau",
+   "desc": "Vertaalbureau voor juridische en technische vertalingen.",
+   "h1": "Vertaalbureau Zonder",
+   "body": "<p>Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. Wij vertalen juridische en technische documenten in twaalf talen. </p>",
+   "expect": {
+    "schemaStatus": "warning",
+    "orgStatus": "warning",
+    "orgDeductedOnce": true
+   }
+  },
+  "spoorshop.test": {
+   "lang": "nl",
+   "title": "Spoorlijn Oost – Reisplanner, kaartjes en de Spoorshop",
+   "desc": "Plan je reis, koop treinkaartjes en bestel modeltreinen en merchandise in de Spoorshop.",
+   "h1": "Reizen met Spoorlijn Oost",
+   "nav": [
+    "Reisplanner",
+    "Kaartjes",
+    "Spoorshop",
+    "Modeltrein",
+    "Mok",
+    "Winkelwagen"
+   ],
+   "navLinks": [
+    "/reisplanner",
+    "/kaartjes",
+    "/shop",
+    "/shop/modeltrein",
+    "/shop/mok",
+    "/winkelwagen"
+   ],
+   "body": "<p>Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. Plan je treinreis en koop een e-ticket. In de Spoorshop bestel je modeltreinen en merchandise. </p>",
+   "pages": {
+    "/shop/modeltrein": {
+     "title": "Modeltrein Koploper | Spoorwegen Shop",
+     "h1": "Modeltrein Koploper",
+     "body": "<p>Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Modeltrein Koploper\",\"sku\":\"SKU-89.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"89.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 89.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "/shop/mok": {
+     "title": "Mok Spoorlijn Oost | Spoorwegen Shop",
+     "h1": "Mok Spoorlijn Oost",
+     "body": "<p>Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Mok Spoorlijn Oost\",\"sku\":\"SKU-12.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"12.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 12.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    }
+   },
+   "expect": {
+    "sector": "transport_travel",
+    "commerceNot": "absent"
+   }
+  },
+  "veerdienst-shop.test": {
+   "lang": "nl",
+   "title": "Veerdienst Wadden – Overtocht boeken en souvenirs",
+   "desc": "Boek je overtocht met de veerboot naar de Wadden. Souvenirs bestel je in onze webshop.",
+   "h1": "Veerdienst Wadden",
+   "nav": [
+    "Overtocht boeken",
+    "Dienstregeling",
+    "Souvenir 1",
+    "Souvenir 2",
+    "Klantenservice"
+   ],
+   "navLinks": [
+    "/boeken",
+    "/dienstregeling",
+    "/shop/modeltrein",
+    "/shop/mok",
+    "/klantenservice"
+   ],
+   "body": "<p>Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. Boek je overtocht met de veerboot naar de Wadden en bekijk de dienstregeling. </p>",
+   "pages": {
+    "/shop/modeltrein": {
+     "title": "Modeltrein Koploper | Spoorwegen Shop",
+     "h1": "Modeltrein Koploper",
+     "body": "<p>Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. Bestel Modeltrein Koploper in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Modeltrein Koploper\",\"sku\":\"SKU-89.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"89.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 89.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    },
+    "/shop/mok": {
+     "title": "Mok Spoorlijn Oost | Spoorwegen Shop",
+     "h1": "Mok Spoorlijn Oost",
+     "body": "<p>Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. Bestel Mok Spoorlijn Oost in onze webshop. </p><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Mok Spoorlijn Oost\",\"sku\":\"SKU-12.95\",\"offers\":{\"@type\":\"Offer\",\"price\":\"12.95\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><span class=\"price\">€ 12.95</span><button class=\"add-to-cart\">In winkelwagen</button><a href=\"/winkelwagen\">Winkelwagen</a>"
+    }
+   },
+   "expect": {
+    "commerceNot": "absent"
+   }
+  }
+ }
+}

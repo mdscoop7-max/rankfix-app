@@ -1,0 +1,1421 @@
+
+> rankfix-app@0.1.0 test
+> node --experimental-strip-types --test tests/*.test.mjs
+
+(node:14584) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/access-diagnostics.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 5xx challenge pages are recognised by their body; real errors and headers alone are not (1.349236ms)
+(node:14591) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/alternate-start.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ alternate start: same-host content pages only, no legal/account/cart/assets (2.164643ms)
+✔ evidence analysis: counts, before/after with regressions, failures and sample H1 (2.281214ms)
+✔ 1 Nov (security 4): a missing baseline, run or audit is listed and never counts as passed (0.421743ms)
+(node:14605) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ full coverage preserves a verified high score (1.534781ms)
+✔ unknown coverage changes the provisional range, not the fixed core score (0.189069ms)
+✔ N/A checks do not reduce evidence coverage (0.366582ms)
+✔ proven critical failure remains stronger than coverage cap (0.116082ms)
+✔ a site score built from a thin page sample is never definitive (0.416116ms)
+✔ CI evidence: only every required app-bound check, completed and successful on this exact SHA, is ok (2.286102ms)
+✔ policy: only server-enforced, app-bound, non-bypassable checks support an automatic merge (7.502109ms)
+✔ policy reads: 404/403/429/5xx are distinguished and never lower the bar (1.497866ms)
+✔ recorded policy (F7): every item valid with an app_id, or the whole request is rejected (0.446491ms)
+(node:14612) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/fix-engine.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tryAutoMerge: proven green CI under a server-enforced, non-bypassable policy merges (9.137447ms)
+✔ tryAutoMerge (F1): wrong producer, unbound or unreadable policy, bypass or weakened rules → no merge (6.518003ms)
+✔ tryAutoMerge (P0): missing, failing, incomplete or unreadable CI evidence → no merge (2.512667ms)
+✔ CI evidence (F2, 31 Oct): same-named runs in one suite count only with GitHub's latest-attempt proof (0.402896ms)
+✔ tryAutoMerge (F2, 31 Oct): different jobs with one name never merge; a proven re-run does (3.536742ms)
+✔ tryAutoMerge (F3): the complete evaluation runs twice, right before the merge (0.948844ms)
+✔ tryAutoMerge (F3): any change or new blocker between evaluation and merge → no merge (17.339131ms)
+✔ tryAutoMerge (F4): the approved content must be exactly the file at the immutable head commit (1.684943ms)
+✔ fix route (F4): the stored head SHA is the commit RankFix wrote, verified at that exact SHA (0.657523ms)
+✔ recovery actions: resume only for stops new evidence can resolve; cancel only unmerged tasks (0.168219ms)
+✔ legacy evidence is recovered only from the approved content at the PR's immutable head (0.964326ms)
+✔ after the wait limit the real cause is kept and shown, with the missing checks (1.713906ms)
+✔ each stop category stays distinguishable: CI missing, evidence unreadable, policy, GitHub refused (2.219724ms)
+✔ while waiting during execution the customer sees why (0.718082ms)
+✔ policy floor: a requirement, its enforcement or 'strict' can never silently disappear (0.427522ms)
+✔ server protection: an unreadable or incomplete ruleset is never skipped (2.256989ms)
+✔ resume after a blocked policy keeps the stricter requirements (Astra scenario) (1.225523ms)
+✔ a cancel, a revoked consent or a parallel merge during the evaluation prevents the merge (3.04186ms)
+✔ the claim is held during the merge request and released only on a definitive answer (2.502443ms)
+✔ advanceFix: after AUTHORIZATION_CHANGED nothing is written from the stale copy; a merge clears the claim (1.990435ms)
+(node:14624) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/autofix-merge-gate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ AutoFix blocks missing (2.402294ms)
+✔ AutoFix blocks failed (0.407663ms)
+✔ AutoFix blocks skipped (0.319773ms)
+✔ AutoFix blocks neutral (0.27008ms)
+✔ AutoFix blocks pending (0.434072ms)
+✔ AutoFix blocks stale (0.240326ms)
+✔ AutoFix blocks unreadable (0.201398ms)
+✔ AutoFix blocks undefinedRequirements (0.190211ms)
+✔ AutoFix blocks incomplete (0.437718ms)
+✔ AutoFix blocks wrongApp (0.347304ms)
+✔ AutoFix blocks bypass (0.159786ms)
+✔ AutoFix blocks headChanged (0.462444ms)
+✔ AutoFix blocks contentChanged (0.182399ms)
+✔ AutoFix merges only enforced successful required checks on two stable reads with SHA precondition (0.46645ms)
+(node:14631) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/browser-diagnostics.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ browser failures retain the URL, resource, browser code and only supported causes (1.457175ms)
+✔ www redirects and HTTPS upgrades are distinguishable from another page, query or site (0.325882ms)
+✔ diagnostics bound storage but keep complete counts; snapshots cannot grow during browser close (0.62861ms)
+✔ a later empty window or request failures cannot erase five valid JSON-LD blocks (0.694017ms)
+✔ real renderer records redirects, failures, scanner aborts and navigation timeout (80.616371ms)
+(node:14642) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/business-model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ business model is evidence first, sector default is labelled as such (5.030011ms)
+(node:14649) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-catalog.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ catalog evaluation set remains frozen, covers all sectors and excludes development hosts (4.079786ms)
+(node:14656) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-catalog.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ round-two holdout is hash-bound and has no reused development identities (3.844286ms)
+(node:14663) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/render-strategy.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ one scan uses one browser result even when several quality gates request it (0.908023ms)
+✔ failed rendering is not relaunched by later fallback gates (0.467762ms)
+✔ representative JS pages render even with substantive SSR HTML for runtime evidence (0.207497ms)
+✔ capacity limits and missing Chrome become stable report messages (0.567119ms)
+✔ scan route reuses a single primary and representative render attempt (8.459265ms)
+✔ rendering: blocked images/fonts do not use up the request cap; slow pages are snapshotted; retry gets equal time (3.800042ms)
+(node:14674) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/safe-fetch.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ meta charset is honoured when the header has none (windows-1250, Czech) (32.730351ms)
+✔ http-equiv content-type charset (ISO-8859-1, Portuguese) (0.508322ms)
+✔ unknown meta label falls back safely (0.211082ms)
+✔ CI audit and lint failures are blocking and installation uses the lockfile (1.085145ms)
+✔ known critical Next and browser dependency advisories are addressed by pinned versions (0.273094ms)
+✔ lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy (4.296145ms)
+(node:14689) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/cms-signatures.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ CMS is recognised from the generator meta tag, whatever the vendor (2.354034ms)
+✔ plugin and theme builders in the generator tag are not reported as the CMS (0.176962ms)
+✔ unique asset paths identify platforms without a generator tag (0.17606ms)
+✔ x-generator / x-powered-by response headers count as evidence (0.247847ms)
+✔ brand words in body text do not create a CMS label (negative controls) (0.825552ms)
+✔ a footer credit only names a vendor when nothing else matched (0.273024ms)
+✔ a very long input is scanned in linear time (26.062955ms)
+(node:14696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-hard-signals.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a cart link plus add-to-cart or payment logos proves a store, in any language (5.652364ms)
+✔ services, payment providers and listings without a cart are not stores (negative controls) (1.278993ms)
+✔ a cart link alone is not enough (0.226866ms)
+✔ hard store evidence activates store checks even for a service identity (hybrid) (0.130964ms)
+✔ unknown sector without hard store signals makes store checks N.v.t., a JS shell stays unconfirmed (0.307155ms)
+(node:14703) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/company-registry-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ matching official number and legal name yields an industry hint, not website fact (1.785732ms)
+✔ company name alone cannot establish registry identity (0.136402ms)
+✔ wrong company name is conflict even with matching registration number (0.174949ms)
+✔ land must be independently known and match (0.125606ms)
+✔ code systems and versions are never silently mixed (0.151093ms)
+✔ matching VAT identifies a company without inventing an industry (0.171404ms)
+✔ multiple separate entities with matches require review (0.184162ms)
+✔ absence of licensed registry source does not lower audit scores (0.791191ms)
+(node:14710) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/content-integrity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ test and dummy products are found, real products with similar words are not (1.863758ms)
+✔ order buttons that cannot work are reported, script-driven and sold-out buttons are not (2.34486ms)
+✔ contradicting review claims are reported, consistent ones and other scales are not (0.750791ms)
+✔ industrial product overview is not automatically a retail category (1.645534ms)
+✔ real commerce products overview retains retail category (0.41187ms)
+✔ structured Product evidence remains product, not generic (0.184934ms)
+✔ manufacturer products page does not become commerce through ItemList-free navigation (0.240917ms)
+✔ footer FAQ and Contact navigation must not override the actual page type (0.1824ms)
+✔ opening hours and address in shared footer do not turn services into local business (0.132376ms)
+✔ generic blog category does not become ecommerce category (0.130132ms)
+✔ ItemList without purchase evidence is not ecommerce (0.132005ms)
+✔ ItemList with add-to-cart evidence remains ecommerce category (0.205775ms)
+✔ crawler classifier contains no escaped newline that disables following logic (0.319543ms)
+(node:14724) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/db.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local Windows PostgreSQL does not require SSL under next start (0.765973ms)
+✔ remote production PostgreSQL retains existing SSL configuration (0.621119ms)
+✔ malformed database URLs are not silently interpreted as loopback (0.14857ms)
+(node:14731) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a dimension resting on 5 of 49 weight points is insufficient, although its number is still 100 (1.739955ms)
+✔ full confirmation is complete; N.v.t. checks never count against coverage (0.139767ms)
+✔ the threshold equals the existing 'insufficient' boundary (60%) (0.160989ms)
+✔ only the stable core decides: unconfirmed sector modules do not make a dimension insufficient (0.105586ms)
+✔ nothing confirmed at all is insufficient with 0% coverage and no division by zero (0.116563ms)
+✔ evidenceLevel(): one under-evidenced dimension makes the whole score an indication, with a named reason (0.361515ms)
+✔ evidenceLevel(): without dimension input or with sufficient dimensions nothing changes (0.13538ms)
+(node:14738) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/testlab-score-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ insufficient dimension evidence shows a range marked as indication, never a bare 99 (0.866763ms)
+✔ sufficient evidence and older reports keep the number; the score is never changed (0.208489ms)
+✔ TestLab evidence fields and CSV carry the displayed SEO/GEO value (37.908694ms)
+✔ no customer or QA surface prints a bare SEO/GEO score next to its evidence (2.754696ms)
+(node:14745) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 1. score certainty: one unconfirmed check is never 'Definitief' (1.770981ms)
+✔ 3. bot managers: header-only detection, CDN headers alone are not a bot manager (1.124544ms)
+✔ 4. page types from content in EU languages, URL shape is only a hint (7.285911ms)
+✔ 6. related products nested in a product page do not make it a category (0.834645ms)
+✔ 8. tracking parameters of common EU analytics tools never create a second sample page (0.841025ms)
+✔ 9. evidence provenance per check (0.321386ms)
+✔ 10. example/test contact data is never business evidence (multi-language), real data still is (4.483585ms)
+✔ 7. self-check: final score, product wording, HTTP status and absolute claims stay consistent (1.596753ms)
+✔ engine 3.5 scenarios through the real scan route: all generic failure classes fixed (2375.450278ms)
+✔ 5c. organisation name states the trade: name + hostname, never hostname or audience alone (154.754539ms)
+✔ 3.5.1: a CMS field label in a title is flagged only with brand/section evidence (0.964798ms)
+✔ 3.5.1: test contact data in more EU languages; organisation-name nouns with negative controls (0.535442ms)
+(node:14761) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-attempts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ benchmark gate: synthetic matrix + real EU identities (13269.265415ms)
+✔ benchmark gate: hold-out 1 (64 sites, 20 languages) (2927.900549ms)
+✔ benchmark gate: hold-out 2 (36 sites, incl. bg/sk/sl/et/da/lv/lb) (2930.620323ms)
+✔ benchmark gate: hold-out 3 (33 weak real-world-like homepages, 21 languages) (3614.356855ms)
+✔ EU-81 baseline from issue #151 is reproducible (0.897618ms)
+✔ scorecard never fills in unmeasured criteria (0.516084ms)
+✔ pilot pipeline: a read-only Neon export is matched to the EU-81 plan and measured (2.130202ms)
+✔ pilot 2 plan is blind: 40 real sites, no overlap with EU-81, every family covered (1.238403ms)
+✔ pilot runner output is measurable by the export pipeline (86.225191ms)
+✔ frozen plans stay unchanged; exposed cases are reported apart from blind results (68.687176ms)
+✔ independent set 3 is disjoint from every set and exploratory site seen so far (3.272974ms)
+✔ scorecard v2 is frozen: weights sum to 10, unmeasured criteria block acceptance (1.159887ms)
+✔ pilot runner retries only transient failures, never blocked sites or quota (16.618435ms)
+(node:15049) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ European currencies count as price evidence when paired with an amount (17.356227ms)
+✔ An unqualified kr amount does not guess a particular national currency (0.803709ms)
+✔ Currency labels and unrelated words alone are not proof of a price (0.264401ms)
+✔ Huge digit runs are not mistaken for prices and finish quickly (2.200276ms)
+(node:15056) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ charity: fundraising action + registration or own cause → probable non-profit (121.883364ms)
+✔ no charity without both signals, and never for software, shops or publications (10.366612ms)
+✔ nature-conservation association with membership is a non-profit; a gym with 'lid worden' is not (1.176171ms)
+(node:15074) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ official statistics office and land registry are government, not a consultancy 'bureau' (96.051124ms)
+✔ mentioning a register or statistics office is not being one (56.484075ms)
+✔ semiconductor maker is manufacturing; listed markets in the title are not its sector (2.218584ms)
+✔ EU agency on europa.eu is government, not a consultancy agency; a private agency stays professional (1.769619ms)
+✔ regulators are government; a company named 'authority' without supervision is not (1.84496ms)
+(node:15090) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ energy transition + generation in navigation → probable energy; a consultancy is not (118.78576ms)
+✔ agriculture: farming in own fields + three farming concepts; machinery and farm software excluded (7.979329ms)
+✔ food service from dishes + menu + locations; recipe and grocery sites are not restaurants (3.120388ms)
+✔ sport organisation from sport + competition structure; gyms are not federations (49.924577ms)
+(node:15101) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ real EU homepage 1177.se (SE, sv): identity is health_wellness (112.838569ms)
+✔ real EU homepage airbaltic.com (LV, en): identity is transport_travel (20.145605ms)
+✔ real EU homepage bcr.ro (RO, ro): identity is financial_services (18.918118ms)
+✔ real EU homepage shop.billa.at (AT, de): identity is ecommerce (43.964016ms)
+✔ real EU homepage bpost.be (BE, nl): identity is transport_travel (2.597124ms)
+✔ real EU homepage portal.gov.cz (CZ, cs): identity is government (5.704042ms)
+✔ real EU homepage oebb.at (AT, de): identity is transport_travel (13.096443ms)
+✔ real EU homepage rtl.lu (LU, lb): identity is news_media (8.29074ms)
+✔ real EU homepage rtp.pt (PT, pt): identity is news_media (0.682029ms)
+✔ real EU homepage stvr.sk (SK, sk): identity is news_media (0.840704ms)
+✔ real EU homepage svt.se (SE, sv): identity is news_media (0.262649ms)
+✔ real EU homepage uniba.sk (SK, sk-SK): identity is education (2.958278ms)
+✔ real EU homepage unieuro.it (IT, it): identity is ecommerce (0.65502ms)
+✔ real EU homepage vrt.be (BE, nl): identity is news_media or abstains (22.726745ms)
+✔ weak (navigation-only) identity is medium confidence, never 90+ (27.437596ms)
+✔ negative control: IT electronics shop with financing and gift cards (12.239495ms)
+✔ negative control: DE shop selling travel goods and tickets (0.309028ms)
+✔ negative control: NL corporate page with investor relations (10.003224ms)
+✔ negative control: Hotel with 24h reception (16.949766ms)
+✔ negative control: Italian travel agency selling packages (1.226876ms)
+✔ negative control: ES company with e-mail contact and shipping (0.372161ms)
+✔ negative control: Dutch recipe blog (0.099007ms)
+✔ negative control: German electrician (5.022553ms)
+✔ negative control: Swedish communication agency (0.71598ms)
+✔ negative control: Optician (Optik) is not telecom (2.135551ms)
+✔ negative control: Admin subdomain of a shop is not government (0.221568ms)
+✔ negative control: Blog post about trends with 'trend'/'Zugang' words (0.542212ms)
+✔ positive control (pl): news_media (0.221037ms)
+✔ positive control (hu): news_media (0.118606ms)
+✔ positive control (el): news_media (0.130663ms)
+✔ positive control (fi): news_media (0.080859ms)
+✔ positive control (lt): financial_services (0.215358ms)
+✔ positive control (es): financial_services (0.159386ms)
+✔ positive control (pl): transport_travel (0.313474ms)
+✔ positive control (fr): transport_travel (0.127339ms)
+✔ positive control (de): transport_travel (0.290891ms)
+✔ positive control (fr): government (0.119266ms)
+✔ positive control (pl): government (0.085997ms)
+✔ positive control (it): education (1.638646ms)
+✔ positive control (fi): education (0.231343ms)
+✔ positive control (de): health_wellness (0.153037ms)
+✔ positive control (it): telecom_technology (0.529764ms)
+✔ positive control (pt): energy_utilities (0.744872ms)
+✔ government hostname uses only the label before the TLD (0.160968ms)
+✔ further EU languages: PL airline, FI bank, EE telecom, LV news, LT rail, HU post, DK rail (1.387764ms)
+✔ academic medical centres: care is primary, teaching and research secondary (3.609161ms)
+✔ manufacturers and industrial suppliers are recognised in EU languages, software stays software (4.611485ms)
+✔ multi-activity groups: certainty is capped and the other activities stay visible (0.51334ms)
+✔ component makers that name the systems they build are industrial, without a maker word (field scan 16-10) (4.343158ms)
+✔ carrier sector from own mode label and independent booking/search heading (1.555432ms)
+✔ booking widgets and transport commentary are not sufficient for operator identity (28.312103ms)
+(node:15108) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-feedback.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ reference set: static HTML and WordPress are readable without forcing a browser; Nuxt SSR and React CSR are rendered (1.81788ms)
+✔ canonical and title injected after JS are assessed; if rendering fails absences remain unknown (0.322698ms)
+✔ timed-out render retries once, lowers evidence reliability, and reports the real cause (0.899211ms)
+✔ subscription commerce exists without retail cart or proof of physical products (3.008933ms)
+✔ page typing distinguishes product detail, shop category, news article and other (2.083012ms)
+✔ 66-character title can be narrow in pixels without penalty (28.017524ms)
+✔ incomplete metadata produces no misleading 100 sample score (0.755368ms)
+✔ stable core stays stable when 84% versus 62% evidence coverage comes only from extra checks (0.632446ms)
+✔ a >3 point score change explicitly reports coverage and model changes (0.34411ms)
+✔ selected, fetched, scored, metadata-excluded, noindex and failed reconcile (9.185825ms)
+✔ oversized HTML retains its complete head and an honest partial flag (23.899631ms)
+✔ site-wide PASS requires proof on every audited page, not just the homepage (5.194668ms)
+✔ viewport and zoom are derived from one canonical viewport source (10.482844ms)
+✔ hydrated buttons get axe testing but raw-HTML accessibility stays indicative (1.220997ms)
+✔ limited audits explain a rescan action, render attempt count, typed sample and correct Dutch singular (3.252914ms)
+✔ raw SSR head metadata remains provable after JS navigation, while client-added metadata is retained (5.170111ms)
+✔ extra sector modules never cap the SEO/GEO headline even when severe, while proven core issues still do (0.161529ms)
+✔ rendering: Nuxt/Next hydration wait is bounded and rejected snapshots are visible (2.700366ms)
+✔ support levels: only exact, bounded fixes are AutoFix; others need review or manual work (2.481382ms)
+✔ publication requires the deterministic generator of that exact issue type (0.231342ms)
+✔ standing consent is bound to the repository and branch it was given for (0.275468ms)
+✔ merge safety: merges only a clean, single-file, small, unchanged PR with proven green CI (1.792513ms)
+✔ deployment state prefers production and never treats failure as success (0.407514ms)
+✔ live probe: blocked, challenged or non-HTML responses are never 'reachable' (1.480311ms)
+✔ live check: exact approved text, one description tag; duplicates are never 'applied' (1.827896ms)
+✔ customer stages: a PR alone is never success; PR without consent is a manual action (1.035592ms)
+✔ verification scans: only once live, bounded attempts (0.321786ms)
+✔ advance: GitHub outage keeps the state and records a clear code (no crash, no transition) (1.583102ms)
+✔ advance: a legacy fix without the approved SHA evidence is never merged (0.681329ms)
+✔ advance: missing GitHub connection is reported, not merged (0.507251ms)
+✔ advance: deployment timeout and unreachable page stop safely instead of 'fixed' (0.248718ms)
+✔ status endpoint and routes: database outage is a clear 503, consent is explicit, merges are consent-gated (0.806153ms)
+✔ an unmerged AutoFix remains approvable inside RankFix, without exposing an unsafe universal publish button (0.433011ms)
+✔ assistant refuses malformed preview secret before building Authorization header (0.208008ms)
+✔ assistant can explain a known blocked Fix status even if provider configuration is unavailable (1.010195ms)
+✔ saved website mapping and pending Fix load independently of GitHub repository enumeration (0.238183ms)
+✔ a legacy pending Pull Request cannot consume a freshly approved Fix (0.482804ms)
+✔ assistant Fix action never reloads current Fix route and errors do not reopen overlay (0.220756ms)
+✔ social metadata without verified image evidence is explicitly blocked before creating a PR (0.636602ms)
+✔ a social metadata Fix is visible live only with title, description and a real absolute OG image (0.66224ms)
+✔ newly reintroduced defects cannot be hidden by older confirmed Fix statuses (0.363879ms)
+✔ Fix controls retain selected scan context and the assistant selects only allowed fixes (0.516524ms)
+✔ old reports must not show their historic Fix as currently resolved after a newer regression (0.420072ms)
+✔ Fix and audit states retain legible mobile and desktop presentation (0.551316ms)
+✔ QA: status is shared between desktop and mobile and historical successes cannot mask a quality failure (0.389076ms)
+✔ QA Fixes menu routes mobile and desktop into a usable scan inbox (12.816529ms)
+✔ QA public metadata preview routes missing evidence to secure Fix instead of dead end (0.816669ms)
+(node:15120) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/fix-engine.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ fresh144 terminal runner keeps full evidence, archives earlier runs and does not stop on website blocks (0.819683ms)
+✔ fresh144 resume settles a repeated SCAN_TIMEOUT and continues, retaining database errors as pending (115.822781ms)
+(node:15156) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-feedback.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ reference fixtures: only JS apps require browser evidence; static and CMS HTML remain raw (4.818058ms)
+✔ SSR content does not exempt JS frameworks from hydration (0.172876ms)
+✔ transient timeouts receive exactly one bounded retry; security failures never retry (4.389474ms)
+✔ canonical, title, structured data and form absences are unknown when JS failed (0.323429ms)
+✔ title width in pixels, not length: small width passes and wide width is soft advice (1.554049ms)
+✔ subscription, booking and lead commerce are not conflated with checkout (0.160447ms)
+✔ page type uses product schema, breadcrumbs, article schema and contact paths (11.795009ms)
+✔ score deductions are transparent and unverified checks have no deduction (0.251813ms)
+✔ score differences above three points explain changed evidence, not ranking (0.422475ms)
+✔ a JS page missing canonical has no misleading perfect four-metadata score (0.354285ms)
+✔ 25 selected, 23 scored, one noindex and one fetch error stay accounted for (0.190312ms)
+✔ oversized HTML keeps a complete head without claiming full document coverage (88.803999ms)
+✔ scanner integrates all feedback policies and the report explains limitations (11.29492ms)
+✔ verified TrendMix homepage can preview Organization + WebSite JSON-LD without AI (2.745662ms)
+✔ schema proposal supports missing schema findings and is idempotent (0.575391ms)
+✔ schema fallback fails closed without independently matching brand evidence (1.201077ms)
+(node:15175) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/head-directives.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ robots collects all tags and crawler noindex or none cannot be overridden by index (1.74419ms)
+✔ canonicals collect conflicts but relative duplicate equivalents agree (0.4326ms)
+✔ valid unquoted HTML attributes still carry robots vetoes and canonical conflicts (0.170563ms)
+(node:15182) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ provisional evidence with a real range shows the range as the headline, at any coverage (0.693967ms)
+✔ insufficient evidence shows the range, as before (0.112477ms)
+✔ complete evidence shows the plain score, also when a stored range exists (0.095692ms)
+✔ a range of one value is never shown (nothing is unconfirmed) (0.094169ms)
+✔ an unknown or ambiguous sector alone (all checks confirmed) does not turn the score into a range (0.094169ms)
+✔ the displayed score always lies inside the displayed range (0.29757ms)
+✔ headlineDisplay prefers the stored range and falls back to the score (0.14215ms)
+(node:15189) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/html-head-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Vesteda-type head detects description, canonical, viewport and language independent of attribute order (1.819552ms)
+✔ quoted, unquoted and mixed-case attributes are parsed without rel/href order rules (0.133308ms)
+✔ empty, missing and body-only meta are never treated as proven head metadata (0.325823ms)
+✔ source fallback without a closed head stops at body, not arbitrary rest of document (0.308467ms)
+(node:15196) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-markup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ verified secondary storefront activates relevant modules without changing primary identity (12.69482ms)
+✔ quote/appointment forms and CSS labels never prove checkout (8.487016ms)
+✔ real checkout destinations and cart controls remain recognised across platforms (1.18273ms)
+✔ P5 NS (real audit 7ee6ad5): carrier service pages are not a separate webshop; a purchase chain is (6.905957ms)
+(node:15203) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/industrial-corporate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ industrial group can be identified via its about page and industrial services (7.074877ms)
+✔ news mentioning industry must not establish manufacturing (0.32485ms)
+✔ a generic corporate title without independent evidence abstains (0.285082ms)
+(node:15210) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/legal-lexicon.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ German footer Privatsphäre-Einstellungen proves cookie settings navigation (not legal compliance) (2.551585ms)
+✔ German Impressum and Datenschutz / NL privacy and EN cookie settings distinguish evidence (0.499559ms)
+✔ Generic product context is not a link to legal settings (0.143702ms)
+(node:15217) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/library-versions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ old library versions in script URLs are reported, current ones are not (2.460641ms)
+✔ a library name without a version in the URL is not guessed (0.142601ms)
+(node:15224) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/link-audit-rules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ error-page slugs are recognised in any language, normal pages are not (1.354574ms)
+✔ hidden and honeypot anchors are detected, visible and icon links are not (0.970816ms)
+✔ same anchor text with different targets is reported, generic texts are ignored (0.559278ms)
+✔ time-outs never prove a broken link and a 200 from the page fetch beats a link failure (0.239164ms)
+(node:15231) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ each local trade is recognised from its own trade noun in six languages (330.432089ms)
+✔ products, markets and look-alike words never declare a trade (2.303969ms)
+✔ a side offer of another local trade on a sub-page does not contradict the homepage (3.551584ms)
+✔ subtype refinement ignores market mentions (0.33124ms)
+✔ market mentions are removed before keyword anchoring (90.768446ms)
+✔ sales channel: physical shop, service on location, webshop and both (5.578803ms)
+✔ TestLab: a local retail trade meets the broad retail label, other health keys do not (0.260435ms)
+✔ P5: only a whole navigation label is a store finder; headlines about shops are editorial (1.039858ms)
+✔ P5: booking is the website identity only for booking-primary activities (9.201954ms)
+(node:15238) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-runtime.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local QA server with an inherited VERCEL_ENV=preview reports local, and keeps vercelEnv visible (1.144253ms)
+✔ security unchanged: no token, a bad token, production or a real Vercel deployment are never local QA (0.537194ms)
+✔ access control and the version endpoint share one mode definition; the starter clears inherited Vercel variables (1.752653ms)
+(node:15245) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/login-infrastructure.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Neon quota error is identified by SQLSTATE even with generic text (0.764191ms)
+✔ quota errors wrapped in a cause are detected (0.122311ms)
+✔ network and configuration faults are infrastructure issues (0.341214ms)
+✔ wrong passwords, rate limiting and website errors do not masquerade as database quotas (0.188319ms)
+(node:15252) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/meta-description-fix.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ new text fixture itself satisfies the 120–160 guideline (5.977353ms)
+✔ html: only the description content attribute changes (0.781777ms)
+✔ html: attribute order and quoting variants, special characters escaped (0.454602ms)
+✔ jinja child template: only the description block changes (0.173737ms)
+✔ dynamic and parent-default descriptions are never edited (0.774346ms)
+✔ file whose description differs from the live scan is not edited (0.132897ms)
+✔ two description tags: ambiguous, nothing changes (0.1211ms)
+✔ missing description: one tag is inserted in this file's head (0.17576ms)
+✔ next.js metadata: top-level description only, openGraph untouched (1.139846ms)
+✔ evidence fallback uses only verified text and stays within the guideline (1.58143ms)
+✔ evidence fallback refuses when verified text is too thin (0.348635ms)
+✔ ai json is extracted from fenced or chatty output (0.278151ms)
+✔ normalize strips tags, entities and wrapping quotes (0.111775ms)
+✔ reasoning model: incomplete answer (budget spent on reasoning) is retried, not a 500 (46.920566ms)
+✔ too-short AI text is rejected and retried with feedback (0.640598ms)
+✔ model that rejects the reasoning parameter is retried without it (0.66927ms)
+✔ provider outage with thin evidence returns a clear code instead of throwing (0.682009ms)
+✔ no API key: evidence fallback when possible, never an exception (0.450526ms)
+✔ routes: description proposals and GitHub edits use the shared deterministic path (1.400923ms)
+✔ regression: TrendMix's intentionally short description is fixable even without external AI (1.621629ms)
+✔ source paragraphs with dynamic placeholders never become trusted marketing claims (0.392711ms)
+✔ TrendMix source fallback chooses complete real sentences, not an unfinished clause (0.546338ms)
+✔ transient form and status feedback is never trusted as SEO description copy (0.422936ms)
+✔ QA: old 153-character message must be corrected, not counted as a good description (3.458987ms)
+✔ QA: scan, source, and live-verification enforce the same content quality (9.133121ms)
+✔ QA: a form-notice description can be repaired with only verified source sentences (0.235608ms)
+(node:15260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/metadata-alignment.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ metadata disagreement needs corroboration in both metadata and content fields (1.589843ms)
+(node:15267) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sample-quality.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Nuxt head metadata is unknown without rendering, even when a page has server-side text (1.456766ms)
+✔ an iPhone with Product schema is a product page, even under category URL paths (37.464779ms)
+✔ no rendered JS canonical does not cost sample score points (0.66933ms)
+✔ title length alone is advice and not an unproven search ranking failure (2.141399ms)
+✔ telecom secondary device catalog is unconfirmed commerce, not absent (0.809658ms)
+✔ scanner applies the Nuxt evidence rules and reports actual sample coverage (31.25595ms)
+✔ scan route accepts og:image aliases and compares og:url with canonical (6.30505ms)
+(node:15289) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-page-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ reviews and experiences of the own brand are recognised in several EU languages (8.65092ms)
+✔ review pages about OTHER brands, review blogs and news are not own-review pages (4.041931ms)
+✔ an own-review page does not veto two agreeing pages of a financial provider (178.366045ms)
+✔ the same review wording about ANOTHER brand still counts as a publishing page (2.776518ms)
+✔ real publishing sites keep their publisher votes (1.671563ms)
+✔ P0 cookie isolation: redirect between unrelated co.uk hosts never carries a cookie (27.58017ms)
+✔ P0 AutoFix: route delegates merging to a required-check gate and contains no direct merge endpoint (1.864379ms)
+✔ P0 images: affected elements are a union, not a sum of overlapping errors (2.794866ms)
+✔ P0 commerce: delegated JS handlers are not proven broken; paid sample products are not proven placeholders (2.466389ms)
+✔ P0 identity: customer industries cannot replace a software or consulting identity (5.594759ms)
+✔ P0 images: separate missing and unnamed images still count as two affected elements (0.467873ms)
+✔ P0 reviews: compare only an explicitly linked visible entity and honour schema bestRating (1.526158ms)
+✔ P0 identity: a genuine charity or builder keeps its identity when its description mentions software for clients (0.349748ms)
+(node:15296) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/redirect-cookies.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ P0 independent review scenarios retain safe evidence and no false retail penalties (2290.110323ms)
+(node:15321) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-applicability.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ P5 real NS: no sampled page shows a retail purchase chain, so retail checks are not applicable (0.712564ms)
+✔ P5 real controls: the transport rule does not touch the other four sites (0.767866ms)
+(node:15328) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/page-gate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ page gate catches vendor block/challenge templates, also long ones with cookie banners (8.148106ms)
+✔ page gate catches error and maintenance templates (1.560499ms)
+✔ a recovered render of any of these templates is never accepted as the website (35.523702ms)
+✔ page gate does not reject ordinary pages about these topics or pages that load vendor scripts (10.642589ms)
+✔ recorded real pages of the 96-site run 23-10 morning: only genuine block/error/maintenance pages are rejected (144.973225ms)
+✔ recorded real pages of the 96-site run 23-10 evening: only genuine block/error/maintenance pages are rejected (170.055779ms)
+(node:15335) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/page-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ legal statements are legal whatever the URL or menu (5.429234ms)
+✔ FAQ is support, not contact, even below /contact/ (1.260625ms)
+✔ branch overviews are location pages; recruitment pages are not (3.984796ms)
+✔ price list of a service provider and lessons/training pages are services (0.904599ms)
+✔ a product is never re-typed by a word in its title (0.281206ms)
+✔ lessons, personal training and treatments are services (no purchase action) (4.749257ms)
+✔ a dated news item about new rates stays an article; a price heading never overrides it (0.246225ms)
+(node:15342) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/product-links.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ category archives on WooCommerce, Shopify and in EU languages are never product pages (33.436035ms)
+✔ store finders and franchise pages are not product categories (0.22921ms)
+✔ refined page type: a grid of Products is a category; one Product is a product (1.221327ms)
+✔ press releases, news and events are never products or categories (0.269028ms)
+✔ corporate pages are not categories even with a global Products menu (0.536854ms)
+✔ a bare product base (/producten/, /products) is the shop archive, not a product (0.220716ms)
+✔ an ItemList of articles or topics without prices is not a product category (0.393883ms)
+✔ bank, card and insurance pages are services, never retail products (field scan 16-10) (0.455193ms)
+✔ sample pages read array-valued @type and pass their schema counts into page typing (12.357144ms)
+(node:15353) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/speed-display.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ PageSpeed supports actual 0 and 100, lab metrics and separate field INP (1.393642ms)
+✔ Non-numeric, missing or out-of-range scores never become a fake success (0.206075ms)
+✔ The existing scan requests both devices, even if just one succeeds (60.888936ms)
+✔ Explicit anonymous mode checks both devices without retrying shared quota (0.917237ms)
+✔ Missing key skips network calls and records an environment configuration issue (0.216501ms)
+✔ Lighthouse runtime errors invalidate a score and preserve missing metrics (0.136612ms)
+✔ Both devices retry one transient provider failure within the shared deadline (2.979668ms)
+✔ Provider errors are distinguished without leaking keys or raw error text (2.869887ms)
+✔ Malformed provider errors retain their HTTP diagnostic (0.82446ms)
+✔ Quota retries require a configured key and an explicit short Retry-After (1.791661ms)
+✔ Retries do not reset the scan deadline (0.576083ms)
+✔ Insufficient route budget skips measurements and invalid URLs never reach Google (0.383557ms)
+✔ One timed-out device cannot erase the other device's real score (0.570023ms)
+✔ Invalid successful responses and transport failures cannot become scores (1.149621ms)
+✔ All six interface languages explain failures and saved legacy reports safely (1.748848ms)
+✔ CrUX p75 LCP, CLS and INP are shown separately from lab values and labeled by scope (0.146647ms)
+✔ Insufficient real-user data does not become a fictitious success (0.076583ms)
+✔ Only failed Lighthouse image, script and layout audits produce grounded advice (0.397669ms)
+✔ CrUX origin-only fallback is used honestly and labeled origin (0.10123ms)
+✔ No key means unavailable, without a provider request or SEO score changes (0.405069ms)
+✔ person-name brand phrases are found at either end of the title (85.947234ms)
+✔ a furniture chain named after a person is not a bakery; real bakeries are (243.402648ms)
+(node:15368) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/price.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ missing or empty structured prices are not zero (1.041431ms)
+✔ a real zero price is still supported (0.196621ms)
+✔ valid prices in machine and locale formats (0.305963ms)
+✔ WooCommerce offer with price only in priceSpecification (0.91867ms)
+(node:15375) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/primary-business-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ primary-sector evidence: payment processors are services, not accommodation or retail (66.537605ms)
+✔ primary-sector evidence: hotels require identity, not stray guest/check-in text (0.796298ms)
+✔ primary-sector evidence: generic merchant, checkout and price references are not sector identity (0.186456ms)
+✔ primary-sector evidence: weaker conflicting identity abstains instead of guessing 96% (0.152506ms)
+✔ generic homepage aliases do not create product pages (0.724281ms)
+✔ primary-sector and page classification are wired into RankFix before commerce checks (11.875481ms)
+✔ service vs retail eligibility is capability-based for every sector, not one domain (0.387653ms)
+✔ diagnostics report a product page when the sample audited one, even without Product data (1.789838ms)
+(node:15393) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sample-product-checks.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 'niet op voorraad' is out of stock, not also in stock (was always ambiguous) (19.837693ms)
+✔ stock is read in the product zone; related products and USP bars do not count (0.908465ms)
+✔ a site-wide delivery promise alone is no stock evidence (0.199596ms)
+✔ Dutch stock phrases next to the product are recognised (0.441152ms)
+✔ purchase button state: enabled, disabled, none (0.743029ms)
+✔ Offer InStock + enabled buy button is weak but consistent stock evidence (0.675359ms)
+✔ server-rendered product page without any Product markup is a proven defect (0.253395ms)
+✔ absence is not proven on a JavaScript shell, without buy action, or when microdata may hold it (0.220116ms)
+✔ Product without any Offer on a server-rendered selling page is a proven defect (0.21671ms)
+✔ unconfirmed verdicts name every page with its own concrete reason (2.637242ms)
+✔ Product structured data and Merchant Center basis never contradict each other on the same pages (0.377268ms)
+(node:15400) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/product-nomination.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ product cards on the homepage become product candidates, whatever the URL shape (4.160796ms)
+✔ navigation, legal and support links are never nominated; the limit is respected (0.348856ms)
+✔ the scan route nominates cards only for shops and stays inside the sample budget (6.345659ms)
+(node:15407) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sample-quality.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a ProductGroup with variants is one product, not a grid (5.708247ms)
+✔ one product with price and buy button is a product page, whatever URL or related grid (13.080825ms)
+✔ a category grid is never a single-product zone (0.705404ms)
+✔ a variant product page stays a product page (ProductGroup counted once) (0.271141ms)
+✔ browser cache remains inside the project and downloads are suppressed only for CI/Vercel (1.663161ms)
+(node:15421) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-incident.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ website 403 behind API 422: origin and API status are reported separately (31.065339ms)
+✔ challenge with HTTP 200 keeps origin 200; site 429 is the website, not a RankFix quota (0.3446ms)
+✔ expired RankFix session and infrastructure are never attributed to the website (0.334685ms)
+✔ timeout/DNS: no website status is invented (0.208017ms)
+✔ successful responses only get the trace id (0.754647ms)
+✔ session lookup: database failure is retried and reported as lookupFailed, not as no session (1.258702ms)
+✔ TestLab: a website RankFix failed on is retried on resume, finished ones are kept, no duplicates (0.38498ms)
+✔ TestLab classification follows incident attribution (0.353083ms)
+✔ scan route wires the trace into every error answer and no longer swallows session lookup errors (2.830077ms)
+(node:15429) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/site-access.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ site access: blocked homepage, subpage start → partial; never claims the whole site is accessible (6.250617ms)
+✔ sitewide issues: every proven sample problem listed with URL/check/severity/evidence/fix; raw-HTML absence of everything needs confirmation (7.95526ms)
+✔ score scope: 99 with 4/30 pages is partial with a caution; range is never a statistical interval (0.411849ms)
+✔ product provenance: article number in URL, URL match, name match, single; ambiguous never merged (1.013509ms)
+✔ careers identity: careers site needs a careers name/host AND vacancy wording; a company's careers section is not a careers site (3.205963ms)
+✔ compound bank brand needs brand=title segment=hostname AND two banking products; food bank never (4.46808ms)
+✔ declared industry: supermarket chains in IT/ES/SE; supermarket software is an audience, not a supermarket (466.73485ms)
+✔ broken links: structured records; HTTP 200 challenge page is unconfirmed, not healthy (0.765523ms)
+✔ axe-core run script is plain JavaScript without transpiler helpers and returns the summary (2.138364ms)
+✔ axe-core stays outside the server bundle (bundled axe.source fails in the browser with 't is not defined') (9.912355ms)
+✔ round 2: score caution from 80 and always with an unknown sector (0.301246ms)
+✔ round 2: comparison wording on own product pages is not a publication; a real comparison site still is (6.781182ms)
+✔ round 3: refusal recovery is decided on content; own navigation is counted (one-page anchors included) for the warning (21.507009ms)
+✔ round 4: page counts share one denominator (duplicates and exclusions counted, not hidden) (0.315847ms)
+✔ round 4: per-dimension confirmed checks are shown, unconfirmed checks explained as not scored (4.131332ms)
+✔ round 4: unconfirmed checks never lower a score (scoring rule unchanged) (2.641078ms)
+✔ round 5: title superlative self-description declares the trade; editorial titles never do (2.495702ms)
+✔ round 5: dashboard TestLab uses the CLI comparison (optician meets the broad retail label) (1.682489ms)
+✔ QA-144 problem websites: correct sector now, never a wrong sector at high certainty (4767.00928ms)
+(node:15456) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-page-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ one explicit title declaration + another own page naming the sector family = probable sector (medium) (303.470442ms)
+✔ a single declaration without corroboration, or with a contradicting page, stays unconfirmed (59.674039ms)
+✔ a market page may corroborate the company's own activity, never the market it addresses (3.081509ms)
+✔ market pages alone never decide a sector (software company with industry pages) (1.045988ms)
+✔ subtype: specific identity votes decide the subtype; a generic vote does not overrule them (0.83766ms)
+✔ evidence level: a report on fewer than a quarter of a real sample is only an indication (0.299994ms)
+✔ PageSpeed: a refused page gets an explicit 'not measured' for mobile and desktop, never a value (0.58073ms)
+✔ database retry: only transient errors are repeated; detail never carries a connection string (1.033279ms)
+✔ schema fingerprint: stable for the same SQL, different when the SQL changes (3.452038ms)
+✔ page gate on the two templates that were scored as websites, and on ordinary pages (7.197239ms)
+✔ QA-144 declared industries: own declarations count, products and audiences named after a market do not (624.617077ms)
+✔ QA-144 energy, fitness and retail identities: supplier needs supply wording; gym clothes are products (1.713185ms)
+✔ QA-144 messages and diagnostics: specific fetch messages, classified render failures, refined subtypes (8.339789ms)
+(node:15463) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ press rooms are press relations, not a publication (was: energy group → news) (131.172303ms)
+✔ multilingual false friends never decide a sector (2.039147ms)
+✔ customers, trades served and an organisation's own governing bodies are not its sector (2.401343ms)
+✔ financial groups, bank business lines and insurers that only name their group (79.666659ms)
+✔ B2B payment providers name payment for businesses; shops that accept payment do not (8.479405ms)
+✔ lodging compounds, software vendors, mobile operators, energy producers, government hosts (6.62352ms)
+✔ page evidence: identity pages typed 'other' count; editorial and market sub-pages never vote; clear majorities win (12.026463ms)
+✔ page gate: block, error and maintenance pages are rejected; real content is not (7.14427ms)
+✔ manufacturer evidence needs the fetched page to describe product registration (1.363448ms)
+✔ jsonb-safe serialisation: a cut emoji or NUL never makes a report unsavable (0.717812ms)
+✔ replay of recorded 96-site identities: no wrong sector, and no regression below the measured level (244.720029ms)
+✔ database retry: only errors before the statement reached PostgreSQL are retried (0.57484ms)
+(node:15470) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/website-profile.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ website profile: a confirmed webshop stays a webshop when its branch is unknown (1.591224ms)
+✔ website profile: platform and branch are separate dimensions (27.402352ms)
+✔ website profile: an installed shop plugin without a shop is never a webshop platform (0.168729ms)
+✔ website profile: a webshop without platform traces is 'eigen of onbekend platform', not a guess (0.130122ms)
+✔ industry vertical: product and category pages decide, the homepage only breaks ties (0.35819ms)
+✔ template links: framework bindings and template expressions are not links (1.777139ms)
+✔ transport identity: a case shop is not a passenger carrier; an airline still is (131.855724ms)
+✔ local trades: a brand that fuses the trade noun names the trade; software for the trade does not (165.591187ms)
+✔ render wording: a rendered scan never says it only read the raw HTML (0.684853ms)
+✔ page typing: a grid of priced products is a collection, a product detail stays a product (4.027779ms)
+✔ TestLab verdicts: literal label differences are not counted as sector errors (0.421383ms)
+✔ an unverifiable start-page 404 is a site-side, unscored outcome, never 'page does not exist' (0.550294ms)
+✔ TestLab 144 commerce catalog: 72 webshop targets, 72 other sectors, unique hosts (0.874213ms)
+(node:15477) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/eu-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ academic hospital stays healthcare, even when it also teaches (was: education) (78.974253ms)
+✔ 'site officiel' is brand wording, not government; car makers are automotive (was: government) (101.114682ms)
+✔ payment provider in German is payments; served industries are audience (was: transport_travel) (28.938445ms)
+✔ telecom bundle operator is telecom, electronics shop is not (was: ecommerce) (3.661808ms)
+✔ French news wording and news-named publishers are news (was: ecommerce) (1.738672ms)
+✔ product-making technology groups are industry; software companies are not (1.563863ms)
+✔ more identities recovered from one own source with corroborating concepts (69.094377ms)
+✔ access diagnostics: login, bot protection, generic refusal and challenges are named, never bypassed (22.203561ms)
+✔ TestLab: a target website's 429 or login is a site block and never stops the run as quota (0.460201ms)
+✔ redirect loop with an unchanged cookie jar stops at once; a one-time cookie redirect still works (4.17719ms)
+✔ a thin representative sample is never definitive; 1 of 16 pages is only an indication (0.309488ms)
+✔ self-check records duplicate and contradicting findings (1.322096ms)
+✔ PageSpeed: Speed Index parsed from Google data; mobile and desktop stay independent; no invented scores (3.250259ms)
+(node:15485) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-markup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ purchase controls are found in markup, not only in visible text (1.962053ms)
+✔ product cards give product links whatever the URL shape; cart actions and templates never (6.101567ms)
+✔ prices are counted over the whole page text, not a 12k excerpt (0.293704ms)
+✔ a brand written as a domain is a name, not a trade; a plain trade host stays evidence (228.255856ms)
+✔ a supplier of a trade is not the trade (hair wholesaler is not a hair salon) (0.744351ms)
+✔ retail self-descriptions: compounds and 'retailer' count; shop software and food ordering do not (13.917551ms)
+✔ comparison and quote platforms are recognised from their own words, not as a publication (29.88855ms)
+✔ website profile: a retailer with unconfirmed shop functions is a probable webshop, never a service provider (22.246103ms)
+✔ commerce applicability: refused shop pages and referral platforms are explicit reasons (1.650281ms)
+✔ page typing: a product detail page with a related-products grid stays a product page (0.802567ms)
+(node:15493) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ own self-description is recognised in more European languages (existing sectors only) (397.165957ms)
+✔ negative controls: audiences, agencies, own staff, local builders and banks keep their own identity (75.604557ms)
+✔ visible prices: Swiss francs, round-price notation, Nordic kr by country, non-EU European currencies (19.119668ms)
+✔ FAQ: real questions with fitting answers count; promotional teasers ending in '?' do not (owner decision 25 Oct) (10.189775ms)
+✔ legal links (privacy, cookies, terms) in Nordic, Finnish, Polish and other EU/EEA languages (1.871609ms)
+✔ metadata emitted outside <head> (streaming SSR) is reported as outside head, never as missing (2.181618ms)
+✔ a high technical score is stated separately from an unconfirmed or probable sector (1.683591ms)
+(node:15500) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/real-estate-subtype.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ housing landlord with own rent identity and tenant services is not broker (1.910967ms)
+✔ institutional investor needs explicit own-investor identity and rental support (1.055541ms)
+✔ broker only with sales/agent identity and cannot be inferred from renting (0.144964ms)
+✔ property listing platform is not owner/operator of a rented home (0.12208ms)
+✔ incidental rental investment news articles cannot determine organisation identity (0.119256ms)
+(node:15507) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/redirect-cookies.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ cookies stay host-bound across all domain suffixes, also www and sibling hosts (1.309427ms)
+✔ cookie Path Secure expiry and deletion remain enforced within a host (0.323669ms)
+(node:15514) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/redirect-cookies.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ cookies stay on the exact host; a Domain cookie for a parent domain is withheld (1.123662ms)
+✔ never to another site, also under multi-label public suffixes (co.uk, com.au) (0.429635ms)
+✔ Secure cookies never over HTTP; Path is respected; expired cookies are removed (0.373963ms)
+✔ safePublicFetch uses the jar (no last-two-labels shortcut left) (3.778189ms)
+(node:15521) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-feedback.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Heathrow sample: fetched-but-thin pages and duplicates are not 'not fetched' (1.954382ms)
+✔ real fetch failures, refusals and block pages keep their own category (0.245143ms)
+✔ reports stored before outcome counts say 'not assessed', never 'not fetched' (0.10802ms)
+✔ 100% evidence coverage shows page coverage next to it and no 'volledig bewijs' (0.421814ms)
+✔ internal links: missing, server error, unconfirmed and account links are kept apart (1.418718ms)
+✔ broken links name the referring page; unverifiable links do not make a proven error weigh more (0.344679ms)
+(node:15528) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/report-quality.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ generic 'Home | Brand' titles and invisible characters are recognised (1.382885ms)
+✔ route: generic title, soft hyphen, og:image:url alias, og:url ≠ canonical and og:type=article (986.195706ms)
+✔ sector schema: type follows sector/key and multilingual wording, never the domain (1.525688ms)
+✔ H1 copies, HTML size, library versions and YMYL evidence (3.466579ms)
+✔ route: Framer H1 copies, large HTML, outdated jQuery, YMYL hospital, hreflang proven alternate (1238.195305ms)
+✔ description boundaries: 160/161/250 retain 10 points, 251 loses exactly one; long title is advice (965.262165ms)
+✔ claim audit flags each contradiction class on a minimal report (3.319051ms)
+✔ synthetic claim scenarios: schema subtypes, sector-aware schema context, start pages, CMS @type (1552.196354ms)
+✔ replay testlab-144-replay/route.json.gz from the root: no report claim contradicts its own evidence (9453.215711ms)
+✔ replay testlab-96-replay/route.json.gz from the root: no report claim contradicts its own evidence (7041.813847ms)
+✔ replay testlab-96-replay/route-evening.json.gz from the root: no report claim contradicts its own evidence (7744.517386ms)
+✔ crawl coverage: missing relevant parts are nominated from the sitemap index (no guessed paths) (1573.298372ms)
+✔ blocked homepage: partial report from a public sitemap page; fully blocked site and non-root pages unchanged (2458.741731ms)
+(node:15917) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ score always lies inside its own 'mogelijk bereik' (2000 random reports) (69.412177ms)
+✔ combined range uses the same 0.6/0.4 weighting as the overall score (0.688728ms)
+✔ a report with any open warning or failure never shows 100 (0.191864ms)
+✔ titles with an empty template part are flagged; brand-only stays brand-only (1.227246ms)
+✔ 'book a demo' and sales calls are leads, not bookings (12.164596ms)
+(node:15994) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/report-quality.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a missing Chrome binary never reaches the customer report as a stack message (3.066987ms)
+✔ legacy IE conditional comments are not mixed content or SRI findings (2.476814ms)
+✔ titles: graduated length credit instead of a flat penalty (1.611784ms)
+✔ titles: brand-only and duplicated brand are named, not hidden in a length warning (0.269439ms)
+✔ titles: an old year in a title is flagged as outdated (0.253776ms)
+✔ descriptions: long descriptions are advice without deduction; missing or short ones still count (0.306293ms)
+✔ sampling: account, withdrawal, login and facet URLs never enter the sample (1.766604ms)
+✔ sampling: campaign parameters do not create a second copy of a page (0.715969ms)
+✔ sampling: one site section cannot fill the sample (0.855025ms)
+✔ client application shells cannot prove a missing title, description or H1 (0.226555ms)
+✔ a reduced bot-manager response is unconfirmed evidence, a normal one is not (0.462804ms)
+✔ sitewide: a shared title suffix is reported as one template fix (0.806153ms)
+✔ report text helpers: short URLs and real entity types (0.411028ms)
+✔ scan route wires the report-quality fixes (17.277921ms)
+✔ a description missing after rendering is not described as a raw-HTML finding (field scan 16-10) (0.357849ms)
+✔ report main action: a sector-only provisional score does not ask to review unconfirmed checks (0.828646ms)
+✔ reserved, parked and for-sale domain placeholders are recognised in EU languages, real sites are not (2.337158ms)
+✔ titles: soft hyphens and generic 'Home |' prefixes are flagged, long titles stay advice (0.226094ms)
+(node:16007) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/report-consistency.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ self-check: a label from another sector (news site labelled dentist) is corrected and recorded (13.781468ms)
+✔ self-check: legitimate hybrids keep their secondary modules (0.422214ms)
+✔ self-check: LocalBusiness advice on a non-local sector is rewritten (2.877407ms)
+✔ self-check: 100/100 is impossible next to an open issue, also outside the core checks (1.017155ms)
+✔ self-check: unscored checks never carry points; points stay in bounds (0.248127ms)
+✔ self-check: evidence from another website is never kept; own subdomains are fine (2.361293ms)
+✔ self-check: reliability is honest about coverage, rendering and sector certainty (1.16965ms)
+✔ self-check property: 3000 random contradictory reports always end consistent (376.988119ms)
+✔ news identity: strong publisher words or a news homepage; a company news page is not a publisher (7.839037ms)
+✔ booking evidence: Facebook, notebook, e-book and bookkeeping links are not booking actions (31.406382ms)
+(node:16022) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sample-eligibility.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ login, account, cart, checkout and search pages never enter the sample (2.232182ms)
+✔ language variants of one page collapse to a single page, the preferred language wins (0.640898ms)
+✔ colour, size and sort parameters do not make a different page; functional ones do (0.629171ms)
+✔ at most N pages per template fill the sample (0.517937ms)
+(node:16029) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sample-product-checks.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ complete Product/Offer data on an audited product page passes, naming that page (1.854984ms)
+✔ proven defects on a product page are warnings; never a pass without page evidence (1.210531ms)
+✔ missing evidence stays unable to confirm (no artificial improvement) (0.238202ms)
+✔ insurance modules, loans and accounts are financial services, not webshop products (2.0752ms)
+✔ shared visible offer evidence reads marked price, currency and stock state (3.426458ms)
+✔ the scan route uses one settlement for the five product checks and no lenient promotions remain (3.310327ms)
+✔ price mismatch is only a defect for one unambiguous visible product price (0.384068ms)
+(node:16036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-attempts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ failed scans get a stable cause category (1.121479ms)
+✔ network errors map to codes without leaking messages (0.39885ms)
+✔ an attempt that never finished is a function timeout (0.207507ms)
+✔ a body that never ends is cut off (BODY_TIMEOUT) instead of hanging the scan (200.634735ms)
+✔ scan matrix (both): every synthetic site gets the right sector, page type and consistent report (13748.84676ms)
+✔ scan matrix (seo): every synthetic site gets the right sector, page type and consistent report (12919.696299ms)
+✔ scan matrix (geo): every synthetic site gets the right sector, page type and consistent report (12698.501896ms)
+✔ scan matrix: English and German reports keep the same decisions (3272.027861ms)
+✔ webshops across platforms (QA #203/#204): type, platform, branch, modules, links, currencies (1510.045273ms)
+✔ commerce 72/72 webshops and platforms: one consistent website type, sector and platform (1765.532834ms)
+✔ start page answering 404: confirmed, recovered or not verifiable, never a guess (QA #204) (984.375897ms)
+✔ rendering: rich render is used, failed/poorer renders fall back honestly, challenges abstain (5381.336258ms)
+✔ performance: pathological page content never makes a scan quadratic (6414.340646ms)
+✔ isolation under load: parallel scans of different sites never mix evidence and match single scans (4910.360618ms)
+﹣ scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect (0.184743ms) # RF_PG_TEST_URL not set
+﹣ scan persistence on real PostgreSQL: emoji cut by text limits and NUL never fail the save (0.142511ms) # RF_PG_TEST_URL not set
+﹣ scan persistence on real PostgreSQL: schema init never blocks a running save; insert retry stores exactly one row (0.062162ms) # RF_PG_TEST_URL not set
+✔ hard time limit: a hanging scan answers SCAN_TIMEOUT before the platform limit (12491.605514ms)
+✔ commerce is a channel unless the site presents itself as a shop (1478.294192ms)
+✔ local businesses: multilingual trade identity, shop vs service vs webshop, abstention (2443.069859ms)
+✔ sampled pages that refuse access are not scored and never pass the HTTP check (958.440696ms)
+✔ HTTP status matrix: homepage, sampled pages and internal links (6514.116046ms)
+✔ JSON-LD evidence: absence is proven only without a possible client-side injector (1309.73638ms)
+﹣ timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly (0.092336ms) # RF_SLOW_TESTS not set
+﹣ full-route replay of the recorded 96-site run 23-10 morning: no new wrong sectors, block pages never scored (0.052758ms) # RF_ROUTE_REPLAY not set
+﹣ full-route replay of the recorded 96-site run 23-10 evening: no new wrong sectors, block pages never scored (0.041972ms) # RF_ROUTE_REPLAY not set
+﹣ full-route replay of the recorded 144-site run 24-10 (QA 5da81ee4): no new wrong sectors, block pages never scored (0.036394ms) # RF_ROUTE_REPLAY not set
+✔ QA 144: blocked homepage → incident + alternative start; accessible subpage → partial report with blocked homepage registered (1456.226421ms)
+✔ P1 (31 Oct): a refusal page received by the browser after HTTP 403 is never scored (NL/EN/DE/FR/IT/ES); a real recovered homepage still is (1048.832547ms)
+✔ P7 (31 Oct): language/variant copies never re-enter the sample via the product hunt; fee pages of a payment provider do not start it (1604.548804ms)
+✔ P5 phase 2 (1 Nov): browser probe preserves JSON-LD evidence, records failures and distinguishes www redirects from different pages (2068.001263ms)
+✔ 1 Nov: a 5xx challenge page is a refusal (bot protection), a real 5xx a server error; a CDN header alone never decides (8039.067981ms)
+✔ QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls (2042.387976ms)
+✔ QA 144: proven problems on other sampled pages reach the advice list; high score carries a caution (985.954724ms)
+✔ QA 144: product data stays bound to the entered page (no sibling SKU), ambiguous products are not merged (1076.653593ms)
+✔ QA 144 round 2: refused request + browser error page is not the website (no score); real pages behind a 403 still recover (1135.331792ms)
+✔ QA 144 run 7a2155c: DNS/timeout www/apex fallback (same site only, not after a refusal), homepage 404 gets one browser check, deep 404 untouched (6160.492767ms)
+✔ QA 144 run 7a2155c: DIY store chain declared in its title is retail after a refused request; software for DIY stores is not (1624.24133ms)
+✔ hybrid trades: service identity and verified shop capabilities remain independent (2350.559306ms)
+✔ catalog development regressions retain all previously corrected primary identities (3360.173534ms)
+✔ local development without DATABASE_URL: anonymous free scan completes, dashboard scan refuses clearly (1310.7645ms)
+✔ production without DATABASE_URL never runs the no-database mode (951.712004ms)
+﹣ full chain on real PostgreSQL: free scan, dashboard scan → stored → history → full audit (0.104755ms) # set RF_PG_TEST_URL to run against PostgreSQL
+✔ a consent-settings link ('Privacy-instellingen' → ?modal=…) is not a privacy policy (1664.502391ms)
+✔ sampled page without rendering: missing H1 is unconfirmed when scripts could add it, a warning on a static page (1789.363542ms)
+✔ a person name used as brand ('Leen Bakker' webshop) is not a bakery; real bakeries stay bakeries (1447.384266ms)
+✔ sector peers: sites with the same sector and function get the same sector, type and webshop gating (3697.472682ms)
+✔ render diagnosis: a short server-rendered page is thin content, not a JS shell; a real shell stays unconfirmed (993.906244ms)
+✔ link check: error-page targets are broken, honeypots skipped, no-answer retried, anchor conflicts reported (1736.00662ms)
+(node:16656) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-runtime-errors.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ database quota is an infrastructure outage, not a website SEO defect (1.466459ms)
+✔ Neon pg error code 53000 works even when the error text omits PostgreSQL and Neon (0.206596ms)
+✔ missing DATABASE_URL has a distinct safe customer message (0.411589ms)
+✔ timeouts, blocked websites and ordinary scan errors are not mislabeled as database outages (0.132806ms)
+(node:16663) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-claims.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ decorative empty alt is valid; only a missing alt attribute is actionable (3.801884ms)
+✔ N/A and unable-to-confirm never lower the score (0.295477ms)
+✔ no applicable evidence produces score zero rather than a false 100 (0.12853ms)
+✔ summary never counts N/A or unable-to-confirm as passed (0.745453ms)
+✔ critical score cap requires a confirmed high-confidence failure (0.285613ms)
+✔ unknown rule statuses fail closed as unable-to-confirm (0.161338ms)
+✔ scanner URL guard blocks local and private targets (0.729319ms)
+✔ scanner regression source keeps evidence-only classification safeguards (20.725468ms)
+✔ EU regression bundle keeps classification, confidence and challenge guards (8.610097ms)
+✔ central classification bundle keeps transport, retail and canonical decisions aligned (3.211301ms)
+✔ multilingual trust, social URL and auth redirect bundle stays evidence based (3.639985ms)
+✔ score model exposes weighted coverage and transparent formula (4.222206ms)
+✔ multi-page retail evidence can strengthen site profile without activating page checks (3.480639ms)
+✔ government identity overrides generic LocalBusiness schema advice (2.426099ms)
+✔ meta description diagnostics distinguish missing from empty (3.186884ms)
+✔ multi-page canonical absence uses the same evidence semantics as the main scan (2.527038ms)
+✔ strong product evidence wins over article classification and exposes an invariant (3.275165ms)
+✔ score engine deduplicates penalties that share one proven root cause (0.309388ms)
+✔ score engine gives confirmed high-impact findings a stricter bounded penalty (0.268357ms)
+✔ score engine keeps independent penalties independent (0.198083ms)
+✔ advisory evidence does not become a hard failure (3.599284ms)
+✔ alt scoring is gradual and keeps the existing fix rule stable (7.690005ms)
+✔ measurable metadata defects use gradual penalties (3.132684ms)
+✔ description length advice is gradual without changing fix identity (2.546567ms)
+✔ score model protects low-confidence failures from hard penalties (1.420291ms)
+✔ GEO brand identity respects evidence confidence and gradual signals (3.726112ms)
+✔ link and accessibility penalties scale with proven impact (2.57582ms)
+✔ heading advice scales gradually without becoming a hard failure (4.163788ms)
+✔ GEO identity and trust advice preserve partial proven signals (3.356124ms)
+✔ Evidence Engine reconciles representative identity and capabilities before final score (3.340822ms)
+✔ health identity includes acupuncture and therapy evidence (2.351659ms)
+✔ audit report explains customer-facing evidence statuses (3.403124ms)
+✔ customer audit UX is localized for every supported locale (0.666577ms)
+✔ cookie security is evaluated per observed Set-Cookie record (3.177871ms)
+✔ representative site evidence propagates into specialist checks (3.825568ms)
+✔ representative page ranking prefers structural capability context (2.792671ms)
+✔ Evidence Engine keeps URL-only product hints below confirmed retail evidence (14.232594ms)
+✔ Evidence Engine exposes explicit capability states and never infers absence from one page (2.354593ms)
+✔ representative evidence preserves page intent across structural dedupe (3.384277ms)
+✔ customer report groups not-applicable checks and shows sitewide sample warnings (0.952469ms)
+✔ sector reconciliation hides provisional previous sector and protects beauty-wellness identity (2.078394ms)
+✔ response decoder supports declared legacy charset (0.473741ms)
+✔ share.google is resolved before usage, history and scan evidence (1.902504ms)
+✔ representative page typing includes service listing and support intents (4.43426ms)
+✔ transport and ecommerce schema advice do not fall through to generic LocalBusiness (2.168387ms)
+✔ security form transport uses representative form pages rather than global forms (2.28498ms)
+✔ full audit report shows complete actions and uncertainty lists (2.058925ms)
+✔ transport route pages are typed as services for transport sectors (1.986037ms)
+✔ structured data uses effective local context instead of raw local hints (2.635599ms)
+✔ tracking parameters are stripped before scan usage and fetch logic (2.306061ms)
+✔ commerce product pages cannot inherit transport schema context from incidental text (2.542431ms)
+✔ production scan limits have no plan-wide or hardcoded-host bypass (2.984415ms)
+✔ anonymous public scans and contact mail have coarse abuse protection (3.377275ms)
+✔ plan catalog matches customer-visible website and scan limits (1.571505ms)
+✔ legacy credits and production test-plan route are no longer part of active schema (1.459449ms)
+✔ manual health run returns the Health Guard response directly (0.739724ms)
+✔ assistant monitoring context uses the production monitor table and real route (0.647348ms)
+✔ active scanner fix IDs map to bounded dashboard fix actions (0.697572ms)
+✔ GitHub proposal routing recognizes active scanner IDs without title guessing (2.788535ms)
+✔ Evidence Engine avoids double-counting medium text hints as independent sector proof (0.963275ms)
+✔ structured-data fix handles composite schema recommendations as separate nodes (0.831079ms)
+✔ unused evidence merge and sector capability exports stay removed (0.81783ms)
+✔ dashboard scans do not call removed automatic report email code (2.336967ms)
+✔ Local SEO has no hardcoded website bypass (0.889837ms)
+✔ all mapped scanner rule IDs have an explicit fix policy (2.788655ms)
+✔ Organization and FAQ fixes carry explicit evidence through the dashboard gate (2.735837ms)
+✔ audit AI-advice actions open the in-dashboard assistant (0.988322ms)
+✔ GitHub OAuth callback uses the configured environment instead of a stale fixed host (0.594109ms)
+✔ Local SEO route contains no deployment-marker residue (0.579828ms)
+✔ expensive and mail-triggering endpoints have coarse rate limits (1.780644ms)
+✔ every audit problem has a visible remediation path (0.787454ms)
+✔ representative JS pages receive bounded browser evidence recovery (3.986578ms)
+✔ commerce identity requires confirmed high-confidence signals (2.229829ms)
+✔ sector identity ignores low-confidence accommodation and property evidence (2.022922ms)
+✔ structural actions outrank plain text hints in scan evidence (0.600759ms)
+✔ Scan Motor 3.0 audits a bounded diverse representative sample (2.734975ms)
+✔ representative page audits expose raw versus rendered provenance (2.565165ms)
+✔ audit shows transparent representative page coverage (0.862956ms)
+✔ representative crawl uses bounded concurrency (2.21718ms)
+✔ x-default self hreflang on a country picker is not a language mismatch (0.258423ms)
+✔ hreflang: country picker with only x-default self reference is not flagged (0.66953ms)
+✔ hreflang: normal reciprocal set with matching self reference is unconfirmed, not a warning (0.332352ms)
+✔ hreflang: no hreflang markup is not applicable (0.100679ms)
+✔ hreflang: missing or empty language code is still a real error (0.152335ms)
+✔ hreflang: invalid code combinations are detected, valid script and region codes pass (0.130823ms)
+✔ hreflang: genuine self-reference language mismatch is still detected (0.171674ms)
+✔ hreflang: conflicting and duplicate targets are detected (0.394794ms)
+✔ hreflang: other hosts are unable-to-confirm, not an error (0.28376ms)
+✔ html entities decode once, like a browser (0.290931ms)
+✔ html entities: unknown names stay visible and bad code points never throw (0.086167ms)
+✔ hreflang: separate country domains are never a warning on their own (0.222189ms)
+✔ hreflang: proven conflicts and duplicates are reported even with country domains (0.199104ms)
+✔ hreflang: self reference matches across www, trailing slash and relative href (0.3853ms)
+✔ hreflang: no warning without proof (missing document lang, non-http targets are invalid only) (0.160507ms)
+✔ contact: FAQ and help articles are never a contact channel (1.758631ms)
+✔ contact: real channels are recognised separately (0.249569ms)
+✔ contact: look-alikes and broken channels are not contact evidence (0.286624ms)
+✔ contact: contact forms need a message field and a reply field (0.386471ms)
+✔ contact: visible e-mail addresses count, image asset names do not (0.393492ms)
+✔ contact: multilingual customer service and support terms keep their meaning (0.304911ms)
+✔ image metrics decode entity-encoded src values with the shared decoder (0.429446ms)
+✔ representative sample never exceeds the 30-page cap (3.223909ms)
+✔ representative sample keeps small sites small and never duplicates URLs (0.213576ms)
+✔ representative sample prefers template diversity before filling same-template pages (0.158334ms)
+✔ representative sample can cap FAQ/help pages so they do not crowd out evidence (0.247657ms)
+✔ scan access: anonymous visitors keep the per-network free limit (0.105246ms)
+✔ scan access: Free accounts share the network limit, so fake accounts add no capacity (0.073409ms)
+✔ scan access: paying customers are never held to the anonymous network limit (0.066558ms)
+✔ scan access: configured tester account IDs are exempt from hourly limits (0.276959ms)
+✔ scan access: e-mail alone, empty or malformed config never grants the exemption (0.095ms)
+✔ scan access: spoofed forwarding headers cannot pick a fresh rate-limit bucket (19.209827ms)
+✔ scan access: the message shows the real remaining wait (0.216671ms)
+✔ scan route applies the shared policy and never trusts e-mail for the tester exemption (11.123044ms)
+✔ market selector: x-default global portal with many country versions (0.371569ms)
+✔ commerce applicability: proven commerce activates shop checks (0.175469ms)
+✔ commerce applicability: country picker and JS shell are unable-to-confirm, never N/A (0.086859ms)
+✔ commerce applicability: weak shop signals or a thin sample are unable-to-confirm (0.076132ms)
+✔ commerce applicability: N/A only with evidence that the site is not a shop (0.057204ms)
+✔ commerce applicability: every reason has report copy and an existing report reason code (0.076213ms)
+✔ scan route uses the three-way commerce gate instead of blanket N/A (3.369914ms)
+✔ score model: unconfirmed commerce checks keep the score but lower coverage and widen the range (0.556263ms)
+✔ report shows commerce applicability and raw-HTML limitations separately from sector (0.877799ms)
+✔ no regex matches a literal backslash where an escape class was meant (56.581928ms)
+✔ finding 1: review and rating links are never contact evidence (0.531006ms)
+✔ finding 2: a general Services link is not a confirmed contact channel (0.137434ms)
+✔ finding 3: IKEA international FAQ, &amp; and x-default stay fixed (0.141549ms)
+✔ findings 4 and 7: shop wording only when a shop is proven and no other identity is primary (0.201307ms)
+✔ findings 4 and 7: scan route applies the shop-wording gate before final scoring (2.199894ms)
+✔ finding 5: garage appointment and test drive are separate checks (2.261476ms)
+✔ finding 6: business details pass only with concrete details, not just absent placeholders (3.099705ms)
+✔ security: mixed content counts loaded subresources, not plain links (0.600829ms)
+✔ security: cookie flags are read per cookie, including Expires commas (0.678483ms)
+✔ security: forms, password fields and insecure actions are detected (0.315908ms)
+✔ security: real exposed secrets are found, documentation examples are not (0.70978ms)
+✔ security: SRI is only asked for versioned third-party files (0.688448ms)
+✔ security route takes every passive security status from assessPassiveSecurity (3.313381ms)
+✔ fix engine: AI-fix H1/title extraction and GitHub icon filter work on real markup (1.6363ms)
+✔ sector signals recognise concrete evidence and ignore generic words (4.551983ms)
+✔ security FP/FN 1: real mixed content vs ordinary HTTP links (0.491968ms)
+✔ security FP/FN 2: versioned third-party scripts without SRI vs dynamic scripts (0.398008ms)
+✔ security FP/FN 3: exposed secrets vs public identifiers and documentation (0.231933ms)
+✔ security FP/FN 4: multiple Set-Cookie headers and Secure/HttpOnly/SameSite (0.40592ms)
+✔ security 5: results and scores before (main) and after the fixes (1.604414ms)
+✔ retail sector evidence wins over incidental sector words without claiming verified checkout (2.904166ms)
+✔ street addresses exclude adjacent navigation and contact labels (0.311301ms)
+✔ privacy evidence belongs to scanned site, not embedded providers (0.130303ms)
+✔ FAQ evidence requires actual answers, not just generic accordions (6.311176ms)
+✔ webshop delivery and returns claims are detected in marketing text (0.333323ms)
+✔ internal customer ID exemption requires exact server authorization (0.154789ms)
+✔ KPN-like telecom provider: storefront-wide checks do not masquerade as primary audit gaps (7.220421ms)
+✔ scan summary matches final check statuses after commerce and sector reconciliation (7.313018ms)
+✔ cookie link is only required when cookies or trackers are observed (2.184261ms)
+✔ cart/checkout signals never confirm a working checkout (2.175778ms)
+✔ canonical to the same page without query parameters is equivalent, not a warning (2.238752ms)
+✔ a sampled link that redirects to an account or personal page leaves the sample (8.015828ms)
+✔ public report Fix never sends an unauthenticated GitHub request without scan_id (1.231422ms)
+✔ public meta description proposal is evidence-based and provides inline failure feedback (0.792392ms)
+✔ public safe Fix auto-resumes through authenticated stored scan after login (0.578846ms)
+✔ empty alt on a linked image and generic alt texts count as missing, decorative empty alt does not (0.759293ms)
+(node:16675) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/schema-image.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ product images: URL, ImageObject, arrays and @id references (Yoast/WooCommerce) (0.756099ms)
+(node:16682) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/schema-type.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ schema.org type names and URLs are kept, component paths are not types (0.876426ms)
+(node:16689) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 100/100 needs complete evidence; one unconfirmed check keeps it at 99 (1.795897ms)
+✔ issue #151 pattern: core all passed, many sector checks unconfirmed → no '100–100' range (1.224632ms)
+✔ RTL/BILLA pattern: 53–55% coverage is 'insufficient', never presented as final (0.278272ms)
+✔ property: range always contains the score and widens with unconfirmed weight (32.174174ms)
+✔ an unconfirmed heavy check makes a high score provisional (0.314515ms)
+(node:16696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/score-qualifier.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ headline qualifier: insufficient evidence is never presented as final, in every locale (1.633186ms)
+✔ complete evidence shows no range and no caveat (0.144364ms)
+✔ homepage score and site sample are named together (0.215519ms)
+✔ 'complete evidence' wording only at 100% coverage (0.299102ms)
+✔ provisional only because of an ambiguous sector says so, and a one-value range is hidden (0.300764ms)
+✔ an unknown primary sector is provisional, never 'Definitief' (field scan 16-10) (6.416021ms)
+✔ score qualifier uses a valid HTML container around its caution paragraph (4.146184ms)
+✔ PDF P6: 'Definitief' only for a rendered scan; a fully confirmed raw-HTML scan says so (0.22277ms)
+(node:16707) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/score-reconciliation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ GEO score has an auditable fixed-core subset and visible normalization (0.930817ms)
+✔ Unconfirmed rows do not affect raw numerator/denominator (0.149712ms)
+(node:16714) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/section-coverage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ shop: products checked, legal blocked, contact not found, checkout never claimed as checked (1.059116ms)
+✔ organisation: 404 is 'bestaat niet', a 429 is not accessible, blocked homepage is said so (0.343428ms)
+✔ PDF P8: contact details in header/footer count as contact; offer named in the navigation is reported (0.271903ms)
+✔ 18 proposed labels must not silently become approved ground truth (1.552246ms)
+✔ 95% main and 90% subtype on 18 means 18 and 17 correct respectively (1.35836ms)
+✔ truth set protects risky platform/hybrid distinctions and a cross-sector follow-up shortlist (0.320495ms)
+(node:16728) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-motor-decisions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ language variants identify own activities without manufacturing/local-trade confusion (157.215862ms)
+✔ public port operation needs operating evidence before refining government (4.464364ms)
+✔ catalog service declarations need their own activity, not a customer market or incidental word (7.275883ms)
+✔ an unknown sector cannot acquire confirmed certainty through later reconciliation (30.658932ms)
+(node:16735) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/primary-business-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ payments: title plus typed financial schema is enough, generic wording only (17.266562ms)
+✔ banks and insurers are financial services; full-service banks stay banks (0.267405ms)
+✔ retailers are never financial services because of money or payment wording (15.962332ms)
+✔ camping and resort words: shops stay retail, real campsites are lodging (0.78397ms)
+✔ payment checkout and pension wording are not short-stay evidence (9.141402ms)
+✔ international market roots are homepages (0.579077ms)
+✔ route labels financial sub-types and maps every catalog sector (11.630425ms)
+✔ payment providers naming their customers (webshops) stay payment providers (0.645394ms)
+✔ placeholder titles are flagged, real titles are not (4.356385ms)
+✔ route: unconfirmed checks earn no points, placeholder titles respect JS rendering, honest HTTP errors (3.303406ms)
+✔ route: health identity matches full profession words, not only truncated stems (3.661677ms)
+(node:16746) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-identity.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ generic marketing verbs and on-site facilities are not tourism identity (1.33139ms)
+✔ real tourism identity is still recognised (0.370819ms)
+✔ retail identity recognises both word orders and compound store words (2.52842ms)
+✔ service, hospitality and transport identities carry no retail sales language (0.229039ms)
+✔ schema.org Store subtypes are retail schema; service types are not (0.240886ms)
+✔ Evidence Layer reads array-valued @type such as OnlineStore + FurnitureStore (6.526294ms)
+✔ scan route wires the central identity rules without brand exceptions (12.936075ms)
+✔ a blocked or empty browser render is never treated as website evidence (13.022853ms)
+✔ schema.org Organization subtypes count as Organization identity (3.600145ms)
+✔ the scanned page is reused as its own representative sample, not refetched (3.250319ms)
+✔ FAQ/help-center pages cannot crowd out the representative sample (8.265927ms)
+✔ every module the scanner can activate has a report label in every locale (8.817863ms)
+✔ product-detail candidates are nominated by URL shape, never editorial pages (8.891172ms)
+✔ retail sites without a product sample get a bounded second hop (3.508329ms)
+✔ one page type cannot crowd out the representative sample (6.603709ms)
+✔ product candidates come from sitemaps without a browser (3.274304ms)
+✔ bounded prefix reads never fail on large documents (26.436611ms)
+✔ a retail identity never receives LocalBusiness schema advice (4.294633ms)
+✔ a confirmed shop never shows shop checks as 'not applicable' because one page lacked signals (3.32582ms)
+✔ telecom operator detection needs independent network and subscription evidence (0.89879ms)
+✔ primary telecom identity is a separate decision from verified physical-store evidence (4.094107ms)
+(node:16758) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-motor-decisions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ secondary commerce does not turn service providers into retail (1.306132ms)
+✔ real retailers receive only evidenced modules (0.225443ms)
+✔ merchant module requires explicit merchant evidence (0.134709ms)
+✔ strong primary sector cannot be overwritten by unrelated secondary signals (0.163713ms)
+✔ service sectors never inherit retail merchant or checkout from secondary features (0.291411ms)
+✔ unknown identity needs independent retail evidence (0.160437ms)
+✔ checkout or cart alone does not activate webshop checks (0.132016ms)
+✔ scanner imports central motor and preserves service site identity (9.976038ms)
+(node:16769) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-navigation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ hospitality navigation needs BOTH a menu and a reservation entry (multilingual) (1.208217ms)
+✔ priced-service identities: payments, banking, insurance and SaaS; never retail or telecom (0.36486ms)
+(node:16776) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/sector-page-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ two different first-party pages recover multilingual financial identity (104.701189ms)
+✔ duplicates, redirect aliases, article topics, failed fetches and third parties cannot corroborate (1.250449ms)
+✔ incompatible sectors abstain with inspectable counterevidence (20.977071ms)
+✔ banking client audiences and empty pages never become financial institutions (2.578234ms)
+✔ high check coverage remains separate from sparse page coverage (0.166065ms)
+✔ hospital and patient identity corroborates in the tested European languages (2.030503ms)
+(node:16783) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/security-access-actions.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ only proven findings become actions, sorted by impact, with header examples (1.442984ms)
+✔ no HSTS example on HTTP, and no actions without findings (0.17566ms)
+✔ scan route and report wire the block (2.226213ms)
+(node:16790) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/site-url.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ one public origin, with the Vercel production domain as automatic fallback (0.775277ms)
+✔ no SEO surface points at the retired Render domain (4.88123ms)
+✔ only the root homepage inherits the homepage canonical and hreflang (0.835646ms)
+✔ private application pages are never indexed (1.256629ms)
+✔ public pages have their own title and canonical (1.840483ms)
+✔ sitemap lists every public page in every language; legacy URLs redirect permanently (1.548371ms)
+✔ homepage and separate service page corroborate cybersecurity (149.492937ms)
+✔ homepage and separate service page corroborate waste_recycling (11.464289ms)
+✔ homepage and separate service page corroborate sports_organizations (0.720836ms)
+✔ homepage and separate service page corroborate maritime_ports (0.625115ms)
+✔ homepage and separate service page corroborate airports (1.030504ms)
+✔ homepage and separate service page corroborate legal (0.658814ms)
+✔ homepage and separate service page corroborate charities_nonprofits (0.567981ms)
+✔ homepage and separate service page corroborate museum_culture (0.820814ms)
+✔ homepage and separate service page corroborate architecture_design (0.921934ms)
+✔ homepage and separate service page corroborate veterinary (2.757499ms)
+✔ homepage and separate service page corroborate agriculture_horticulture (0.805922ms)
+✔ single homepage never proves a definitive sector (0.318331ms)
+✔ marketing/customer industry pages do not vote (0.466119ms)
+✔ duplicate page title/description never counts as independent source (0.366272ms)
+✔ different sector pages conflict and abstain (1.112436ms)
+✔ shopping carts, product marketing and appointment widgets do not prove any extended industry (0.858339ms)
+✔ industry-customer routes under composite market paths cannot vote (0.66924ms)
+✔ legal software and museum merchandise are not organisational identity (0.495193ms)
+✔ failed/partial or outside-domain pages are excluded (0.873892ms)
+✔ ambiguous homepage with three independently named own pages can corroborate (0.841375ms)
+✔ service intermediary with homepage and independent company page is not a webshop (7.0309ms)
+✔ direct individual contractor booking does not become a marketplace (0.691162ms)
+✔ single, blocked or editorial pages never establish service marketplace (0.545997ms)
+✔ realistic service-booking metadata corroborates own homepage and About page (1.242138ms)
+(node:16808) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/social-profile-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ German company footer social profiles are evidence even when body text has no platform names (1.892159ms)
+✔ Unrelated article mentions and social share widgets are not official profiles (0.819582ms)
+✔ A labelled social navigation is an alternative to a footer (0.17567ms)
+✔ first-party social-media section outside footer exposes profiles (0.151774ms)
+✔ Same general scan runs both device speed checks; no standalone Speed scan (2.035932ms)
+✔ Every existing audit experience can display mobile and desktop evidence (0.159937ms)
+(node:16822) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/structured-data-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ structured data: present / proven absent / not observed are three separate states (1.354063ms)
+✔ 1 Nov: executable scripts — JSON-LD, JSON data and templates are not executable (1.801274ms)
+✔ injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json placeholder; a filled block is not a placeholder (0.985438ms)
+✔ PDF P4: a link to an error page is a missing page, whatever its HTTP status (3.005005ms)
+✔ 1 Nov (P7): account, login and registration pages in DE/FR/IT/ES/PT and compound names are not sampled; content pages stay (6.128446ms)
+✔ PDF P7: language and colour variants are one page; carts and bot traps are not sampled (0.68984ms)
+✔ 1 Nov: one GTM detector — Google host, first-party server-side loader and inline snippet; gtag.js alone is not GTM (0.34452ms)
+✔ P5: Microdata and RDFa are separate structured-data forms, never JSON-LD blocks (0.740495ms)
+✔ P5: a tag manager still loading at the end of the observation leaves absence unproven (0.367904ms)
+✔ P5: no structured data at all is one root cause, deducted once (3.531073ms)
+(node:16829) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/structured-data-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tag managers that can inject JSON-LD client-side are recognised, generically (2.166024ms)
+✔ plain pages, and pages with only analytics/ads tags that cannot inject schema, have no injector (0.144573ms)
+✔ a rendered page without JSON-LD is a proven absence (0.211232ms)
+✔ raw HTML without any injector is a proven absence (server-rendered, nothing can add it later) (0.142982ms)
+✔ raw HTML with a tag manager and no render is NOT proof of absence (0.136502ms)
+✔ an unrendered JavaScript page is not proof of absence (existing behaviour kept) (0.155971ms)
+✔ JSON-LD that is present is never an absence, whatever else is true (0.210482ms)
+✔ a successful render outranks the injector and client-render risk (0.09505ms)
+✔ messages name the actual reason and never claim the page lacks structured data (0.334024ms)
+✔ file URL conversion retains Windows drive/UNC paths and encoded characters on either OS (2.432498ms)
+✔ fixture reads and ESM imports work in a real path with spaces, Unicode, # and % (1.644393ms)
+✔ offline runners never use URL.pathname as a native path or ESM specifier (2.860101ms)
+✔ child result parsing accepts LF/CRLF but rejects spawn errors, nonzero exits and missing results (1.395043ms)
+✔ exactly 144 independent hostnames: 96 earlier + 48 new (1.31124ms)
+✔ 48 new cases: 12 countries, opticians, hairdressers and broad services (0.191863ms)
+✔ real QA lab requires tester authentication and exact deployed preview SHA (0.185384ms)
+✔ fresh 144 catalog has no historical hosts (0.790589ms)
+✔ analysis CLI executes from a real path with spaces, Unicode, # and % (34.172209ms)
+✔ analysis selects the active run, never the lexicographically largest SHA (30.605433ms)
+✔ analysis fails explicitly when the current run has no export or selection is ambiguous (57.176648ms)
+✔ no full audits cannot be reported as a clean claim audit (33.339167ms)
+✔ same main sector with another specific branch is a mismatch, not equivalent (0.917036ms)
+✔ main sector right but no branch subtype is partial, never a correct branch (0.830399ms)
+✔ real parent/child and family relations stay equivalent (0.221918ms)
+✔ exact, unconfirmed and other-sector verdicts are unchanged (0.117844ms)
+✔ NS and Arriva (catalog label transport) are judged correctly; a carrier never counts as logistics (7.769744ms)
+✔ engineering vs architecture & design is decided by the engine's sector evidence (1.699784ms)
+✔ result keys: baseline, catalog and foreign keys (1.828615ms)
+✔ summary keeps identity, commerce and sample evidence, and bounds size (1.1225ms)
+✔ older audits without navigation labels stay null instead of an empty proof (0.491998ms)
+✔ every missing-evidence reason is explicit, never a silent pass (0.553038ms)
+✔ export page and component are read-only (no scan, write or delete) (0.512017ms)
+(node:16906) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-runtime.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ all 96 original test sites are retained without duplicates (2.580737ms)
+✔ broad finance agreement is distinct from unconfirmed or wrong subtype (0.648159ms)
+✔ website quota and denied target access are not conflated (0.289718ms)
+✔ only a full verified SHA is reported as deployment identity (37.904831ms)
+✔ required mkb allocation totals exactly 144 and never invents an activated catalog (0.685815ms)
+✔ missing baseline/catalog/evidence never becomes a passing 144 check (0.373062ms)
+✔ domain normalisation catches www duplicates and rejects placeholders (1.184973ms)
+✔ browser TestLab run survives a page reload and resumes without clearing results (0.716671ms)
+✔ audit store upgrades to v2 (creates missing store) and fails visibly when blocked (0.163642ms)
+(node:16927) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/testlab-score-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 98 on 62% coverage is shown as the range with coverage, never as a bare 98 (0.887472ms)
+✔ range is derived when an older stored report has no headline (0.138655ms)
+✔ complete evidence shows the plain score as definitief (0.642079ms)
+✔ TestLab row and QA report page use scoreDisplay, not the bare overallScore (4.673613ms)
+✔ stored reports without headline still show the range in dashboard lists (15.862314ms)
+(node:16938) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/testlab-score-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ export carries the evidence behind a score, not only the number (1.328586ms)
+✔ per-dimension evidence from scoreModel wins over the raw dimension coverage (0.148049ms)
+✔ missing or malformed fields give nulls and never throw or invent values (0.158744ms)
+✔ projection does not mutate the scan response (0.265142ms)
+✔ CSV columns and values line up one-to-one, also for failed scans (0.29775ms)
+✔ webshop with a wrong branch is a mismatch, not equivalent (Leen Bakker) (1.069482ms)
+✔ webshop whose sector is the goods niche stays equivalent (0.20238ms)
+✔ without a confirmed webshop a niche sector is not rescued by the channel rule (0.834134ms)
+✔ loose cross-family relations no longer approve a wrong branch (0.20315ms)
+(node:16952) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-runtime-errors.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a target website that does not answer in time is a website/network outcome, not a RankFix outage (1.416185ms)
+✔ database time-outs are RankFix infrastructure; other time-outs keep SCAN_TIMEOUT (0.266925ms)
+✔ RankFix's time limit is retried once for the same website, then becomes a final timeout (1.01479ms)
+✔ the scan route and the TestLab use these rules (1.654668ms)
+(node:16959) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/contact-evidence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ VAT identifiers need numeric digits; adjacent menu labels are not company evidence (1.364578ms)
+(node:16966) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/page-quality-signals.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sample evidence: organisation, team/expert and legal oversight pages, own host only, multilingual (3.385767ms)
+✔ route: hospital homepage with one YMYL signal + own organisation and expert pages → pass, sources named (1404.864022ms)
+✔ route: hospital without own organisation/team/legal evidence stays unconfirmed (no deduction) (1331.817452ms)
+✔ 1 Nov: footer 'about' labels (multilingual) and named supervisors on privacy pages; a data-protection authority alone never counts (4.657319ms)
+ℹ tests 1012
+ℹ suites 0
+ℹ pass 1004
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 8
+ℹ todo 0
+ℹ duration_ms 228908.917119
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

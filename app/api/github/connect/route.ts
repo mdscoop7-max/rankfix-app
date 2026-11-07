@@ -3,12 +3,12 @@ import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request:Request) {
   const user=await getCurrentUser();
-  const base=(process.env.APP_URL || "https://rankfix-app.onrender.com").replace(/\/$/,"");
+  const base=(process.env.APP_URL || new URL(request.url).origin).replace(/\/$/,"");
   if(!user) return NextResponse.redirect(new URL("/account",base));
   const clientId=process.env.GITHUB_CLIENT_ID;
-  if(!clientId) return NextResponse.json({error:"GITHUB_CLIENT_ID ontbreekt."},{status:503});
+  if(!clientId || !process.env.GITHUB_CLIENT_SECRET) return NextResponse.redirect(new URL("/dashboard/github?github=setup",base));
   const callback=process.env.GITHUB_CALLBACK_URL || base + "/api/github/callback";
   const state=randomBytes(24).toString("hex");
   const store=await cookies();

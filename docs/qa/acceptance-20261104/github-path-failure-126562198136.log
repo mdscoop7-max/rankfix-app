@@ -1,0 +1,95 @@
+✖ failing tests:
+2026-11-04T12:10:11.8899192Z 
+2026-11-04T12:10:11.8899379Z test at tests\ci-safety-gates.test.mjs:4:1
+2026-11-04T12:10:11.8900000Z ✖ CI audit and lint failures are blocking and installation uses the lockfile (1.5607ms)
+2026-11-04T12:10:11.8901013Z   Error: ENOENT: no such file or directory, open 'D:\D:\a\rankfix-app\rankfix-app\RankFix%20QA%20caf%C3%A9\.github\workflows\ci.yml'
+2026-11-04T12:10:11.8901671Z       at readFileSync (node:fs:483:20)
+2026-11-04T12:10:11.8902295Z       at read (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:3:15)
+2026-11-04T12:10:11.8903220Z       at TestContext.<anonymous> (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:4:96)
+2026-11-04T12:10:11.8903931Z       at Test.runInAsyncScope (node:async_hooks:227:14)
+2026-11-04T12:10:11.8904411Z       at Test.run (node:internal/test_runner/test:1402:25)
+2026-11-04T12:10:11.8905140Z       at Test.start (node:internal/test_runner/test:1262:17)
+2026-11-04T12:10:11.8907301Z       at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+2026-11-04T12:10:11.8908067Z     errno: -4058,
+2026-11-04T12:10:11.8908747Z     code: 'ENOENT',
+2026-11-04T12:10:11.8909454Z     syscall: 'open',
+2026-11-04T12:10:11.8910252Z     path: 'D:\\D:\\a\\rankfix-app\\rankfix-app\\RankFix%20QA%20caf%C3%A9\\.github\\workflows\\ci.yml'
+2026-11-04T12:10:11.8911024Z   }
+2026-11-04T12:10:11.8911253Z 
+2026-11-04T12:10:11.8911554Z test at tests\ci-safety-gates.test.mjs:5:1
+2026-11-04T12:10:11.8912734Z ✖ known critical Next and browser dependency advisories are addressed by pinned versions (0.312ms)
+2026-11-04T12:10:11.8914002Z   Error: ENOENT: no such file or directory, open 'D:\D:\a\rankfix-app\rankfix-app\RankFix%20QA%20caf%C3%A9\package.json'
+2026-11-04T12:10:11.8914920Z       at readFileSync (node:fs:483:20)
+2026-11-04T12:10:11.8915839Z       at read (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:3:15)
+2026-11-04T12:10:11.8917219Z       at TestContext.<anonymous> (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:5:119)
+2026-11-04T12:10:11.8918316Z       at Test.runInAsyncScope (node:async_hooks:227:14)
+2026-11-04T12:10:11.8918966Z       at Test.run (node:internal/test_runner/test:1402:25)
+2026-11-04T12:10:11.8920045Z       at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+2026-11-04T12:10:11.8920933Z       at Test.postRun (node:internal/test_runner/test:1542:19)
+2026-11-04T12:10:11.8921592Z       at Test.run (node:internal/test_runner/test:1467:12)
+2026-11-04T12:10:11.8922434Z       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+2026-11-04T12:10:11.8923160Z     errno: -4058,
+2026-11-04T12:10:11.8923536Z     code: 'ENOENT',
+2026-11-04T12:10:11.8924003Z     syscall: 'open',
+2026-11-04T12:10:11.8924858Z     path: 'D:\\D:\\a\\rankfix-app\\rankfix-app\\RankFix%20QA%20caf%C3%A9\\package.json'
+2026-11-04T12:10:11.8925557Z   }
+2026-11-04T12:10:11.8925786Z 
+2026-11-04T12:10:11.8926037Z test at tests\ci-safety-gates.test.mjs:6:1
+2026-11-04T12:10:11.8927064Z ✖ lockfile agrees with the declared dependencies and has no vulnerable zod 4 copy (2.3519ms)
+2026-11-04T12:10:11.8928343Z   Error: ENOENT: no such file or directory, open 'D:\D:\a\rankfix-app\rankfix-app\RankFix%20QA%20caf%C3%A9\package.json'
+2026-11-04T12:10:11.8929193Z       at readFileSync (node:fs:483:20)
+2026-11-04T12:10:11.8930046Z       at read (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:3:15)
+2026-11-04T12:10:11.8931328Z       at TestContext.<anonymous> (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/ci-safety-gates.test.mjs:6:112)
+2026-11-04T12:10:11.8932129Z       at Test.runInAsyncScope (node:async_hooks:227:14)
+2026-11-04T12:10:11.8932580Z       at Test.run (node:internal/test_runner/test:1402:25)
+2026-11-04T12:10:11.8933091Z       at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+2026-11-04T12:10:11.8933649Z       at Test.postRun (node:internal/test_runner/test:1542:19)
+2026-11-04T12:10:11.8934104Z       at Test.run (node:internal/test_runner/test:1467:12)
+2026-11-04T12:10:11.8934870Z       at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+2026-11-04T12:10:11.8935364Z     errno: -4058,
+2026-11-04T12:10:11.8935648Z     code: 'ENOENT',
+2026-11-04T12:10:11.8935980Z     syscall: 'open',
+2026-11-04T12:10:11.8936566Z     path: 'D:\\D:\\a\\rankfix-app\\rankfix-app\\RankFix%20QA%20caf%C3%A9\\package.json'
+2026-11-04T12:10:11.8937294Z   }
+2026-11-04T12:10:11.8937431Z 
+2026-11-04T12:10:11.8937706Z test at tests\p0-route-review.test.mjs:2:1
+2026-11-04T12:10:11.8938678Z ✖ P0 independent review scenarios retain safe evidence and no false retail penalties (2147.6747ms)
+2026-11-04T12:10:11.8939447Z   AssertionError [ERR_ASSERTION]: node:fs:2482
+2026-11-04T12:10:11.8939945Z       return binding.writeFileUtf8(
+2026-11-04T12:10:11.8940403Z                      ^
+2026-11-04T12:10:11.8940716Z   
+2026-11-04T12:10:11.8941152Z   Error: ENOENT: no such file or directory, open 'D:\tmp\rankfix-p0-route-results.json'
+2026-11-04T12:10:11.8941711Z       at writeFileSync (node:fs:2482:20)
+2026-11-04T12:10:11.8942309Z       at file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/scan-matrix/run-p0-review.mjs:54:1 {
+2026-11-04T12:10:11.8942908Z     errno: -4058,
+2026-11-04T12:10:11.8943203Z     code: 'ENOENT',
+2026-11-04T12:10:11.8943484Z     syscall: 'open',
+2026-11-04T12:10:11.8943886Z     path: 'D:\\tmp\\rankfix-p0-route-results.json'
+2026-11-04T12:10:11.8944257Z   }
+2026-11-04T12:10:11.8944509Z   
+2026-11-04T12:10:11.8945103Z   Node.js v24.22.2
+2026-11-04T12:10:11.8945422Z   
+2026-11-04T12:10:11.8946031Z       at TestContext.<anonymous> (file:///D:/a/rankfix-app/rankfix-app/RankFix%20QA%20caf%C3%A9/tests/p0-route-review.test.mjs:4:94)
+2026-11-04T12:10:11.8946703Z       at Test.runInAsyncScope (node:async_hooks:227:14)
+2026-11-04T12:10:11.8947147Z       at Test.run (node:internal/test_runner/test:1402:25)
+2026-11-04T12:10:11.8947618Z       at Test.start (node:internal/test_runner/test:1262:17)
+2026-11-04T12:10:11.8948196Z       at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+2026-11-04T12:10:11.8948867Z     generatedMessage: false,
+2026-11-04T12:10:11.8949214Z     code: 'ERR_ASSERTION',
+2026-11-04T12:10:11.8949527Z     actual: undefined,
+2026-11-04T12:10:11.8949854Z     expected: true,
+2026-11-04T12:10:11.8950183Z     operator: '==',
+2026-11-04T12:10:11.8950496Z     diff: 'simple'
+2026-11-04T12:10:11.8950788Z   }
+2026-11-04T12:10:11.9228763Z ##[error]Process completed with exit code 1.
+2026-11-04T12:10:11.9663759Z Post job cleanup.
+2026-11-04T12:10:12.1409835Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-11-04T12:10:12.1818790Z git version 2.56.0.windows.4
+2026-11-04T12:10:12.2353131Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T12:10:12.8753523Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T12:10:12.9126500Z http.https://github.com/.extraheader
+2026-11-04T12:10:12.9180333Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-11-04T12:10:13.5305717Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T12:10:14.1619501Z Cleaning up orphan processes
+2026-11-04T12:10:14.2058700Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+

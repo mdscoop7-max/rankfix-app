@@ -1,11 +1,12 @@
 "use client";
+import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import SpeedAudit from "@/components/speed-audit";
 import type { WebsiteSpeed } from "@/lib/pagespeed";
-import { headlineDisplay } from "@/lib/score-qualifier";
+import { dimensionScoreText, headlineDisplay } from "@/lib/score-qualifier";
 const freeInfo: Record<Locale,{title:string;items:string[]}> = {
   nl:{title:"Wat controleert de gratis RankFix-scan?",items:["SEO & GEO / AI Search","Security & techniek","Webshop & Merchant Readiness","EU Consumer Rights & Consent Mode","Ads & Analytics · Search Console · Local SEO","Structured Data & Accessibility","Quality & Trust · Broken Links · Redirects","Direct een score met concrete verbeterpunten. Geen betaalkaart nodig; RankFix wijzigt niets automatisch."]},
   en:{title:"What do you get with the free scan?",items:["Checks of key SEO, technical and GEO/AI Search signals.","An immediate score and concrete improvement points.","No payment card required and RankFix does not automatically change your website."]},
@@ -27,11 +28,12 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const t = copy[locale];
   const free = freeInfo[locale];
   const u = scanUi[locale];
-  const [url, setUrl] = useState("");
+  const rememberedUrl = useStoredString("rankfix:last-scan-url");
+  const [urlOverride, setUrl] = useState<string|null>(null);
+  const url = urlOverride ?? rememberedUrl;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
-  useEffect(() => { try { const remembered = window.localStorage.getItem("rankfix:last-scan-url"); if (remembered) setUrl(remembered); } catch {} }, []);
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {
@@ -55,6 +57,6 @@ export default function ScanClient({ locale }: { locale: Locale }) {
     {error && <p role="alert" className="lc-note">{error}</p>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}
     {result && <SpeedAudit locale={locale} speed={result.websiteSpeed} dark />}
-    {result && <section className="lc-scan-results" aria-live="polite"><div className="lc-scan-visual"><div className="lc-meter" style={{"--score":result.overallScore} as React.CSSProperties}><div className="lc-meter-core"><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div></div><div><h2>{t.score}</h2><p>SEO {result.seo?.score ?? "—"} · GEO {result.geo?.score ?? "—"} · Security {result.security?.score ?? "—"} · {issues} {t.issues.toLowerCase()}</p><ScoreQualifier result={result as never} locale={locale}/></div></div><div className="lc-grid"><div className="lc-card"><strong>SEO</strong>{result.seo?.score ?? "—"}/100</div><div className="lc-card"><strong>GEO</strong>{result.geo?.score ?? "—"}/100</div><div className="lc-card"><strong>Security</strong>{result.security?.score ?? "—"}/100</div><div className="lc-card"><strong>{t.issues}</strong>{issues}</div></div><p>{t.success}: {passed}</p>{(notApplicable > 0 || unableToConfirm > 0) && <p className="lc-note">{u.na}: {notApplicable} · {u.unconfirmed}: {unableToConfirm}. {u.scoreNote}</p>}<p>{t.next}</p><Link className="lc-secondary" href="/dashboard">{t.signIn}</Link></section>}
+    {result && <section className="lc-scan-results" aria-live="polite"><div className="lc-scan-visual"><div className="lc-meter" style={{"--score":result.overallScore} as React.CSSProperties}><div className="lc-meter-core"><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div></div><div><h2>{t.score}</h2><p>SEO {dimensionScoreText(result as never,"seo",locale)} · GEO {dimensionScoreText(result as never,"geo",locale)} · Security {result.security?.score ?? "—"} · {issues} {t.issues.toLowerCase()}</p><ScoreQualifier result={result as never} locale={locale}/></div></div><div className="lc-grid"><div className="lc-card"><strong>SEO</strong>{dimensionScoreText(result as never,"seo",locale)}/100</div><div className="lc-card"><strong>GEO</strong>{dimensionScoreText(result as never,"geo",locale)}/100</div><div className="lc-card"><strong>Security</strong>{result.security?.score ?? "—"}/100</div><div className="lc-card"><strong>{t.issues}</strong>{issues}</div></div><p>{t.success}: {passed}</p>{(notApplicable > 0 || unableToConfirm > 0) && <p className="lc-note">{u.na}: {notApplicable} · {u.unconfirmed}: {unableToConfirm}. {u.scoreNote}</p>}<p>{t.next}</p><Link className="lc-secondary" href="/dashboard">{t.signIn}</Link></section>}
   </div>;
 }

@@ -1,0 +1,40 @@
+name: RankFix QA Sector Validation
+
+on:
+  push:
+    branches:
+      - qa/homepage-multipage-sector-20261023
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      DATABASE_URL: "postgresql://rankfix:rankfix@127.0.0.1:5432/rankfix_ci"
+      SESSION_SECRET: "qa-ci-placeholder-not-for-production"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: New sector regression tests
+        run: node --experimental-strip-types --test tests/site-sector-corroboration.test.mjs
+      - name: Existing regression suite
+        run: npm test
+      # Next.js 16 provides the global LayoutProps/ PageProps types through
+      # generated .next/types. Running tsc on a clean checkout without typegen
+      # incorrectly reports LayoutProps as missing; fix the order, not app code.
+      - name: Generate Next.js route/layout types
+        run: npx next typegen
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+      - name: Next.js production build (no deploy)
+        run: npm run build

@@ -1,0 +1,247 @@
+{
+  "id": "round-a",
+  "description": "Retail, vastgoed en industriële organisaties",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "NL",
+      "group": "ecommerce",
+      "name": "bol",
+      "hosts": [
+        "bol.com"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "ecommerce",
+      "name": "Coolblue",
+      "hosts": [
+        "coolblue.nl"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "real_estate",
+      "name": "Vesteda",
+      "hosts": [
+        "vesteda.com"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "real_estate",
+      "name": "Funda",
+      "hosts": [
+        "funda.nl"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "manufacturing_industrial",
+      "name": "ASML",
+      "hosts": [
+        "asml.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "manufacturing_industrial",
+      "name": "Philips",
+      "hosts": [
+        "philips.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "ecommerce",
+      "name": "OTTO",
+      "hosts": [
+        "otto.de"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "ecommerce",
+      "name": "MediaMarkt",
+      "hosts": [
+        "mediamarkt.de"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "real_estate",
+      "name": "ImmoScout24",
+      "hosts": [
+        "immobilienscout24.de"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "real_estate",
+      "name": "Immowelt",
+      "hosts": [
+        "immowelt.de"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "manufacturing_industrial",
+      "name": "Bosch",
+      "hosts": [
+        "bosch.de"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "manufacturing_industrial",
+      "name": "Siemens",
+      "hosts": [
+        "siemens.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "ecommerce",
+      "name": "Colruyt",
+      "hosts": [
+        "colruyt.be"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "ecommerce",
+      "name": "Coolblue België",
+      "hosts": [
+        "coolblue.be"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "real_estate",
+      "name": "Immoweb",
+      "hosts": [
+        "immoweb.be"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "real_estate",
+      "name": "Zimmo",
+      "hosts": [
+        "zimmo.be"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "manufacturing_industrial",
+      "name": "Umicore",
+      "hosts": [
+        "umicore.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "manufacturing_industrial",
+      "name": "Agfa",
+      "hosts": [
+        "agfa.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "ecommerce",
+      "name": "Fnac",
+      "hosts": [
+        "fnac.com"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "ecommerce",
+      "name": "Darty",
+      "hosts": [
+        "darty.com"
+      ],
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "real_estate",
+      "name": "SeLoger",
+      "hosts": [
+        "seloger.com"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "real_estate",
+      "name": "Bien ici",
+      "hosts": [
+        "bienici.com"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "manufacturing_industrial",
+      "name": "Schneider Electric",
+      "hosts": [
+        "se.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "manufacturing_industrial",
+      "name": "Saint-Gobain",
+      "hosts": [
+        "saint-gobain.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

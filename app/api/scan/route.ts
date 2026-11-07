@@ -1,46 +1,130 @@
-import { decideCommerceModules } from "@/lib/sector-motor-decisions";
+import {metadataTopicMismatch} from "@/lib/metadata-alignment";
+import { readHeadDirectives } from "@/lib/head-directives";
+import { detectCmsSignatures } from "@/lib/cms-signatures";
+import { classifyLinkOutcome, findConflictingAnchorTargets, isErrorPagePath, isHiddenAnchor, LINK_RETRY_DELAY_MS } from "@/lib/link-audit-rules";
+import { compareBrowserUrls, type BrowserDiagnostics } from "@/lib/browser-diagnostics";
+import { TRADE_IDENTITY_PATTERN, TRADE_ACTIVITY_PATTERN, productSupplierOverridesTrade } from "@/lib/trade-identity";
+import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
+import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
+import { validJsonLdBlockTexts, hasExecutableScripts, microdataTypes, rdfaTypes } from "@/lib/structured-data-evidence";
+import { detectGoogleTagManager } from "@/lib/tag-manager";
+import { securityAccessibilityActions } from "@/lib/security-access-actions";
+import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
+import { hasLocalQaSession } from "@/lib/local-qa";
+import { scanRuntime } from "@/lib/scan-runtime";
+import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
+import { verifySectorWithAi, mediationRole } from "@/lib/ai-sector-verifier";
+import { aiContentText } from "@/lib/ai-content-text";
+import { LOCAL_TRADE_KEYS, declaredIndustryKeys, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
+import { decideCommerceModules, sectorConfidenceGuard } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { attachScanIncident, createScanTrace, type ScanTrace } from "@/lib/scan-incident";
+import { summarizeSiteAccess } from "@/lib/site-access";
+import { careersSiteIdentity } from "@/lib/careers-identity";
+import { buildSitewideIssues } from "@/lib/sitewide-issues";
+import { buildScoreScope } from "@/lib/score-scope";
+import { selectPageProduct } from "@/lib/product-provenance";
+import { resolveScanUser } from "@/lib/scan-session";
+import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
+import { fetchFailureCode, finishScanAttempt, startScanAttempt, tlsFailureReason, TLS_REASON_NL, dnsDomainMissing } from "@/lib/scan-attempts";
+import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage, detectProtectionProvider, isChallengeServerError } from "@/lib/access-diagnostics";
+import { jsonbStringify } from "@/lib/jsonb-safe";
+import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
+import { buildWebsiteProfile } from "@/lib/website-profile";
+import { comparisonPlatformIdentity } from "@/lib/platform-identity";
+import { checkoutActionInHtml, purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
+import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
+import { shopInfoSignals, sitewideShopInfo, type ShopInfoSignals } from "@/lib/shop-info-signals";
+import { summarizeProductHunt, productHuntSentence, type ProductHuntSummary, type ProductCandidateAudit } from "@/lib/product-hunt-diagnostics";
+import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
+import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
+import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
+import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
+import { explainCoreScore } from "@/lib/score-reconciliation";
+import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
+import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
+import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
+import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
-import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
+import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
+import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
+import { boundVisibleReviewText, findInertOrderButtons, findTestProducts, parseVisibleRating, parseVisibleReviewCount, reviewContradictions } from "@/lib/content-integrity";
+import { constructionGroupIdentity, missionOrganisationIdentity } from "@/lib/organisation-identity";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isGenericBrandTitle, invisibleTitleCharacters, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, sampleIdentityKey, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { COMMERCE_APPLICABILITY_COPY, hasTransportRetailChain, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, hasProductOffer, shopWordingApplies } from "@/lib/commerce-applicability";
+import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { jsonLdInjectorSignals, structuredDataAbsence, structuredDataUnprovenMessage } from "@/lib/structured-data-evidence";
+import { applyEvidenceBasedScoreCap, capPerfectScore, dimensionEvidence, evidenceGradeBasis, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
-import { isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
+import { pageIdentityType } from "@/lib/page-identity";
+import { nominateProductCards } from "@/lib/product-nomination";
+import { countIndependentProducts, subscriptionPriced, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
-import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount, internalLinkCount, MIN_REFUSAL_RECOVERY_LINKS } from "@/lib/render-quality";
+import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeLocationPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasTypedLocalEntitySchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
-import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from "@/lib/eu-identity";
-import { enforceReportConsistency } from "@/lib/report-consistency";
-import { measureWebsiteSpeed } from "@/lib/pagespeed";
+import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience, stripMarketMentions } from "@/lib/eu-identity";
+import { enforceReportConsistency, isNonLocalSector } from "@/lib/report-consistency";
+import { normalizeSchemaType, schemaTypesOf } from "@/lib/schema-type";
+import { sectionCoverage } from "@/lib/section-coverage";
+import { ALTERNATE_START_CODES, locValues, pickAlternateStartUrls, sitemapUrlsFromRobots } from "@/lib/alternate-start";
+import { decideSalesChannel } from "@/lib/sales-channel";
+import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
+
+// Either of two patterns (keeps an existing pattern and adds a shared lexicon).
+// Activities whose primary website purpose is booking (stay, table, salon
+// appointment, rental, event ticket). Elsewhere booking is a secondary capability.
+const BOOKING_PRIMARY_KEYS = new Set(["hotel", "bed_breakfast", "holiday_rental", "holiday_park", "camping", "travel", "car_rental", "restaurant", "cafe_bar", "beauty_salon", "hair_salon", "fitness", "events", "parking", "coworking"]);
+// Paths of editorial or reference content: articles, news, blogs, client cases
+// and sector/industry pages. Their link texts name other businesses.
+const editorialLinkPath = (url: string) => {
+  let path = "";
+  try { path = new URL(url).pathname; } catch { return false; }
+  return /\/(?:nieuws|news|artikel(?:en)?|articles?|blog|blogs|magazine|verhalen|stories|story|cases?|klanten|clients|customers|referenties|sectoren|sector|industries|industry|branchen|nachrichten|actualites|actualit[eé]s|noticias|notizie)(?:\/|$)/iu.test(path)
+    || /\/\d{5,}(?:[\/-]|$)/.test(path);
+};
+const PASSENGER_CARRIER_KEYS = /^(?:passenger_transport|airline|airports|public_transport)$/;
+const unionPattern = (a: RegExp, b: RegExp) => new RegExp(`(?:${a.source})|(?:${b.source})`, "iu");
 
 export const maxDuration = 300;
+// Controlled stop before the platform limit (maxDuration). The scan answers with
+// SCAN_TIMEOUT instead of being killed without a response. Overridable for tests.
+const SCAN_HARD_LIMIT_MS = (() => { const v = Number(process.env.RANKFIX_SCAN_HARD_LIMIT_MS); return Number.isFinite(v) && v >= 5_000 && v <= 285_000 ? v : 270_000; })();
+const scanTimeoutMessages: Record<string, string> = {
+  nl: "De scan is gestopt omdat de website te traag reageerde om binnen de tijdslimiet volledig te analyseren. Er is geen score berekend en de scan is niet in rekening gebracht. Probeer het later opnieuw.",
+  en: "The scan was stopped because the website responded too slowly to be analysed within the time limit. No score was calculated and the scan was not charged. Please try again later.",
+  de: "Der Scan wurde gestoppt, weil die Website zu langsam antwortete, um sie im Zeitlimit vollständig zu analysieren. Es wurde kein Score berechnet und der Scan wurde nicht berechnet.",
+  fr: "L'analyse a été arrêtée car le site répondait trop lentement pour être analysé dans le délai imparti. Aucun score n'a été calculé et l'analyse n'a pas été facturée.",
+  it: "La scansione è stata interrotta perché il sito rispondeva troppo lentamente per essere analizzato entro il limite di tempo. Nessun punteggio calcolato e scansione non addebitata.",
+  es: "El análisis se detuvo porque el sitio respondía demasiado lento para analizarlo dentro del límite de tiempo. No se calculó ninguna puntuación y no se cobró el análisis.",
+};
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -102,10 +186,10 @@ type Check = {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   confidence: "high" | "medium" | "low";
   rootCause?: string;
-  reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain";
+  reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain" | "access_refused";
   impactClaim: "proven_impact" | "best_practice" | "hygiene";
   formKind?: "contact" | "appointment" | "booking" | "quote" | "checkout" | "newsletter" | "login" | "search";
-  evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string };
+  evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string; source?: EvidenceSource };
   fix_category: "A" | "B" | "C";
 };
 
@@ -115,6 +199,9 @@ const safeDecodeURIComponent = (value: string) => {
   try { return decodeURIComponent(value); } catch { return value; }
 };
 
+// Legal and policy pages in the main EU languages (one list for typing and ranking).
+const LEGAL_PATH_SEGMENT = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|terms-of-service|conditions-of-use|voorwaarden|algemene-voorwaarden|gebruiksvoorwaarden|leveringsvoorwaarden|verkoopvoorwaarden|retourvoorwaarden|agb|nutzungsbedingungen|conditions-generales|conditions-generales-de-vente|cgv|cgu|mentions-legales|condiciones|terminos|terminos-y-condiciones|aviso-legal|condizioni|termini|note-legali|cookie|cookies|cookie-policy|cookiebeleid|cookieverklaring|cookie-statement|privacy-statement|privacystatement|privacy-verklaring|privacyreglement|privacy-notice|disclaimer|legal|impressum|toegankelijkheid|toegankelijkheidsverklaring|digitale-toegankelijkheid|digitale-toegankelijkheidsverklaring|accessibility|accessibility-statement|barrierefreiheit|erklaerung-zur-barrierefreiheit|barrierefreiheitserklaerung|accessibilite|declaration-accessibilite|accessibilita|dichiarazione-accessibilita|accesibilidad|declaracion-de-accesibilidad)$/i;
+
 const stripHtml = (html: string) =>
   html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -123,6 +210,9 @@ const stripHtml = (html: string) =>
     .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
+    // QA #203: WooCommerce and many CMSs print prices as "&euro;&nbsp;34,00" or
+    // "&#8364; 34". Undecoded entities hid every visible price on those shops.
+    .replace(/&(?:euro|pound|dollar|yen|#8364|#x20ac|#163|#xa3|#36|#x24|#165);/gi, (entity) => decodeHtmlEntities(entity))
     .replace(/\s+/g, " ")
     .trim();
 
@@ -178,6 +268,12 @@ function check(
   };
 }
 
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
 function grade(score: number) {
   return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E";
 }
@@ -196,7 +292,8 @@ function canonicalEquivalent(canonical: URL, page: URL): boolean {
 
 function normalizeScanUrl(value: string) {
   try {
-    const url = new URL(value);
+    // One tracking-parameter list for selection, dedupe and canonical comparison.
+    const url = new URL(stripTrackingParams(value));
     url.hash = "";
     url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
@@ -222,6 +319,41 @@ type TechnologyProfile = {
   /** One entry per detected technology, each with its own evidence and confidence. */
   technologies: Array<{ name: string; role: "cms" | "commerce_platform" | "framework"; confidence: number; evidence: string[] }>;
 };
+
+// 31 Oct (PDF P3: TYPO3, Framer, Kolibri and Bloomreach were in the HTML but not
+// recognised). One UNIQUE signature is enough: the generator meta tag, a
+// platform-specific asset path, a response header or a platform footer credit
+// link. The platform name in ordinary text never counts.
+const CMS_SIGNATURES: Array<{ name: string; patterns: RegExp[] }> = [
+  { name: "TYPO3", patterns: [/<meta[^>]+name=["']generator["'][^>]+typo3/i, /\/typo3conf\//i, /\/typo3temp\//i, /\/typo3\/sysext\//i] },
+  { name: "Drupal", patterns: [/<meta[^>]+name=["']generator["'][^>]+drupal/i, /x-generator:\s*drupal/i, /\/sites\/default\/files\//i, /drupal-settings-json/i] },
+  { name: "Joomla", patterns: [/<meta[^>]+name=["']generator["'][^>]+joomla/i, /\/media\/jui\//i, /\/media\/system\/js\/core(?:\.min)?\.js/i] },
+  { name: "Framer", patterns: [/<meta[^>]+name=["']generator["'][^>]+framer/i, /framerusercontent\.com/i, /\bdata-framer-[a-z-]+=/i] },
+  { name: "Bloomreach (Hippo)", patterns: [/\/binaries\/content\/gallery\//i, /\/site\/binaries\/content\//i, /<meta[^>]+name=["']generator["'][^>]+(?:hippo|bloomreach|brxm)/i] },
+  { name: "Kolibri", patterns: [/<meta[^>]+name=["']generator["'][^>]+kolibri/i, /(?:websites?|software|powered by|realisatie|gemaakt door|ontwikkeld door|ontwerp)[^<]{0,120}<a[^>]+href=["'][^"']*kolibri/i, /<a[^>]+href=["'][^"']*kolibri[^"']*["'][^>]*>[^<]{0,80}(?:websites?|software|kolibri)/i] },
+  { name: "Sitecore", patterns: [/<meta[^>]+name=["']generator["'][^>]+sitecore/i, /\/-\/media\/[^"'\s]+\?(?:h|w|la|rev|hash)=/i, /x-sitecore/i] },
+  { name: "Adobe Experience Manager", patterns: [/\/etc\.clientlibs\//i, /\/content\/dam\/[^"'\s]+\.(?:jpe?g|png|webp|svg|pdf)/i] },
+  { name: "Umbraco", patterns: [/<meta[^>]+name=["']generator["'][^>]+umbraco/i, /\/umbraco\/(?:api|surface)\//i] },
+  { name: "Kentico", patterns: [/<meta[^>]+name=["']generator["'][^>]+kentico/i, /\/CMSPages\/GetResource\.ashx/i, /\/kentico\//i] },
+  { name: "Craft CMS", patterns: [/x-powered-by:\s*craft cms/i, /\/cpresources\//i] },
+  { name: "Ghost", patterns: [/<meta[^>]+name=["']generator["'][^>]+ghost/i, /\/ghost\/api\//i] },
+  { name: "HubSpot CMS", patterns: [/<meta[^>]+name=["']generator["'][^>]+hubspot/i, /\/hs-fs\/hubfs\//i, /\.hubspotusercontent[\w-]*\.(?:net|com)\//i] },
+  { name: "Contentful", patterns: [/images\.ctfassets\.net\//i] },
+  { name: "Storyblok", patterns: [/a\.storyblok\.com\//i] },
+  { name: "Jimdo", patterns: [/<meta[^>]+name=["']generator["'][^>]+jimdo/i, /\.jimstatic\.com\//i] },
+  { name: "Concrete CMS", patterns: [/<meta[^>]+name=["']generator["'][^>]+concrete/i] },
+];
+/** The CMS whose unique signature matches (generator meta, asset path, header, credit link). */
+function detectCmsSignature(html: string, headerText = ""): { name: string; evidence: string } | null {
+  const source = html.slice(0, 1_500_000);
+  for (const cms of CMS_SIGNATURES) {
+    for (const pattern of cms.patterns) {
+      const target = /^x-|x-generator|x-powered-by|x-sitecore/.test(pattern.source) ? headerText : source;
+      if (pattern.test(target)) return { name: cms.name, evidence: `${cms.name}: ${/generator/.test(pattern.source) ? "generator-tag" : /href/.test(pattern.source) ? "credit-link in footer" : /x-/.test(pattern.source) ? "response-header" : "platformspecifiek assetpad"}` };
+    }
+  }
+  return null;
+}
 
 function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
   const source = html.toLowerCase();
@@ -264,6 +396,24 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     hit(/prestashop/i, "PrestaShop marker"),
     hit(/\/modules\/(?:ps_|blockcart|blockreassurance)/i, "PrestaShop module assets"),
   ].filter(Boolean).length;
+  // QA #204: more EU shop platforms, each from platform-specific asset paths or
+  // runtime markers only (never from the platform name in text).
+  const openCartSignals = [
+    hit(/catalog\/view\/(?:theme|javascript)\//i, "OpenCart catalog assets"),
+    hit(/index\.php\?route=(?:product\/|checkout\/|common\/home|account\/)/i, "OpenCart route URLs"),
+  ].filter(Boolean).length;
+  const shopwareSignals = [
+    hit(/\/bundles\/storefront\//i, "Shopware storefront bundle"),
+    hit(/(?:data-shopware|sw-csrf|shopware-plugins|window\.router\s*=\s*\{[^}]*frontend\.)/i, "Shopware runtime"),
+  ].filter(Boolean).length;
+  const lightspeedSignals = [
+    hit(/(?:cdn\.webshopapp\.com|assets\.webshopapp\.com|static\.webshopapp\.com)/i, "Lightspeed eCom assets"),
+  ].filter(Boolean).length;
+  const ccvSignals = [
+    hit(/(?:ccvshop\.(?:nl|be|eu)\/|\/Plugins\/CCVShop|class=["'][^"']*ccvshop)/i, "CCV Shop assets"),
+  ].filter(Boolean).length;
+  // Product images served from Shopify's file store (cdn.shopify.com/s/files/...).
+  const shopifyFileMedia = new Set([...source.matchAll(/cdn\.shopify\.com\/s\/files\/[^"'\s)]+/gi)].map((m) => m[0])).size;
   const bigCommerceSignals = [
     hit(/(?:bigcommerce|cdn\d*\.bigcommerce\.com|stencil-utils)/i, "BigCommerce storefront"),
   ].filter(Boolean).length;
@@ -310,6 +460,17 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (!strongShopify && shopifyHeadless && (shopifyCdn || shopifyDomain)) platformCandidates.push({ name: "Shopify (headless)", strength: 1.5 });
   if (!strongWoo && wooHeadless) platformCandidates.push({ name: "WooCommerce (headless)", strength: 1.5 });
   if (strongPrestaShop) platformCandidates.push({ name: "PrestaShop", strength: Math.max(2, prestashopSignals) });
+  if (openCartSignals >= 2 || (openCartSignals >= 1 && /catalog\/view\/theme\//i.test(source))) platformCandidates.push({ name: "OpenCart", strength: Math.max(2, openCartSignals) });
+  if (shopwareSignals >= 1 && /\/bundles\/storefront\//i.test(source)) platformCandidates.push({ name: "Shopware", strength: Math.max(2, shopwareSignals) });
+  if (lightspeedSignals >= 1) platformCandidates.push({ name: "Lightspeed eCom", strength: 2 });
+  if (ccvSignals >= 1) platformCandidates.push({ name: "CCV Shop", strength: 2 });
+  // Headless Shopify (QA #203): a JavaScript storefront whose own product images
+  // come from Shopify's file store, on a page with commerce signals. One CDN image
+  // on a brochure site, or CDN files without a shop, are not enough. Probable only.
+  if (!strongShopify && !shopifyHeadless && shopifyFileMedia >= 2 && commerceSignal && (nextSignals || nuxtSignals || /(?:___gatsby|__remixContext|data-astro-cid|ng-version=)/i.test(source))) {
+    evidence.push(`Shopify-bestandsopslag voor ${shopifyFileMedia} productafbeeldingen op een JavaScript-storefront`);
+    platformCandidates.push({ name: "Shopify (headless)", strength: 1.25 });
+  }
   if (strongBigCommerce) platformCandidates.push({ name: "BigCommerce", strength: Math.max(2, bigCommerceSignals) });
 
   platformCandidates.sort((a, b) => b.strength - a.strength);
@@ -325,8 +486,29 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "\\n" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
   if (squarespaceSignals && /(?:static\d*\.squarespace\.com|squarespace-cdn|squarespace\.com\/universal\/scripts)/i.test(source)) { cms = "Squarespace"; strongest = Math.max(strongest, 2); }
   if (webflowSignals && /(?:data-wf-page|webflow\.js|website-files\.com)/i.test(source)) { cms = "Webflow"; strongest = Math.max(strongest, 2); }
+  let signatureCms = false;
+  if (!cms) {
+    const signature = detectCmsSignature(html, headerText);
+    if (signature) { cms = signature.name; evidence.push(signature.evidence); strongest = Math.max(strongest, 2); signatureCms = true; }
+  }
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
   else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
+
+  // Generic signature detection (generator meta, unique asset paths, response headers).
+  // Fills only labels the legacy detection left empty, so existing results stay stable.
+  const extraSignatures = detectCmsSignatures(html, Object.fromEntries(headers.entries()));
+  const extraCms = extraSignatures.find((entry) => entry.role === "cms" || entry.role === "site_builder");
+  const extraFramework = extraSignatures.find((entry) => entry.role === "framework");
+  if (!cms && extraCms && extraCms.strength >= 2) {
+    cms = extraCms.name;
+    strongest = Math.max(strongest, extraCms.strength);
+    extraCms.evidence.forEach((label) => evidence.push(`${extraCms.name}: ${label}`));
+  }
+  if (!framework && extraFramework && extraFramework.strength >= 2) {
+    framework = extraFramework.name;
+    strongest = Math.max(strongest, extraFramework.strength);
+    extraFramework.evidence.forEach((label) => evidence.push(`${extraFramework.name}: ${label}`));
+  }
 
   const isCommerce = Boolean(commercePlatform || commerceSignal);
   if (!commercePlatform && isCommerce) {
@@ -340,18 +522,24 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   // Score confidence per displayed label. Do not let a strong marker for one
   // technology accidentally inflate the confidence of another label (for example
   // a framework marker making an otherwise weak CMS detection look certain).
+  const extraCmsStrength = extraCms && cms === extraCms.name ? extraCms.strength : 0;
   const cmsStrength = cms === "WordPress" ? wordpressSignals
-    : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" ? 2
-    : 0;
-  const commerceStrength = /headless/.test(commercePlatform || "") ? 1.5
+    : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" || signatureCms ? 2
+    : extraCmsStrength;
+  const commerceStrength = commercePlatform === "Shopify (headless)" && !shopifyHeadless ? 1.25
+    : /headless/.test(commercePlatform || "") ? 1.5
     : commercePlatform === "WooCommerce" ? Math.max(2, wooSignals + Math.min(wordpressSignals, 1))
     : commercePlatform === "Shopify" ? shopifySignals
     : commercePlatform === "Magento / Adobe Commerce" ? magentoSignals
     : commercePlatform === "PrestaShop" ? Math.max(2, prestashopSignals)
     : commercePlatform === "BigCommerce" ? Math.max(2, bigCommerceSignals)
+    : commercePlatform === "OpenCart" ? Math.max(2, openCartSignals)
+    : commercePlatform === "Shopware" ? Math.max(2, shopwareSignals)
+    : commercePlatform === "Lightspeed eCom" || commercePlatform === "CCV Shop" ? 2
     : 0;
   const frameworkStrength = framework === "Next.js" ? nextSignals
     : framework === "Nuxt" ? nuxtSignals
+    : extraFramework && framework === extraFramework.name ? extraFramework.strength
     : 0;
   const confirmedLabelStrength = Math.max(
     commerceStrength,
@@ -386,11 +574,18 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
       if (label.startsWith("Shopify") && !String(commercePlatform || "").startsWith("Shopify")) return false;
       if (label.startsWith("PrestaShop") && commercePlatform !== "PrestaShop") return false;
       if (label.startsWith("BigCommerce") && commercePlatform !== "BigCommerce") return false;
+      if (label.startsWith("OpenCart") && commercePlatform !== "OpenCart") return false;
+      if (label.startsWith("Shopware") && commercePlatform !== "Shopware") return false;
+      if (label.startsWith("Lightspeed") && commercePlatform !== "Lightspeed eCom") return false;
+      if (label.startsWith("CCV") && commercePlatform !== "CCV Shop") return false;
+      if (label.startsWith("Shopify-bestandsopslag") && commercePlatform !== "Shopify (headless)") return false;
       if (label.startsWith("Wix") && cms !== "Wix") return false;
       if (label.startsWith("Squarespace") && cms !== "Squarespace") return false;
       if (label.startsWith("Webflow") && cms !== "Webflow") return false;
       if (label.startsWith("Next.js") && framework !== "Next.js") return false;
       if (label.startsWith("Nuxt") && framework !== "Nuxt") return false;
+      if (extraCms && label.startsWith(`${extraCms.name}:`) && cms !== extraCms.name) return false;
+      if (extraFramework && label.startsWith(`${extraFramework.name}:`) && framework !== extraFramework.name) return false;
       return true;
     }).slice(0, 8),
   };
@@ -402,13 +597,22 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
  * category. A row that stays "running" means the platform killed the function
  * (timeout). Best effort: logging never changes the scan response.
  */
+function schemaRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+function schemaTypeValues(value: Record<string, unknown>): unknown[] {
+  const types = value["@type"];
+  return Array.isArray(types) ? types : [types];
+}
+
 export async function POST(request: Request) {
+  const localQa = await hasLocalQaSession(request);
   const attemptStarted = Date.now();
   let requestedUrl = "";
   try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
   let attemptId: string | null = null;
   try {
-    const user = requestedUrl ? await getCurrentUser() : null;
+    const user = !localQa && requestedUrl ? await getCurrentUser() : null;
     if (user) {
       await ensureDatabase();
       attemptId = await startScanAttempt(getDb(), user.id, requestedUrl);
@@ -416,14 +620,47 @@ export async function POST(request: Request) {
   } catch (error) {
     console.warn("RankFix scan attempt log unavailable", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
   }
-  const response = await runScan(request);
+  // Hard stop: whatever phase is still running (a hanging render, a slow page),
+  // the client gets a controlled answer before the platform kills the function.
+  const clock = { expired: false };
+  let peekLanguage = "nl";
+  try { const peek = await request.clone().json(); if (typeof peek?.language === "string" && scanTimeoutMessages[peek.language]) peekLanguage = peek.language; } catch {}
+  let hardStopTimer: ReturnType<typeof setTimeout> | undefined;
+  const hardStop = new Promise<Response>((resolve) => {
+    hardStopTimer = setTimeout(() => {
+      clock.expired = true;
+      console.warn("RankFix scan stopped at the hard time limit", { limitMs: SCAN_HARD_LIMIT_MS, page: requestedUrl.slice(0, 200) });
+      resolve(NextResponse.json({ error: scanTimeoutMessages[peekLanguage], code: "SCAN_TIMEOUT", retryable: true, charged: false, limitSeconds: Math.round(SCAN_HARD_LIMIT_MS / 1000) }, { status: 503 }));
+    }, Math.max(1_000, SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted)));
+  });
+  // One trace per request: website status, API status, reason code, phase and
+  // browser attempt stay separate in every error answer (incident) and log.
+  const trace = createScanTrace(requestedUrl);
+  const requestBody = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
+  let rawResponse = await Promise.race([runScan(request, clock, trace), hardStop]);
+  if (hardStopTimer) clearTimeout(hardStopTimer);
+  // Homepage refused RankFix or did not answer: try a public page the site itself
+  // publishes in its sitemap as start page (partial report, clearly labelled).
+  try {
+    const alternate = await tryAlternateStart(request, requestBody, rawResponse, clock, attemptStarted);
+    if (alternate) rawResponse = alternate;
+  } catch (error) {
+    console.warn("RankFix alternate start failed", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
+  let response = rawResponse;
+  try { response = await attachScanIncident(rawResponse, trace); } catch (error) {
+    console.warn("RankFix scan incident attach failed", { traceId: trace.traceId, message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
+  if (!response.ok) console.info("RankFix scan incident", { traceId: trace.traceId, apiHttpStatus: response.status, originHttpStatus: trace.originHttpStatus, phase: trace.phase, page: trace.requestedUrl.slice(0, 200) });
   if (attemptId) {
     try {
       const body = await response.clone().json().catch(() => ({} as Record<string, unknown>));
       await finishScanAttempt(getDb(), attemptId, {
         httpStatus: response.status,
         code: response.status === 200 ? null : (typeof body?.code === "string" ? body.code : null),
-        error: response.status === 200 ? null : String(body?.error || "").slice(0, 300),
+        // A failed save stores its stage and database cause (no secrets), so the
+        // cause can be read back afterwards without platform logs.
+        error: response.status === 200 ? null : `${String(body?.error || "").slice(0, 160)}${body?.saveFailure && typeof body.saveFailure === "object" ? ` [save ${JSON.stringify(body.saveFailure).slice(0, 135)}]` : ""}`.slice(0, 300),
         durationMs: Date.now() - attemptStarted,
         finalUrl: typeof body?.finalUrl === "string" ? body.finalUrl : null,
         scanId: typeof body?.scanId === "string" ? body.scanId : null,
@@ -435,7 +672,67 @@ export async function POST(request: Request) {
   return response;
 }
 
-async function runScan(request: Request) {
+const localRateBuckets = new Map<string, number[]>();
+function localMemoryRateLimit(key: string, limit: number, windowSeconds: number) {
+  const now = Date.now(); const windowMs = windowSeconds * 1000;
+  const hits = (localRateBuckets.get(key) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= limit) { localRateBuckets.set(key, hits); return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((windowMs - (now - hits[0])) / 1000)) }; }
+  hits.push(now); localRateBuckets.set(key, hits); return { allowed: true, retryAfterSeconds: 0 };
+}
+
+async function tryAlternateStart(request: Request, body: Record<string, unknown> | null, first: Response, clock: { expired: boolean }, attemptStarted: number): Promise<Response | null> {
+  if (first.status !== 422 || clock.expired) return null;
+  const failed = await first.clone().json().catch(() => null) as Record<string, unknown> | null;
+  const code = typeof failed?.code === "string" ? failed.code : "";
+  if (!ALTERNATE_START_CODES.has(code)) return null;
+  const requested = typeof body?.url === "string" ? body.url.trim() : "";
+  let origin: URL;
+  try { origin = new URL(/^https?:\/\//i.test(requested) ? requested : `https://${requested}`); } catch { return null; }
+  if ((origin.pathname.replace(/\/+$/, "") || "/") !== "/" || origin.search) return null;
+  const remaining = () => SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted);
+  if (remaining() < 120_000) return null;
+  const read = async (url: string, accept: string) => {
+    try {
+      const r = (await safePublicFetch(new URL(url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept })).response;
+      if (!r.ok) { try { await r.body?.cancel(); } catch {} return ""; }
+      return await readResponseTextLimited(r, 2_000_000);
+    } catch { return ""; }
+  };
+  const robots = await read(`${origin.origin}/robots.txt`, "text/plain");
+  const pageUrls: string[] = [];
+  for (const sitemap of sitemapUrlsFromRobots(robots, origin.origin).slice(0, 3)) {
+    if (pageUrls.length >= 50 || remaining() < 110_000) break;
+    const parsed = locValues(await read(sitemap, "application/xml,text/xml"));
+    if (parsed.kind === "urlset") pageUrls.push(...parsed.locs.slice(0, 200));
+    else if (parsed.kind === "sitemapindex") {
+      const child = [...parsed.locs].sort((a, b) => Number(!/(?:page|categor|product|collection|content|service)/i.test(a)) - Number(!/(?:page|categor|product|collection|content|service)/i.test(b)))[0];
+      if (child) { const inner = locValues(await read(child, "application/xml,text/xml")); if (inner.kind === "urlset") pageUrls.push(...inner.locs.slice(0, 200)); }
+    }
+  }
+  for (const candidate of pickAlternateStartUrls(pageUrls, origin.hostname, 2)) {
+    if (remaining() < 100_000 || clock.expired) break;
+    const retry = new Request(request.url, { method: "POST", headers: request.headers, body: JSON.stringify({ ...(body || {}), url: candidate }) });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), Math.max(1_000, remaining() - 10_000)); });
+    const result = await Promise.race([runScan(retry, clock, createScanTrace(candidate)), limit]);
+    if (timer) clearTimeout(timer);
+    if (!result || !result.ok) continue;
+    const json = await result.json().catch(() => null) as ({ success?: boolean; alternateStart?: unknown; scoreModel?: { evidenceLevel?: string; evidenceReasons?: string[] } } & Record<string, unknown>) | null;
+    if (!json?.success) continue;
+    const reason = code === "HTTP_BLOCKED" || code === "CHALLENGE_OR_INTERSTITIAL" ? "weigerde RankFix" : "antwoordde niet op tijd";
+    json.alternateStart = { requestedUrl: origin.toString(), reasonCode: code, originHttpStatus: typeof failed?.httpStatus === "number" ? failed.httpStatus : null, startUrl: candidate, source: "sitemap",
+      note: `De homepage ${reason} (${code}). RankFix startte daarom op een openbare pagina uit de sitemap van de website: ${candidate}. Dit is een gedeeltelijk rapport; de homepage zelf is niet gecontroleerd.` };
+    if (json.scoreModel) {
+      if (json.scoreModel.evidenceLevel === "complete") json.scoreModel.evidenceLevel = "provisional";
+      json.scoreModel.evidenceReasons = [...(json.scoreModel.evidenceReasons || []), `Homepage ${reason} (${code}); rapport gestart vanaf ${candidate}`];
+    }
+    return NextResponse.json(json, { status: 200 });
+  }
+  return null;
+}
+
+async function runScan(request: Request, clock: { expired: boolean } = { expired: false }, trace: ScanTrace = createScanTrace("")) {
+  const localQa = await hasLocalQaSession(request);
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
@@ -447,12 +744,12 @@ async function runScan(request: Request) {
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
-      nl:{url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
-      en:{url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
-      de:{url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
-      fr:{url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
-      it:{url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
-      es:{url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
+      nl:{authUnavailable:"RankFix kon je inlogstatus tijdelijk niet controleren (database of verbinding). Dit is een RankFix-probleem, niet van de website. Er is niets in rekening gebracht; probeer opnieuw.",url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
+      en:{authUnavailable:"RankFix could not verify your login right now (database or connection). This is a RankFix problem, not the website. You were not charged; try again.",url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
+      de:{authUnavailable:"RankFix konnte deine Anmeldung gerade nicht prüfen (Datenbank oder Verbindung). Das ist ein RankFix-Problem, nicht der Website. Es wurde nichts berechnet; versuche es erneut.",url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
+      fr:{authUnavailable:"RankFix n’a pas pu vérifier votre connexion pour le moment (base de données ou réseau). Il s’agit d’un problème RankFix, pas du site. Aucun frais ; réessayez.",url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
+      it:{authUnavailable:"RankFix non è riuscito a verificare l’accesso (database o connessione). È un problema di RankFix, non del sito. Nessun addebito; riprova.",url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
+      es:{authUnavailable:"RankFix no pudo verificar tu sesión ahora mismo (base de datos o conexión). Es un problema de RankFix, no del sitio. Sin cargos; inténtalo de nuevo.",url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
     };
     const scanError = errors[scanLanguage];
     const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
@@ -486,6 +783,8 @@ async function runScan(request: Request) {
     } catch {
       return NextResponse.json({ error: scanError.unsafe, code: "UNSAFE_URL" }, { status: 400 });
     }
+    trace.normalizedUrl = target.toString();
+    if (!trace.requestedUrl) trace.requestedUrl = rawUrl.slice(0, 500);
 
     // share.google is only a redirect resolver, never a scan target or evidence source.
     // Resolve it once before plan limits, history, scoring and reporting, then discard
@@ -513,9 +812,19 @@ async function runScan(request: Request) {
     // trigger network fetches and bounded browser rendering. Hourly limits come from
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
-    await ensureDatabase();
-    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    try { usageUser = await getCurrentUser(); } catch {}
+    trace.phase = "session";
+    // Local development without a database (a laptop check of the public scan):
+    // anonymous free scans run with an in-memory rate limit and are not stored.
+    // Never on Vercel or in production; dashboard scans still need the database.
+    const localNoDatabase = process.env.NODE_ENV === "development" && !process.env.VERCEL && !process.env.DATABASE_URL && !dashboardScan && !localQa;
+    if (!localQa && !localNoDatabase) await ensureDatabase();
+    // A database/connection failure while reading the session is a RankFix
+    // infrastructure problem, never "session expired" (QA 144: five sites).
+    const usageLookup = localQa || localNoDatabase ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
+    const usageUser: Awaited<ReturnType<typeof getCurrentUser>> = usageLookup.user;
+    if (dashboardScan && !localQa && usageLookup.lookupFailed) {
+      return NextResponse.json({ error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }, { status: 503 });
+    }
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     const planCode = usageUser
@@ -536,7 +845,9 @@ async function runScan(request: Request) {
     const enforceScanRateLimit = async () => {
       if (!scanRateLimit) return null;
       const identity = scanRateLimit.key === "user" ? String(usageUser?.id) : requestIp(request);
-      const result = await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
+      const result = localNoDatabase
+        ? localMemoryRateLimit(`${scanRateLimit.scope}:${identity}`, scanRateLimit.limit, scanRateLimit.windowSeconds)
+        : await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
       if (result.allowed) return null;
       return NextResponse.json(
         { error: scanRateLimitMessage(scanLanguage, result.retryAfterSeconds, scanRateLimit.key === "user"), code: scanRateLimit.code, retryAfterSeconds: result.retryAfterSeconds },
@@ -550,15 +861,16 @@ async function runScan(request: Request) {
 
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
-    if (dashboardScan) {
+    if (dashboardScan && !localQa) {
       if (!usageUser) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
-      const limits = planLimits(planCode);
+      // Private QA allowance, never exposed through the commercial plan catalog.
+      const limits = internalTestAccount ? { ...planLimits(planCode), websites: 500, scans: 2000 } : planLimits(planCode);
       const accountHosts = await getDb().query(
         "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
         [usageUser.id]
       );
       const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-      if (!internalTestAccount && !existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
+      if (!existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
         const websiteMessages: Record<string,string> = {
           nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
           en:`Your ${planCode} plan supports up to ${limits.websites} website(s). Upgrade your plan to manage more websites.`,
@@ -567,15 +879,15 @@ async function runScan(request: Request) {
           it:`Il piano ${planCode} supporta fino a ${limits.websites} sito/i. Effettua l’upgrade per gestire più siti.`,
           es:`Tu plan ${planCode} admite hasta ${limits.websites} sitio(s). Mejora tu plan para gestionar más sitios.`
         };
-        return NextResponse.json({error:websiteMessages[scanLanguage],code:"WEBSITE_LIMIT",usage:{plan:planCode,used:existingHosts.length,limit:limits.websites}},{status:403});
+        return NextResponse.json({error:websiteMessages[scanLanguage],code:"WEBSITE_LIMIT",usage:{plan:internalTestAccount?"internal-qa":planCode,used:existingHosts.length,limit:limits.websites}},{status:403});
       }
       const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-      const scanUsage = planCode==="free"
+      const scanUsage = planCode==="free" && !internalTestAccount
         ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
         : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
       const used = Number(scanUsage.rows[0]?.count || 0);
-      // Only an explicitly configured internal test account may bypass customer limits.
-      if (!internalTestAccount && used >= limits.scans) {
+      // Internal QA has finite, server-enforced allowances; customer limits remain unchanged.
+      if (used >= limits.scans) {
         const limitMessages: Record<string,string> = {
           nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
           en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,
@@ -584,7 +896,7 @@ async function runScan(request: Request) {
           it:`Le ${limits.scans} scansioni di questo mese sono state utilizzate. I rapporti esistenti restano disponibili.`,
           es:`Tus ${limits.scans} análisis de este mes ya se han utilizado. Tus informes existentes seguirán disponibles.`
         };
-        return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
+        return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:internalTestAccount?"internal-qa":planCode,used,limit:limits.scans}},{status:429});
       }
       if(planCode==="free"){
         const ip = requestIp(request);
@@ -597,7 +909,12 @@ async function runScan(request: Request) {
       if (limited) return limited;
     }
 
+    trace.phase = "fetch";
     const started = Date.now();
+    // Elapsed ms since scan start at the end of each major phase (AI trial 7 Nov:
+    // explain long scans without guessing).
+    const phaseMs: Record<string, number> = {};
+    const phaseMark = (name: string) => { phaseMs[name] = Date.now() - started; };
     // Whole-scan time budget (maxDuration = 300 s): no new browser render after
     // 180 s and no new sample page after 170 s, so every scan returns a report in
     // time instead of being killed by the platform with nothing stored.
@@ -606,9 +923,12 @@ async function runScan(request: Request) {
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
+    let primaryFetchAttempts = 0;
+    let hostFallback: { from: string; to: string; reason: string } | null = null;
+    let timeoutRecovery: { code: string; rendered: Awaited<ReturnType<typeof renderPublicPage>> } | null = null;
     try {
       let activeTarget = target;
-      const fetchOnce = () => safePublicFetch(activeTarget, { timeoutMs: 15000, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` });
+      const fetchOnce = (timeoutMs = 15000) => (primaryFetchAttempts++, safePublicFetch(activeTarget, { timeoutMs, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` }));
       // One retry for transient failures (timeout, reset connection, 502/503/504),
       // so a single slow response does not cost the whole scan.
       const fetchTarget = async () => {
@@ -623,11 +943,50 @@ async function runScan(request: Request) {
         return fetchOnce();
       };
       try {
-        ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        try {
+          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        } catch (dnsError) {
+          // QA 144: "hartlauer.at" had no DNS record while "www.hartlauer.at" can.
+          // QA 144 / 28 (25 Oct, laptop browser check): the bare domain of a salon
+          // accepted no HTTPS connection at all (a browser also hung >15 s) while
+          // "www." answered in 0.3 s. One attempt on the www/apex counterpart of the
+          // SAME site for a DNS failure, timeout or refused connection; never another
+          // site, never a different client identity. A refusal with an HTTP status
+          // (403/429…) is not covered here and stays a refusal.
+          const code = fetchFailureCode(dnsError);
+          if (!["FETCH_DNS", "FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code)) throw dnsError;
+          const host = activeTarget.hostname.toLowerCase();
+          const alternate = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+          if (!alternate.includes(".") || /^\d+(?:\.\d+){3}$/.test(host)) throw dnsError;
+          const original = activeTarget.toString();
+          const originalTarget = activeTarget;
+          activeTarget = validatePublicHttpUrl(`${activeTarget.protocol}//${alternate}${activeTarget.pathname}${activeTarget.search}`);
+          try {
+            // The first host already had two attempts after a timeout: the counterpart
+            // gets one short probe (≤ 5 s), preserving time for browser recovery.
+            const alternate = code === "FETCH_DNS" ? await fetchTarget() : await fetchOnce(5000);
+            // After a timeout the counterpart only replaces the entered address when
+            // it actually serves a page (2xx): a 404/403/5xx there says nothing about
+            // the address the customer entered.
+            if (code !== "FETCH_DNS" && !(alternate.response.status >= 200 && alternate.response.status < 300)) {
+              try { await alternate.response.body?.cancel(); } catch {}
+              throw dnsError;
+            }
+            ({ response, finalUrl: fetchedFinalUrl, redirectChain } = alternate);
+          } catch (alternateError) {
+            // Report the original failure for the address the customer entered.
+            activeTarget = originalTarget;
+            throw code === "FETCH_DNS" ? alternateError : dnsError;
+          }
+          hostFallback = { from: original, to: activeTarget.toString(), reason: code };
+          target = activeTarget;
+        }
       } catch (httpsError) {
         // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
         // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
-        if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:") {
+        // A timeout after two HTTPS attempts is a slow or silently filtering site,
+        // not an HTTP-only one: another 30 s on plain HTTP only delays the answer.
+        if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:" && fetchFailureCode(httpsError) !== "FETCH_TIMEOUT") {
           activeTarget = validatePublicHttpUrl(`http://${target.host}${target.pathname}${target.search}`);
           ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
           target = activeTarget;
@@ -651,18 +1010,63 @@ async function runScan(request: Request) {
       // A stable cause code (timeout, DNS, TLS, connection, redirect loop) so failed
       // scans can be counted and explained; the raw message stays in the log only.
       const code = fetchFailureCode(fetchError);
+      if (code === "SCAN_INFRASTRUCTURE_EGRESS") throw fetchError;
       console.info("RankFix primary fetch failed", { url: target.toString(), code, message: fetchError instanceof Error ? fetchError.message.slice(0, 200) : String(fetchError) });
-      return NextResponse.json(
-        { error: scanError.fetch, code },
+      // Some sites never answer a plain HTTP client but do serve a real browser
+      // (QA #186: two sites timed out on both attempts). Give a timeout or a dropped
+      // connection the same single, bounded browser visit that a 403 already gets.
+      // The browser identifies as RankFixBot and never solves challenges; a block
+      // or error page is not accepted as the website (isSubstantiveRender).
+      if (["FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code) && Date.now() - started < 75_000) {
+        trace.phase = "browser_render";
+        trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `PRIMARY_${code}` };
+        try {
+          const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
+          if (isSubstantiveRender(rendered.html, { afterRefusal: true, hostname: target.hostname })) {
+            trace.browserRender = { attempted: true, outcome: "recovered", reason: `PRIMARY_${code}_BROWSER_RECOVERY` };
+            timeoutRecovery = { code, rendered };
+            fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
+            redirectChain = [];
+          }
+        } catch (renderError) {
+          trace.browserRender = { attempted: true, outcome: "failed", reason: renderFailureCode(renderError) };
+          console.info("RankFix timeout recovery render failed", { url: target.toString(), reason: renderFailureCode(renderError) });
+        }
+      }
+      if (!timeoutRecovery && code === "FETCH_DNS" && dnsDomainMissing(fetchError)) {
+        const text = scanLanguage === "nl"
+          ? `Scan niet mogelijk: de domeinnaam ${target.hostname} heeft geen websiteadres (DNS: domein bestaat niet of heeft geen A/AAAA-record, ook niet met of zonder www). Controleer de URL of de DNS-instellingen. Er is geen score berekend.`
+          : `Scan not possible: the domain ${target.hostname} has no website address (DNS: the domain does not exist or has no A/AAAA record, also not with or without www). Check the URL or DNS settings. No score was calculated.`;
+        return NextResponse.json({ error: text, code: "SITE_DOMAIN_NOT_FOUND", diagnosis: diagnoseFetchFailure("FETCH_DNS", Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false }, { status: 422 });
+      }
+      if (!timeoutRecovery && code === "FETCH_TLS") {
+        // A provable certificate fault is the website's own problem; a handshake
+        // failure stays a network outcome (MKB-48, 6 Nov).
+        const tlsReason = tlsFailureReason(fetchError);
+        const siteFault = tlsReason !== "handshake";
+        const tlsCode = siteFault ? "SITE_TLS_INVALID" : "FETCH_TLS";
+        const tlsText = scanLanguage === "nl"
+          ? `Scan niet mogelijk: ${TLS_REASON_NL[tlsReason]}. Er is geen score berekend.`
+          : fetchFailureMessage("FETCH_TLS", scanLanguage, (Date.now() - started) / 1000) || scanError.fetch;
+        return NextResponse.json({ error: tlsText, code: tlsCode, tlsReason, diagnosis: diagnoseFetchFailure("FETCH_TLS", Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false }, { status: siteFault ? 422 : 502 });
+      }
+      if (!timeoutRecovery) return NextResponse.json(
+        { error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
         { status: 502 }
       );
+      // Placeholder for the unanswered request; content comes from the browser.
+      response = new Response(null, { status: 504 });
     }
 
     const responseTime = Date.now() - started;
+    // 504 is only the internal placeholder for "no answer" (timeout recovery).
+    trace.originHttpStatus = timeoutRecovery ? null : response.status;
     // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
     // is not a reliable source of the terminal URL. Always use the validated finalUrl
     // returned by safePublicFetch so share/short links are classified from the actual site.
-    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    let finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
     let primaryRenderAttempts = 0;
@@ -673,6 +1077,7 @@ async function runScan(request: Request) {
     }, 12000, 12000));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
+    phaseMark("homepageFetched");
     if (response.status === 429) {
       return NextResponse.json(
         { error: scanError.rate, code: "SITE_RATE_LIMITED", retryable: true, charged: false },
@@ -693,13 +1098,32 @@ async function runScan(request: Request) {
     };
     let recoveredHtml: string | null = null;
     let recoveredRenderElapsedMs: number | null = null;
+    if (timeoutRecovery) {
+      recovery.attempted = true;
+      recovery.browserRecovered = true;
+      recovery.limitedScope = true;
+      recovery.evidenceSource = "rendered_html";
+      recovery.reason = `PRIMARY_${timeoutRecovery.code}_BROWSER_RECOVERY`;
+      recoveredHtml = timeoutRecovery.rendered.html;
+      renderedDocument = timeoutRecovery.rendered;
+      recoveredRenderElapsedMs = timeoutRecovery.rendered.elapsedMs;
+    }
+    // A 404/410 on the HOMEPAGE of a live domain is implausible as "page does not
+    // exist" (QA 144: a retailer homepage answered 404 to RankFix in 270 ms). It gets
+    // the same single bounded browser check as a 403; an error page stays an error.
+    const rootNotFound = [404, 410].includes(response.status) && isSiteHomepagePath(finalUrl.pathname);
+    // A homepage 404/410 is verified separately below (own not-found body first,
+    // then one browser view), so a blocked view is never reported as "does not exist".
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
+      trace.phase = "browser_render";
+      trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `HTTP_${response.status}_RECOVERY` };
       try {
         const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
-        if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+        if (!isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
+          trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_RECOVERY` };
           recoveredHtml = recovered.html;
           renderedDocument = recovered;
           recoveredRenderElapsedMs = recovered.elapsedMs;
@@ -709,8 +1133,68 @@ async function runScan(request: Request) {
         }
       } catch (recoveryError) {
         recovery.reason = renderFailureCode(recoveryError);
+        trace.browserRender = { attempted: true, outcome: "failed", reason: recovery.reason };
         console.info("RankFix recovery render failed", { page: finalUrl.toString(), error: recoveryError instanceof Error ? recoveryError.message.slice(0, 200) : String(recoveryError) });
       }
+    }
+    // QA #204 (a large store's start page answered RankFix with HTTP 404 while
+    // its browser view was blocked): a site's ROOT that answers 404/410 to a
+    // plain request is rare and often protection. One ordinary browser visit
+    // decides: the real page (recovered, limited scope), the same not-found page
+    // (a confirmed 404), or no usable answer (not verifiable: no score, and not
+    // reported as a missing page). Never a bypass: one normal visit only.
+    let notFoundVerification: "not_root" | "confirmed" | "unverified" | "recovered" = "not_root";
+    if (!response.ok && !recoveredHtml && rootNotFound) {
+      // The site's own not-found page in the 404 body confirms it without a browser.
+      let notFoundBody = "";
+      try { notFoundBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 3000))]); } catch {}
+      const bodyText = stripHtml(notFoundBody).slice(0, 8000);
+      const bodyGate = notFoundBody ? classifyNonContentPage({ title: firstMatch(notFoundBody, /<title[^>]*>([\s\S]*?)<\/title>/i), text: bodyText, words: bodyText.split(/\s+/).filter(Boolean).length, html: notFoundBody }) : null;
+      if (bodyGate?.kind === "error" && !detectProtectionProvider(response.headers, notFoundBody)) notFoundVerification = "confirmed";
+    }
+    if (notFoundVerification === "not_root" && !response.ok && !recoveredHtml && rootNotFound) {
+      recovery.attempted = true;
+      trace.phase = "browser_render";
+      try {
+        const rendered = await renderPrimaryOnce();
+        const renderedTitle = firstMatch(rendered.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const renderedText = stripHtml(rendered.html).slice(0, 12000);
+        const renderedGate = classifyNonContentPage({ title: renderedTitle, text: renderedText, words: renderedText.split(/\s+/).filter(Boolean).length, html: rendered.html });
+        if (renderedGate?.kind === "error") {
+          notFoundVerification = "confirmed";
+          recovery.reason = "RENDER_CONFIRMS_NOT_FOUND";
+          trace.browserRender = { attempted: true, outcome: "not_substantive", reason: "RENDER_CONFIRMS_NOT_FOUND" };
+        } else if (!isSubstantiveRender(rendered.html, { afterRefusal: true, hostname: finalUrl.hostname }) || renderedGate) {
+          notFoundVerification = "unverified";
+          recovery.reason = renderedGate?.kind === "challenge" ? "RENDER_CHALLENGE" : "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+          trace.browserRender = { attempted: true, outcome: "not_substantive", reason: recovery.reason };
+        } else {
+          notFoundVerification = "recovered";
+          trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_ROOT_RECOVERY` };
+          recoveredHtml = rendered.html;
+          renderedDocument = rendered;
+          recoveredRenderElapsedMs = rendered.elapsedMs;
+          recovery.browserRecovered = true;
+          recovery.limitedScope = true;
+          recovery.evidenceSource = "rendered_html";
+        }
+      } catch (verifyError) {
+        notFoundVerification = "unverified";
+        recovery.reason = renderFailureCode(verifyError);
+        trace.browserRender = { attempted: true, outcome: "failed", reason: recovery.reason };
+      }
+    }
+    if (!response.ok && !recoveredHtml && notFoundVerification === "unverified") {
+      const unverifiedMessages: Record<string,string> = {
+        nl: `De startpagina antwoordde RankFix met HTTP ${response.status}, maar dat kon niet worden bevestigd: de browserweergave werd geblokkeerd of leverde geen inhoud. Mogelijk weigert de website geautomatiseerde bezoekers. Er is geen score berekend en dit is geen bewezen ontbrekende pagina.`,
+        en: `The start page answered RankFix with HTTP ${response.status}, but this could not be verified: the browser view was blocked or returned no content. The website may refuse automated visitors. No score was calculated and this is not a proven missing page.`,
+        de: `Die Startseite antwortete RankFix mit HTTP ${response.status}, was nicht bestätigt werden konnte: Die Browseransicht wurde blockiert oder lieferte keinen Inhalt. Es wurde keine Bewertung berechnet; dies ist keine nachgewiesen fehlende Seite.`,
+        fr: `La page d’accueil a répondu HTTP ${response.status} à RankFix, sans confirmation possible : l’affichage navigateur a été bloqué ou vide. Aucun score calculé ; ce n’est pas une page manquante prouvée.`,
+        it: `La home page ha risposto a RankFix con HTTP ${response.status}, ma non è stato possibile confermarlo: la visualizzazione nel browser è stata bloccata o vuota. Nessun punteggio calcolato; non è una pagina mancante dimostrata.`,
+        es: `La página de inicio respondió a RankFix con HTTP ${response.status}, pero no se pudo confirmar: la vista del navegador fue bloqueada o vacía. No se calculó ninguna puntuación; no es una página inexistente demostrada.`,
+      };
+      try { await response.body?.cancel(); } catch {}
+      return NextResponse.json({ error: unverifiedMessages[scanLanguage] || unverifiedMessages.en, code: "UNVERIFIED_NOT_FOUND", blockKind: "unverified_not_found", httpStatus: response.status, recovery, verification: { originStatus: response.status, browserRender: trace.browserRender, verdict: "unverified" }, charged: false }, { status: 422 });
     }
     if (!response.ok && !recoveredHtml) {
       const httpMessages: Record<string,string> = {
@@ -721,22 +1205,110 @@ async function runScan(request: Request) {
           : response.status >= 500
             ? `De website gaf een serverfout (HTTP ${response.status}). Probeer het later opnieuw; er is daarom geen score berekend.`
             : `Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
-        en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
-        de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
-        fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
-        it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
-        es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
+        // Same three causes in every scan language: missing page, server error, access refused.
+        en:[404,410].includes(response.status)
+          ? `This page does not exist (HTTP ${response.status}). Check the URL; no score was calculated.`
+          : response.status >= 500
+            ? `The website returned a server error (HTTP ${response.status}). Please try again later; no score was calculated.`
+            : `The website refused the scan (HTTP ${response.status}). RankFix could not analyse it reliably, so no score was calculated.`,
+        de:[404,410].includes(response.status)
+          ? `Diese Seite existiert nicht (HTTP ${response.status}). Prüfen Sie die URL; es wurde kein Score berechnet.`
+          : response.status >= 500
+            ? `Die Website meldete einen Serverfehler (HTTP ${response.status}). Bitte später erneut versuchen; es wurde kein Score berechnet.`
+            : `Die Website hat den Scan abgelehnt (HTTP ${response.status}). RankFix konnte sie nicht zuverlässig analysieren; es wurde kein Score berechnet.`,
+        fr:[404,410].includes(response.status)
+          ? `Cette page n'existe pas (HTTP ${response.status}). Vérifiez l'URL ; aucun score n'a été calculé.`
+          : response.status >= 500
+            ? `Le site a renvoyé une erreur serveur (HTTP ${response.status}). Réessayez plus tard ; aucun score n'a été calculé.`
+            : `Le site a refusé l'analyse (HTTP ${response.status}). RankFix n'a pas pu l'analyser de manière fiable ; aucun score n'a été calculé.`,
+        it:[404,410].includes(response.status)
+          ? `Questa pagina non esiste (HTTP ${response.status}). Controlla l'URL; nessun punteggio è stato calcolato.`
+          : response.status >= 500
+            ? `Il sito ha restituito un errore del server (HTTP ${response.status}). Riprova più tardi; nessun punteggio è stato calcolato.`
+            : `Il sito ha rifiutato la scansione (HTTP ${response.status}). RankFix non ha potuto analizzarlo in modo affidabile; nessun punteggio è stato calcolato.`,
+        es:[404,410].includes(response.status)
+          ? `Esta página no existe (HTTP ${response.status}). Comprueba la URL; no se ha calculado ninguna puntuación.`
+          : response.status >= 500
+            ? `El sitio devolvió un error del servidor (HTTP ${response.status}). Inténtalo más tarde; no se ha calculado ninguna puntuación.`
+            : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", httpStatus: response.status, recovery }, { status: 422 });
+      // MKB-48 (6 Nov, thewaxingcompany.nl): HTTP 402 "Payment Required" means the
+      // website's own hosting/plan is not active. It is the site being unavailable,
+      // not the site refusing RankFix.
+      const sitePaymentRequired = response.status === 402;
+      if (sitePaymentRequired) {
+        httpMessages.nl = "Deze website is niet beschikbaar (HTTP 402, betaling vereist): meestal is het hosting- of websiteabonnement van de site niet actief. Dit is geen blokkade van RankFix; er is daarom geen score berekend.";
+        httpMessages.en = "This website is unavailable (HTTP 402, payment required): usually the site's own hosting or website plan is not active. RankFix was not blocked; no score was calculated.";
+      }
+      const accessBlock = ![404, 410].includes(response.status) && response.status < 500 && !sitePaymentRequired;
+      if (rootNotFound && notFoundVerification === "confirmed") {
+        const rootText: Record<string,string> = {
+          nl: recovery.reason === "RENDER_CONFIRMS_NOT_FOUND"
+            ? `Deze homepage bestaat niet (HTTP ${response.status}): ook een browsercontrole kreeg de niet-gevonden-pagina van de website. Controleer of de URL klopt; er is daarom geen score berekend.`
+            : `Deze homepage bestaat niet (HTTP ${response.status}): de website toont zelf een niet-gevonden-pagina. Controleer of de URL klopt; er is daarom geen score berekend.`,
+          en: recovery.reason === "RENDER_CONFIRMS_NOT_FOUND"
+            ? `This homepage does not exist (HTTP ${response.status}): a browser check also received the website's not-found page. Check the URL; no score was calculated.`
+            : `This homepage does not exist (HTTP ${response.status}): the website itself shows a not-found page. Check the URL; no score was calculated.`,
+        };
+        httpMessages.nl = rootText.nl; httpMessages.en = rootText.en;
+      }
+      let blockedBody = "";
+      // Bounded: a block page that trickles in must not hold the answer. 5xx bodies
+      // are read too: a 503 can be a bot challenge instead of a server error.
+      if (accessBlock || response.status >= 500) { try { blockedBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000))]); } catch {} }
+      else { try { await response.body?.cancel(); } catch {} }
+      const challengeServerError = isChallengeServerError(response.status, blockedBody);
+      if (challengeServerError) {
+        httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}): de website toonde een beveiligings- of controlepagina, geen serverfout. RankFix lost zulke controles niet op; er is daarom geen score berekend.`;
+        httpMessages.en = `Scan not possible (HTTP ${response.status}): the website showed a security or challenge page, not a server error. RankFix does not solve such checks, so no score was calculated.`;
+      }
+      const rawDiagnosis = accessBlock || challengeServerError ? diagnoseBlockedResponse(response.status, response.headers, blockedBody) : null;
+      // A 5xx challenge without a named provider is still a challenge page, not a generic refusal.
+      const diagnosis = rawDiagnosis && challengeServerError && rawDiagnosis.kind === "access_denied"
+        ? { ...rawDiagnosis, kind: "bot_protection" as const, reason: "CHALLENGE_PAGE", advice: `De website toonde een beveiligings- of controlepagina (HTTP ${response.status}) in plaats van de inhoud. RankFix lost zulke controles niet op; de eigenaar kan RankFixBot toestaan.` }
+        : rawDiagnosis;
+      // Customer-facing Dutch text names the actual cause (login, bot protection,
+      // generic refusal) instead of one generic "blocked" sentence.
+      if (diagnosis && scanLanguage === "nl") httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}). ${diagnosis.advice} Er is daarom geen score berekend.`;
+      // A refused start page does not mean every page refuses: the customer may
+      // start from a direct article/category page. RankFix never retries around
+      // the refusal itself.
+      const alternativeStart = accessBlock || challengeServerError ? {
+        possible: true,
+        advice: scanLanguage === "nl"
+          ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
+          : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
+      } : null;
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : sitePaymentRequired ? "HTTP_PAYMENT_REQUIRED" : response.status >= 500 && !challengeServerError ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
     }
 
+    // The website answered RankFix itself with an access refusal, but a real browser
+    // received the page: a crawler block aimed at the scanner, not a website error.
+    const scannerAccessBlocked = Boolean(recoveredHtml) && !response.ok;
+    // What RankFix itself received: an HTTP refusal, or no answer at all.
+    const rankfixRefusal = timeoutRecovery ? (timeoutRecovery.code === "FETCH_TIMEOUT" ? "geen antwoord binnen de tijdslimiet" : "verbinding verbroken") : `HTTP ${recovery.originalHttpStatus}`;
+    // A recovered page without own navigation is accepted (real homepages can
+    // render without links) but is NOT proven to be the complete homepage.
+    const recoveryOwnLinks = recoveredHtml ? internalLinkCount(recoveredHtml, finalUrl.hostname) : null;
+    const recoveryWithoutNavigation = recoveryOwnLinks !== null && recoveryOwnLinks < MIN_REFUSAL_RECOVERY_LINKS;
+    const access = {
+      rankfixBlocked: scannerAccessBlocked,
+      recoveredOwnLinks: recoveryOwnLinks,
+      recoveryWithoutNavigation,
+      originalStatus: scannerAccessBlocked && !timeoutRecovery ? recovery.originalHttpStatus : null,
+      attribution: scannerAccessBlocked ? "crawler_block" as const : null,
+      note: !scannerAccessBlocked ? null : (recoveryWithoutNavigation ? "De browserweergave bevatte geen eigen navigatie; niet bewezen dat dit de volledige homepage is. " : "") + (timeoutRecovery
+        ? `De website beantwoordde het directe verzoek van RankFix niet (${timeoutRecovery.code === "FETCH_TIMEOUT" ? "time-out" : "verbinding verbroken"}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
+        : [404, 410].includes(recovery.originalHttpStatus) ? `De website gaf RankFix ${rankfixRefusal} op de homepage, terwijl een browser de pagina wel kreeg: een antwoord voor geautomatiseerde verzoeken, geen ontbrekende pagina. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
+        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`),
+    };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html: string;
     try {
       html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000, 25_000);
     } catch (bodyError) {
       const code = fetchFailureCode(bodyError);
-      return NextResponse.json({ error: scanError.fetch, code, recovery }, { status: 502 });
+      return NextResponse.json({ error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, recovery, charged: false }, { status: 502 });
     }
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html, code: "EMPTY_HTML", recovery }, { status: 422 });
@@ -746,21 +1318,39 @@ async function runScan(request: Request) {
     const rawVisibleText = stripHtml(rawHtml);
     const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
     const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
-    const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
     const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml);
+    // 31 Oct (PDF P1/P5: a 49-word WordPress homepage was read as a "JavaScript
+    // shell", 14 checks became unconfirmed). Server-rendered evidence: the raw
+    // HTML itself carries the page identity (title + H1 with text), real links
+    // and no empty client mount point or framework runtime. Such a page is never a
+    // shell, however short: a missing element there is a real finding (thin
+    // content), not missing evidence.
+    const rawEmptyMount = /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt|___gatsby|svelte)["'][^>]*>\s*<\/div>/i.test(rawHtml);
+    const rawServerRendered = !recoveredHtml && !rawEmptyMount && !javascriptFrameworkSignal
+      && /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml)
+      && /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml)
+      && (rawHtml.match(/<a\b[^>]*\bhref\s*=\s*["'](?!#|javascript:)[^"']+["']/gi) || []).length >= 3;
+    const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4 && !rawServerRendered;
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
-    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell);
+    // A thin document without any identity (no title, no meta description, no H1)
+    // is a loader, cookie wall or redirect stub more often than a real page; it
+    // gets the same single browser attempt as a client shell (QA #186: such a page
+    // was scored 59 without a render attempt).
+    const rawHasIdentity = /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml) || /<meta[^>]+name\s*=\s*["']description["'][^>]+content\s*=\s*["'][^"']{10,}/i.test(rawHtml) || /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml);
+    const identitylessThinDocument = rawVisibleWords < 80 && !rawHasIdentity;
+    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell || identitylessThinDocument);
     // A thin raw document with scripts (fewer than 80 visible words) is incomplete
     // evidence when no browser render succeeded: missing metadata there is not a
     // proven website defect. A substantive server-rendered body (250+ words, not a
     // shell) is real evidence for body structure (H1, headings, content, alt).
-    const thinRawDocument = !recoveredHtml && rawVisibleWords < 80 && rawScriptCount >= 1;
+    const thinRawDocument = !recoveredHtml && rawVisibleWords < 80 && rawScriptCount >= 1 && !rawServerRendered;
     const rawSubstantiveDocument = !recoveredHtml && !thinClientShell && rawVisibleWords >= 250;
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
     let renderFallbackReason: string | null = recovery.reason;
+    let renderFailureDetailText: string | null = null;
     let rejectedBrowserSnapshot: {rawWords:number;renderedWords:number;reason:string} | null = null;
     if (javascriptCandidate) {
       try {
@@ -788,6 +1378,7 @@ async function runScan(request: Request) {
       } catch (renderError) {
         // Store a stable code; the raw runtime message stays in the server log only.
         renderFallbackReason = renderFailureCode(renderError);
+        renderFailureDetailText = renderFailureDetail(renderError);
         console.info("RankFix headless fallback", { page: finalUrl.toString(), reason: renderFallbackReason, error: renderError instanceof Error ? renderError.message.slice(0, 200) : String(renderError) });
       }
     }
@@ -799,12 +1390,12 @@ async function runScan(request: Request) {
     // document. This never bypasses CAPTCHA/WAF controls; failed recovery still stops safely.
     const preliminaryQualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const preliminaryQualityText = stripHtml(html).slice(0, 12000);
-    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityTitle)
-      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
+    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityTitle)
+      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPrimaryOnce();
-        if (isSubstantiveRender(recovered.html)) {
+        if (isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) {
           html = recovered.html;
           renderedDocument = recovered;
           javascriptExecuted = true;
@@ -821,14 +1412,42 @@ async function runScan(request: Request) {
       }
     }
 
+    // A browser render can follow a JavaScript or meta redirect (apex → www,
+    // "/" → "/nl/"). Links in the rendered DOM are relative to the URL the browser
+    // ended on; resolving them against the pre-render URL produced 404s for every
+    // sampled page (QA #186). Adopt the rendered URL, but only within the same
+    // registrable site; a redirect to another site is never followed silently.
+    if (renderedDocument?.finalUrl && javascriptExecuted) {
+      try {
+        const renderedUrl = validatePublicHttpUrl(renderedDocument.finalUrl);
+        const site = (host: string) => {
+          const labels = host.toLowerCase().replace(/^www\./, "").split(".").filter(Boolean);
+          // Two-level public suffixes (co.uk, com.au, gv.at ...) keep three labels.
+          const twoLevel = labels.length >= 3 && labels[labels.length - 1].length === 2 && ["co", "com", "net", "org", "gov", "ac", "edu", "gv", "or", "go", "ne"].includes(labels[labels.length - 2]);
+          return labels.slice(twoLevel ? -3 : -2).join(".");
+        };
+        // Exact host and path: normalizeScanUrl treats www and apex as equal, but
+        // links resolve against the exact host the browser ended on.
+        const exact = (url: URL) => `${url.protocol}//${url.host.toLowerCase()}${url.pathname.replace(/\/+$/, "") || "/"}`;
+        if (exact(renderedUrl) !== exact(finalUrl) && site(renderedUrl.hostname) === site(finalUrl.hostname)) {
+          redirectChain = [...redirectChain, { from: finalUrl.toString(), to: renderedUrl.toString(), status: 0 }];
+          finalUrl = renderedUrl;
+        }
+      } catch { /* keep the fetched URL */ }
+    }
+    trace.phase = "content_gate";
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
-    const qualityDescription =
-      firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
-    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityTitle);
-    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityText);
+    // Use the same tag-scoped parser as the report. A document-wide quoted
+    // capture can backtrack across large SSR scripts and block the event loop,
+    // preventing even the hard scan timeout from firing (live VDL regression).
+    const headMetadata = extractHeadMetadata(html);
+    const qualityDescription = decode(headMetadata.description || headMetadata.outsideHead.description || "");
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
     // requested indexable document. Only stop when the response is also materially
     // empty, so legitimate 202 endpoints are not rejected on status alone.
@@ -843,38 +1462,75 @@ async function runScan(request: Request) {
         it:"Il sito non ha potuto essere analizzato in modo affidabile. Il server ha restituito una pagina intermedia, di verifica o di routing invece del sito previsto. Non è stato quindi calcolato alcun punteggio.",
         es:"El sitio no pudo analizarse de forma fiable. El servidor devolvió una página intermedia, de verificación o de enrutamiento en lugar del sitio esperado. Por eso no se calculó ninguna puntuación."
       };
-      return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", charged: false }, { status: 422 });
+      return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", diagnosis: diagnoseChallenge(response.headers, html), recovery, charged: false }, { status: 422 });
     }
+    // Error and maintenance pages (and challenge titles the older patterns miss,
+    // e.g. "AntiBot") are not the website: no score. After a refused request
+    // (403/405) such a page is still the block; otherwise the site is unavailable.
+    const nonContentPage = classifyNonContentPage({ title: qualityTitle, text: qualityText, words: qualityWords, html });
+    if (nonContentPage) {
+      const refused = recovery.attempted && !response.ok;
+      const code = nonContentPage.kind === "challenge" || refused ? (refused ? "HTTP_BLOCKED" : "CHALLENGE_OR_INTERSTITIAL") : "SITE_ERROR_PAGE";
+      const nonContentMessages: Record<string,string> = {
+        nl: code === "SITE_ERROR_PAGE"
+          ? `De website toonde een ${nonContentPage.kind === "maintenance" ? "onderhoudspagina" : "foutpagina"} in plaats van de inhoud. Er is daarom geen score berekend; probeer het later opnieuw.`
+          : "De website toonde een controle- of blokkadepagina in plaats van de inhoud. RankFix omzeilt dit niet; er is daarom geen score berekend.",
+        en: code === "SITE_ERROR_PAGE" ? "The website returned an error or maintenance page instead of its content, so no score was calculated." : "The website returned a block or verification page instead of its content, so no score was calculated.",
+        de: code === "SITE_ERROR_PAGE" ? "Die Website lieferte eine Fehler- oder Wartungsseite statt ihres Inhalts; daher wurde keine Bewertung berechnet." : "Die Website lieferte eine Sperr- oder Prüfseite statt ihres Inhalts; daher wurde keine Bewertung berechnet.",
+        fr: code === "SITE_ERROR_PAGE" ? "Le site a renvoyé une page d’erreur ou de maintenance au lieu de son contenu ; aucun score n’a été calculé." : "Le site a renvoyé une page de blocage ou de vérification au lieu de son contenu ; aucun score n’a été calculé.",
+        it: code === "SITE_ERROR_PAGE" ? "Il sito ha restituito una pagina di errore o di manutenzione invece del contenuto; nessun punteggio calcolato." : "Il sito ha restituito una pagina di blocco o di verifica invece del contenuto; nessun punteggio calcolato.",
+        es: code === "SITE_ERROR_PAGE" ? "El sitio devolvió una página de error o de mantenimiento en lugar de su contenido; no se calculó ninguna puntuación." : "El sitio devolvió una página de bloqueo o verificación en lugar de su contenido; no se calculó ninguna puntuación.",
+      };
+      return NextResponse.json({ error: nonContentMessages[scanLanguage], code, httpStatus: recovery.originalHttpStatus, nonContent: nonContentPage,
+        diagnosis: code === "SITE_ERROR_PAGE" ? null : refused ? diagnoseBlockedResponse(recovery.originalHttpStatus, response.headers, html) : diagnoseChallenge(response.headers, html), recovery, charged: false }, { status: 422 });
+    }
+    // A reserved, parked or for-sale domain placeholder has no organisation or content to
+    // audit: no score (scoring its missing description or HTTPS would describe the registrar).
+    if (isParkedDomainPage({ title: qualityTitle, text: qualityText, words: qualityWords })) {
+      const parkedMessages: Record<string,string> = {
+        nl:"Dit domein toont alleen een plaatshouderpagina (gereserveerd, geparkeerd of te koop). Er is geen website om te analyseren; er is daarom geen score berekend.",
+        en:"This domain only shows a placeholder page (reserved, parked or for sale). There is no website to analyse, so no score was calculated.",
+        de:"Diese Domain zeigt nur eine Platzhalterseite (reserviert, geparkt oder zu verkaufen). Es gibt keine Website zu analysieren; daher wurde keine Bewertung berechnet.",
+        fr:"Ce domaine n’affiche qu’une page d’attente (réservé, parqué ou à vendre). Il n’y a pas de site à analyser ; aucun score n’a donc été calculé.",
+        it:"Questo dominio mostra solo una pagina segnaposto (riservato, parcheggiato o in vendita). Non c’è un sito da analizzare; non è stato quindi calcolato alcun punteggio.",
+        es:"Este dominio solo muestra una página provisional (reservado, aparcado o en venta). No hay un sitio que analizar; por eso no se calculó ninguna puntuación."
+      };
+      return NextResponse.json({ error: parkedMessages[scanLanguage] || parkedMessages.en, code: "PARKED_DOMAIN", charged: false }, { status: 422 });
+    }
+    trace.phase = "analysis";
 
+    const headDirectives = readHeadDirectives(html,finalUrl.toString(),response.headers.get("x-robots-tag")||"");
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
-    const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
-      html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
-    const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-    const description = descriptionContentMatch ? stripHtml(descriptionContentMatch[2]).trim() : "";
-    const descriptionState: "missing" | "empty" | "present" = !descriptionMetaTag ? "missing" : !description ? "empty" : "present";
-    const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
+    // Source-order-independent head extraction; only tags inside <head> count.
+    // Attribute values are HTML-encoded ("Nederland&#x27;s", "eten &amp; drinken"):
+    // decode once, like a browser and a search engine do, before counting
+    // characters or reading identity words.
+    const description = decode(stripHtml(headMetadata.description));
+    // The organisation's own self-description for IDENTITY decisions only: a meta
+    // description emitted outside <head> (streaming SSR) still states what the
+    // organisation does. SEO checks keep using the head description.
+    const outsideHeadDescription = stripHtml(decode(headMetadata.outsideHead.description || "")).trim();
+    const identityDescription = description || outsideHeadDescription;
+    const descriptionState: "missing" | "empty" | "present" = headMetadata.descriptionState;
+    const rawH1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml);
+    const h1s = rawH1s.filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
-    const headings = headingTags.map((m) => ({ level: Number(m[1]), text: stripHtml(m[2]) })).filter((h) => h.text);
-    const canonical =
-      firstMatch(html, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
-      firstMatch(html, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i);
-    const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
+    const headings = headingTags.map((m) => ({ level: Number(m[1]), text: decode(stripHtml(m[2])) })).filter((h) => h.text);
+    const canonical = decode(headMetadata.canonical);
+    const lang = decode(headMetadata.lang);
     const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
-    const viewportContent =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
+    const viewportContent = decode(headMetadata.viewport);
     const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
-    const robots =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']robots["']/i);
+    const robots = decode(headMetadata.robots);
     const xRobotsTag = response.headers.get("x-robots-tag") || "";
-    const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
+    const noindexSignal = headDirectives.noindex;
     const imageMetrics = extractImageMetrics(html);
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
-    const imagesMissingAlt = imageMetrics.missingAlt;
+    // An image that is the only content of a link has no accessible name with an empty alt; generic alts ("IMG_1234.jpg") carry no information.
+    const imagesMissingAlt = imageMetrics.affectedAltImages;
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
@@ -891,7 +1547,7 @@ async function runScan(request: Request) {
         return { src };
       })
       .filter((item) => item.src);
-    const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]);
+    const links = [...neutralizeTemplateBindings(html).matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]).filter((href) => !isTemplateHref(href));
     const internalLinks = links.filter((href) => {
       try { return new URL(href, finalUrl).hostname === finalUrl.hostname; } catch { return false; }
     }).length;
@@ -908,7 +1564,9 @@ async function runScan(request: Request) {
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
-    const ogImage = getMeta("og:image");
+    // og:image:url and og:image:secure_url are valid aliases (PDF P9, HousingNet).
+    const ogImage = getMeta("og:image") || getMeta("og:image:url") || getMeta("og:image:secure_url");
+    const ogType = getMeta("og:type").trim().toLowerCase();
     const ogUrl = getMeta("og:url");
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
@@ -925,9 +1583,66 @@ async function runScan(request: Request) {
     const ogImageIsAbsolute = isAbsoluteHttpUrl(ogImage);
     const ogUrlIsAbsolute = !ogUrl || isAbsoluteHttpUrl(ogUrl);
 
+    // 1 Nov (P5 phase 2): targeted, bounded browser observation for structured
+    // data only. A server-rendered homepage without valid JSON-LD that loads a tag
+    // manager or holds an empty ld+json placeholder can get JSON-LD in the browser.
+    // One render (8 s, shared render budget, homepage only, time left); the rest of
+    // the report keeps the server HTML. Found blocks count with the browser as
+    // source; a completed render without blocks is a proven absence; a failed
+    // render stays "not observed".
+    const structuredDataProbe: { networkQuiet?: boolean | null; attempted: boolean; ok: boolean; addedBlocks: number; elapsedMs: number | null; error: string | null; window: string | null; consent: "none" | null; limitation: string | null; requestedUrl: string | null; finalUrl: string | null; diagnostics: BrowserDiagnostics | null } = { attempted: false, ok: false, addedBlocks: 0, elapsedMs: null, error: null, window: null, consent: null, limitation: null, requestedUrl: null, finalUrl: null, diagnostics: null };
+    // Also after a primary JavaScript render: that view waited less long than this
+    // observation requires; skipped only when the primary render already failed.
+    if (!(javascriptCandidate && !javascriptExecuted) && isSiteHomepagePath(finalUrl.pathname) && !clock.expired && Date.now() - started < 60_000
+      && validJsonLdBlockTexts(html).length === 0 && (jsonLdInjectorSignals(rawHtml).length > 0 || hasExecutableScripts(rawHtml) || hasExecutableScripts(html))) {
+      structuredDataProbe.attempted = true;
+      const probeStarted = Date.now();
+      try {
+        // 1 Nov (P5 priority 1): full "load" + at most 3 s to network quiet, 12 s in
+        // total, no consent (the crawler view), no accessibility scan.
+        structuredDataProbe.requestedUrl = finalUrl.toString();
+        const probed = await renderPublicPage(finalUrl.toString(), 12000, renderBudget, { mode: "structured_data", settleMs: 3000 });
+        structuredDataProbe.finalUrl = probed.finalUrl;
+        structuredDataProbe.diagnostics = probed.diagnostics || null;
+        const blocks = validJsonLdBlockTexts(probed.html);
+        const observed = probed.observation;
+        structuredDataProbe.window = observed?.window || null;
+        structuredDataProbe.networkQuiet = typeof observed?.networkQuiet === "boolean" ? observed.networkQuiet : null;
+        structuredDataProbe.consent = observed?.consent || "none";
+        const sameSite = (() => { try { return new URL(probed.finalUrl).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } })();
+        const sameDocument = sameSite && compareBrowserUrls(finalUrl.toString(), probed.finalUrl).comparableDocument;
+        const probedTitle = firstMatch(probed.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const probedText = stripHtml(probed.html).slice(0, 12000);
+        const blockedView = classifyNonContentPage({ title: probedTitle, text: probedText, words: probedText.split(/\s+/).filter(Boolean).length, html: probed.html });
+        // Found JSON-LD is evidence whatever the window; ABSENCE needs a complete observation.
+        structuredDataProbe.limitation = !observed ? "geen observatiegegevens"
+          : !observed.loadReached || probed.partialNavigation ? "pagina niet volledig geladen binnen de tijd"
+          : observed.requestCapHit ? `verzoeklimiet bereikt (${observed.abortedRequests} verzoek(en) niet geladen)`
+          : blockedView ? `browser kreeg een ${blockedView.kind === "challenge" ? "blokkade- of controlepagina" : blockedView.kind === "maintenance" ? "onderhoudspagina" : "foutpagina"}`
+          : !sameSite ? "browser eindigde op een andere site"
+          : !sameDocument ? "browser eindigde op een andere pagina of query"
+          : null;
+        if (blocks.length && !blockedView && sameDocument) {
+          structuredDataProbe.ok = true;
+          structuredDataProbe.addedBlocks = blocks.length;
+          const tags = blocks.map((block) => `<script type="application/ld+json" data-rankfix-source="browser">${block}</script>`).join("");
+          html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tags}</head>`) : tags + html;
+        } else if (!structuredDataProbe.limitation) {
+          structuredDataProbe.ok = true;
+        } else {
+          structuredDataProbe.error = structuredDataProbe.limitation;
+        }
+      } catch (probeError) {
+        structuredDataProbe.diagnostics = (probeError as { browserDiagnostics?: BrowserDiagnostics } | null)?.browserDiagnostics || null;
+        structuredDataProbe.finalUrl = structuredDataProbe.diagnostics?.finalUrl || null;
+        structuredDataProbe.error = String(probeError instanceof Error ? probeError.message : probeError).slice(0, 160);
+        structuredDataProbe.limitation = structuredDataProbe.error;
+      }
+      structuredDataProbe.elapsedMs = Date.now() - probeStarted;
+    }
     const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
-    const schemaObjects: any[] = [];
+    const schemaObjects: Record<string, unknown>[] = [];
     let validJsonLd = 0;
     const collectSchemaObjects = (value: unknown, seen = new Set<object>()) => {
       if (!value || typeof value !== "object") return;
@@ -938,7 +1653,7 @@ async function runScan(request: Request) {
       const rawTypes = objectValue["@type"];
       if (rawTypes) {
         const types = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
-        schemaTypes.push(...types.filter((type) => typeof type === "string").map(String));
+        schemaTypes.push(...types.map(normalizeSchemaType).filter((type): type is string => Boolean(type)));
       }
       for (const nested of Object.values(objectValue)) {
         if (Array.isArray(nested)) nested.forEach((item) => collectSchemaObjects(item, seen));
@@ -953,10 +1668,23 @@ async function runScan(request: Request) {
         else collectSchemaObjects(parsed);
       } catch {}
     }
+    // Microdata and RDFa are separate evidence forms (P5): their schema.org types
+    // count as declared structured data, their items never as JSON-LD blocks.
+    const microdataSchemaTypes = microdataTypes(html).map(normalizeSchemaType).filter((type): type is string => Boolean(type));
+    const rdfaSchemaTypes = rdfaTypes(html).map(normalizeSchemaType).filter((type): type is string => Boolean(type));
+    schemaTypes.push(...microdataSchemaTypes, ...rdfaSchemaTypes);
+    const otherStructuredItems = microdataSchemaTypes.length + rdfaSchemaTypes.length;
+    const structuredItems = validJsonLd + otherStructuredItems;
+    const browserJsonLdBlocks = (html.match(/data-rankfix-source="browser"/g) || []).length;
+    const structuredFormsLabel = () => [
+      validJsonLd ? `${validJsonLd} geldige JSON-LD block(s)${browserJsonLdBlocks ? ` (waarvan ${browserJsonLdBlocks} pas in de browser toegevoegd)` : ""}` : "",
+      microdataSchemaTypes.length ? `Microdata (${[...new Set(microdataSchemaTypes)].slice(0, 4).join(", ")})` : "",
+      rdfaSchemaTypes.length ? `RDFa (${[...new Set(rdfaSchemaTypes)].slice(0, 4).join(", ")})` : "",
+    ].filter(Boolean).join(" en ");
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = hasOrganizationSchema(schemaTypes) || ["person", "product", "article", "website"].some((t) => schemaSet.has(t));
     const organizationObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return hasOrganizationSchema(types.filter((type: unknown) => typeof type === "string"));
     });
     const organizationSchema = organizationObjects[0] || null;
@@ -964,8 +1692,8 @@ async function runScan(request: Request) {
     const organizationSchemaUrl = typeof organizationSchema?.url === "string" ? organizationSchema.url.trim() : "";
     const organizationSchemaLogo = typeof organizationSchema?.logo === "string"
       ? organizationSchema.logo.trim()
-      : typeof organizationSchema?.logo?.url === "string"
-        ? organizationSchema.logo.url.trim()
+      : typeof schemaRecord(organizationSchema?.logo).url === "string"
+        ? String(schemaRecord(organizationSchema?.logo).url).trim()
         : "";
     const organizationSchemaSameAs = Array.isArray(organizationSchema?.sameAs)
       ? organizationSchema.sameAs.filter((value: unknown) => typeof value === "string" && value.trim()).length
@@ -986,7 +1714,7 @@ async function runScan(request: Request) {
     const financialOfferSchema = isFinancialOfferSchema([...schemaSet]);
     const hasProductSchema = schemaSet.has("product") && !financialOfferSchema;
     const productSchemaObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
     });
     type ProductOfferEvidence = {
@@ -1001,7 +1729,9 @@ async function runScan(request: Request) {
     const schemaIdIndex = indexJsonLdIds(schemaObjects);
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
-      const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
+      const normalizedOffers: ProductOfferEvidence[] = offers.map((rawOffer: unknown) => {
+        const offer = schemaRecord(rawOffer);
+        return ({
         type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
         // Missing price stays null (never 0); WooCommerce may only fill priceSpecification.
         price: offerPrice(offer).price,
@@ -1010,7 +1740,7 @@ async function runScan(request: Request) {
         availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
         shippingDetails: Boolean(offer?.shippingDetails),
         returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
-      }));
+      }); });
       // URL, ImageObject, array or an @id reference elsewhere in the @graph.
       const imageUrl = resolveSchemaImage(product?.image, schemaIdIndex) || "";
       return {
@@ -1084,9 +1814,12 @@ async function runScan(request: Request) {
     // Concrete details only: a dialable number, an address with postcode, a visible
     // e-mail address or tel:/mailto: links. Counts, prices, dates and form labels
     // such as "postcode" or an e-mail input are not contact details.
-    const businessContactDetails = findBusinessContactDetails(text, html);
+    const businessContactDetails = findBusinessContactDetails(text, html, finalUrl.hostname);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
-    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    // Count only profiles explicitly linked from the site or recognizable review evidence;
+    // generic names of platforms in text can refer to customers or competitors.
+    const officialSocialUrls = officialSocialProfileLinks(html);
+    const hasSocialOrReviewSignal = officialSocialUrls.length > 0 || sameAsCount > 0 || /\b(google reviews|klantreviews|geverifieerde beoordelingen|trustpilot|tripadvisor)\b/i.test(text);
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
@@ -1196,17 +1929,29 @@ async function runScan(request: Request) {
     const retailCommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal;
     const transportRetailStoreEvidence = hasConfirmedCommercePlatform && (repeatedProductLinkSignal || storefrontMarkupSignal || hasStoreSchema);
     const hasEcommerceSignal = transportBookingIdentity ? transportRetailStoreEvidence : retailCommerceSignal;
+    // QA-144: a commerce plugin or platform asset on a page (WooCommerce on a
+    // restaurant or charity site, a shop theme) proves a capability, not that the
+    // organisation is a shop. Only product/storefront evidence on the page does.
+    const platformOnlyCommerceSignal = hasConfirmedCommercePlatform && !(productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal);
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
     const hostLower = finalUrl.hostname.toLowerCase();
-    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk)$/.test(hostLower);
-    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|ca|us|co\.nz|jp|cn|in|br|mx|ch|no)$/.test(hostLower);
-    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt)(?:-|$)/i.test(lang || "");
+    // QA international-28 (25 Oct): Norway, Iceland and Liechtenstein apply the EU
+    // consumer rules through the EEA Agreement (14-day withdrawal, Omnibus price
+    // indications), so their storefronts are eligible. Switzerland and the UK are
+    // not EU/EEA: their own consumer law differs (Switzerland has no general online
+    // withdrawal right), so EU signals are not applied there.
+    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk|no|is|li)$/.test(hostLower);
+    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|uk|ca|us|co\.nz|jp|cn|in|br|mx|ch)$/.test(hostLower);
+    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt|nb|nn|no|is|ga)(?:-|$)/i.test(lang || "");
     const euroMarketSignal = /(?:€|\bEUR\b)/i.test(text);
+    // A German/French/Italian-language store that prices only in Swiss francs (or
+    // pounds) on a generic domain targets a non-EU market.
+    const nonEuCurrencyOnly = !euroMarketSignal && /(?:\bCHF\s?\d|\d\s?CHF\b|\bS?Fr\.\s?\d|£\s?\d|\bGBP\s?\d)/i.test(text) && !/(?:\b(?:SEK|DKK|NOK|PLN|CZK|HUF|RON|BGN|ISK)\b|zł|kč)/i.test(text);
     // EU market eligibility is a property of the storefront; whether the shop itself
     // is confirmed is decided later (page signal here, final site decision below).
-    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
+    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || ((euLanguageSignal || euroMarketSignal) && !nonEuCurrencyOnly));
     const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
@@ -1215,7 +1960,7 @@ async function runScan(request: Request) {
       || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)?.[1]
       || "";
     const localBusinessObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return types.some((type: unknown) => {
         const normalized = String(type || "").toLowerCase();
         return normalized === "localbusiness" || normalized.endsWith("store") || normalized === "restaurant";
@@ -1244,7 +1989,13 @@ async function runScan(request: Request) {
 
     const localSchemaCandidates = [
       { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
-      { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
+      // Healthcare first: a physiotherapy or clinic page must never get hairdresser/beauty advice.
+      { type: "Physiotherapy", pattern: /\b(fysio(?:therap\w*)?|physio(?:therap\w*)?|manuele therapie|kinesist|kine|osteopa\w*|chiropract\w*|fisioterap\w*|physiotherapie|kinésithérapeute)\b/i },
+      { type: "MedicalClinic", pattern: /\b(huisarts\w*|medisch centrum|gezondheidscentrum|kliniek|clinic|polikliniek|praktijk voor|psycholog\w*|diëtist\w*|logopedist\w*|podotherap\w*|ergotherap\w*)\b/i },
+      { type: "Pharmacy", pattern: /\b(apotheek|pharmacy|apotheke|pharmacie|farmacia)\b/i },
+      { type: "VeterinaryCare", pattern: /\b(dierenarts\w*|veterinar\w*|dierenkliniek|tierarzt)\b/i },
+      { type: "ExerciseGym", pattern: /\b(sportschool|fitnesscentrum|fitness club|gym|crossfit|personal trainer|yogastudio|pilates studio)\b/i },
+      { type: "HairSalon", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
       { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde|mondzorg|orthodontist)\b/i },
       { type: "Electrician", pattern: /\b(electrician|elektricien|elektro|elektrotechniek|installatietechniek)\b/i },
       { type: "Plumber", pattern: /\b(plumber|loodgieter|loodgieters|cv-installateur|installateur)\b/i },
@@ -1261,14 +2012,18 @@ async function runScan(request: Request) {
     ];
     const localIdentityText = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].filter(Boolean).join(" ");
     const localClassificationText = [localIdentityText, text].filter(Boolean).join(" ");
-    const identityLocalSchema = localSchemaCandidates.find((candidate) => candidate.pattern.test(localIdentityText))?.type;
+    // A manufacturer/wholesaler/shop that mentions installers ("find an
+    // installer") is not itself a plumber, electrician or contractor.
+    const supplierNotTrade = productSupplierOverridesTrade({ title, h1: h1s.join(" "), description });
+    const tradeSchemaTypes = new Set(["Electrician", "Plumber", "GeneralContractor", "RoofingContractor"]);
+    const identityLocalSchema = localSchemaCandidates.find((candidate) => !(supplierNotTrade && tradeSchemaTypes.has(candidate.type)) && candidate.pattern.test(localIdentityText))?.type;
     // A specific LocalBusiness subtype must be supported by page-identity evidence.
     // Broad body/navigation text can mention unrelated categories (for example a retailer
     // linking to beauty products) and must never turn into BeautySalon/Dentist/etc advice.
     const specificLocalSchema = hasLocalBusinessSignal
       ? identityLocalSchema || "LocalBusiness"
       : null;
-    const hasRelevantLocalSchema = schemaSet.has("localbusiness") || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
+    const hasRelevantLocalSchema = hasTypedLocalEntitySchema(schemaTypes) || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const governmentIdentitySignal = /\b(rijksoverheid|government|government of|ministerie|ministry|rijksoverheid\.nl|overheid|gemeente|municipality|provincie|province|public authority|publieke sector)\b/i.test([title, description, h1s.join(" "), finalUrl.hostname].join(" "));
     const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
     const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage && /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localIdentityText);
@@ -1286,54 +2041,66 @@ async function runScan(request: Request) {
       schemaSet.has("newsmediaorganization") ||
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
-    const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
-      ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
-      : newsMediaSchemaContext
-      ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
-      : transportLogisticsSchemaContext
-        ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
-        : ecommerceSchemaContext
-          ? (isProductPage ? "Product" : isHomepage ? "OnlineStore + WebSite" : hasCategorySignal ? "ItemList / CollectionPage" : "Organization / WebPage")
-          : effectiveLocalSchemaSignal
-            ? specificLocalSchema || "LocalBusiness"
-            : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
-    const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
-      ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
-      : newsMediaSchemaContext
-      ? schemaSet.has("newsmediaorganization") || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
-      : transportLogisticsSchemaContext
-        ? (isHomepage
-            ? schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("service")
-            : schemaSet.has("service") || schemaSet.has("organization") || schemaSet.has("webpage"))
-        : ecommerceSchemaContext
-          ? (isProductPage
-              ? hasProductSchema
-              : isHomepage
-                ? schemaSet.has("onlinestore") || schemaSet.has("website") || schemaSet.has("organization")
-                : hasCategorySignal
-                  ? schemaSet.has("itemlist") || schemaSet.has("collectionpage") || schemaSet.has("onlinestore")
-                  : schemaSet.has("webpage") || schemaSet.has("organization") || schemaSet.has("onlinestore"))
-          : effectiveLocalSchemaSignal
-            ? hasRelevantLocalSchema
-            : isProductPage
-            ? hasProductSchema
-            : hasCategorySignal
-              ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
-              : hasArticleSignal
-                ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+    const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s,schemaTypes});
+    const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype)
+      || (isHomepage && /\bhuurwoningen in (?:heel )?nederland\b/i.test([title,description,h1s.join(" ")].join(" ")) && !schemaSet.has("realestateagent"));
+    let effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
+    // Schema advice context. Recomputed once the sector is known (see
+    // "schema context follows sector"): a local hint must not give LocalBusiness
+    // advice to a bank, telecom provider or charity.
+    const schemaContextFor = (localSignal: boolean, transportSignal: boolean) => {
+      const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
+        ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
+        : newsMediaSchemaContext
+        ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
+        : transportSignal
+          ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
+          : ecommerceSchemaContext
+            ? (isProductPage ? "Product" : isHomepage ? "OnlineStore + WebSite" : hasCategorySignal ? "ItemList / CollectionPage" : "Organization / WebPage")
+            : localSignal
+              ? specificLocalSchema || "LocalBusiness"
+              : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
+      const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportSignal ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : localSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+      // schema.org inheritance: Corporation, LegalService, EmploymentAgency … are Organizations.
+      const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
+      const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
+        ? governmentSchemaPresent || organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("webpage")
+        : newsMediaSchemaContext
+        ? schemaSet.has("newsmediaorganization") || organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
+        : transportSignal
+          ? (isHomepage
+              ? organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("service")
+              : schemaSet.has("service") || organizationSchemaPresent || schemaSet.has("webpage"))
+          : ecommerceSchemaContext
+            ? (isProductPage
+                ? hasProductSchema
                 : isHomepage
-                  ? schemaSet.has("organization") || schemaSet.has("website")
-                  : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
+                  ? schemaSet.has("onlinestore") || schemaSet.has("website") || organizationSchemaPresent
+                  : hasCategorySignal
+                    ? schemaSet.has("itemlist") || schemaSet.has("collectionpage") || schemaSet.has("onlinestore")
+                    : schemaSet.has("webpage") || organizationSchemaPresent || schemaSet.has("onlinestore"))
+            : localSignal
+              ? hasRelevantLocalSchema
+              : isProductPage
+              ? hasProductSchema
+              : hasCategorySignal
+                ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+                : hasArticleSignal
+                  ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+                  : isHomepage
+                    ? organizationSchemaPresent || schemaSet.has("website")
+                    : schemaSet.has("webpage") || schemaSet.has("article") || organizationSchemaPresent || schemaSet.has("website");
+      return { recommendedSchema, schemaContextLabel, hasRelevantContextSchema };
+    };
+    let { recommendedSchema, schemaContextLabel, hasRelevantContextSchema } = schemaContextFor(effectiveLocalSchemaSignal, transportLogisticsSchemaContext);
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
     // Word-boundary anchored matcher: an unanchored "[A-Z0-9._%+-]+@" pattern is
     // quadratic on long tokens (inline base64, minified JSON) and stalled scans ~60s.
-    const visibleEmail = findVisibleEmail(text);
+    const visibleEmail = businessContactDetails.email; // example/test addresses are not contact evidence
     const emailMatch = visibleEmail ? [visibleEmail] : null;
     const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
-    const localBusinessDetails = effectiveLocalSchemaSignal ? {
+    let localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
       streetAddress: addressMatch?.[1]?.trim() || null,
       postalCode: addressMatch?.[2]?.trim() || null,
@@ -1348,11 +2115,17 @@ async function runScan(request: Request) {
     let robotsTxt = "";
     let robotsStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFound = false;
+    // Same-site page URLs listed in a valid sitemap: an alternative source for the
+    // representative sample when the scanned document exposes too few links.
+    const sitemapPageUrls: string[] = [];
+    const sitemapChildUrls: string[] = [];
     let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFetchCompleted = false;
     let robotsDeclaredSitemapUrls: string[] = [];
     let confirmedSitemapUrl: string | null = null;
     let sitemapDiagnostic = "";
+    // HTTP statuses with which the site refused RankFix's sitemap requests (for the sample explanation).
+    const sitemapRefusals: number[] = [];
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
@@ -1487,6 +2260,13 @@ async function runScan(request: Request) {
           const sitemapEntriesMatchSite = sitemapKind === "sitemapindex"
             ? sameOriginLocValues.length > 0 || (candidate.source === "robots" && validLocValues.length > 0)
             : sameOriginLocValues.length > 0;
+          if (structurallyValid && sitemapKind === "urlset" && sitemapPageUrls.length < 200) sitemapPageUrls.push(...sameOriginLocValues.slice(0, 200 - sitemapPageUrls.length));
+          // A sitemap index lists child sitemaps, not pages: remember up to two
+          // same-site children (page/product/category sitemaps first) to read later.
+          if (structurallyValid && sitemapKind === "sitemapindex") {
+            const rank = (u: string) => /(?:page|pagina|product|categor|collection|content|post|service|dienst)/i.test(u) ? 0 : /(?:image|video|news|blog|author|tag)/i.test(u) ? 2 : 1;
+            for (const child of [...sameOriginLocValues].sort((a, b) => rank(a) - rank(b))) if (!sitemapChildUrls.includes(child) && sitemapChildUrls.length < 2) sitemapChildUrls.push(child);
+          }
           if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
             sitemapStatus = "PASS";
@@ -1505,6 +2285,14 @@ async function runScan(request: Request) {
           }
         } else {
           sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
+          // 401/403/429 (or a 503 challenge) refuses RankFix, it does not prove a
+          // broken sitemap: search engines may well receive it. Unconfirmed, not a fault.
+          if ([401, 403, 405, 429, 503].includes(r.status)) {
+            sitemapRefusals.push(r.status);
+            sitemapFetchFailed = true;
+            if (candidate.source === "robots") declaredSitemapFetchFailed = true;
+            sitemapDiagnostic += " De server weigerde het verzoek van RankFix; dat bewijst niet dat de sitemap voor zoekmachines onbereikbaar is.";
+          }
           if ((r.status === 404 || r.status === 410) && candidate.source === "robots") {
             sitemapStatus = "FAIL";
             brokenDeclaredSitemaps.push(candidate.url);
@@ -1542,41 +2330,109 @@ async function runScan(request: Request) {
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
-    const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean };
+    const allAnchorTags = [...neutralizeTemplateBindings(html).matchAll(/<a\b([^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
-        const sourceHref = decode(match[1] || "");
-        const body = match[2] || "";
+        const attributes = match[1] || "";
+        const sourceHref = decode(match[2] || "");
+        const body = match[3] || "";
         const anchorText = stripHtml(body);
+        // PDF P4: hidden and honeypot links are traps for bots, not navigation.
+        const openTag = match[0].slice(0, match[0].indexOf(">") + 1);
+        const hiddenLink = /\bhidden\b(?![-\w])|aria-hidden\s*=\s*["']true|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)|class\s*=\s*["'][^"']*\bhoneypot\b/i.test(openTag)
+          || /^(?:secret link|honeypot|bot trap|do not (?:click|follow)(?: this link)?)$/i.test(anchorText.trim());
+        if (hiddenLink) return { sourceHref: "", context: "" };
         const imageAlt = [...body.matchAll(/<img\b[^>]*\balt\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
-        return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
+        return { sourceHref, hidden: isHiddenAnchor(attributes, anchorText), context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
-      .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
+      // Template expressions (":href=item.product_url", "{{ url }}") and cart
+      // actions ("?add-to-cart=12") are not pages a visitor can open (QA #203).
+      .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref) && !isTemplateHref(item.sourceHref) && !isCartActionUrl(item.sourceHref));
+    // Hidden/honeypot anchors are traps for crawlers, not site navigation: never followed or counted.
+    const anchorTags = allAnchorTags.filter((item) => !item.hidden);
+    const hiddenAnchorCount = allAnchorTags.length - anchorTags.length;
     const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
-        if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
+        // www and the bare domain are the same site (links often omit or add "www.").
+        if (!/^https?:$/.test(parsed.protocol) || parsed.hostname.toLowerCase().replace(/^www\./, "") !== finalUrl.hostname.toLowerCase().replace(/^www\./, "")) return [];
         parsed.hash = "";
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
     })).values()];
+    // PDF P4 (BrainWash "Vind je salon" → homepage): the same visible anchor text
+    // pointing to different internal pages confuses visitors and crawlers. Reported
+    // as information next to the link check; never a deduction.
+    const anchorTargetConflicts = (() => {
+      const byText = new Map<string, Set<string>>();
+      for (const item of anchorTags) {
+        const text = item.context.replace(/\s+/g, " ").trim().toLowerCase();
+        if (text.length < 4 || text.length > 60 || /^(?:lees meer|meer|meer info|read more|more|learn more|klik hier|click here|home|bekijk|bekijken|ga naar|details|mehr|plus|ver más|leggi)$/.test(text)) continue;
+        try {
+          const target = new URL(item.sourceHref, finalUrl);
+          if (target.hostname.replace(/^www\./, "") !== finalUrl.hostname.replace(/^www\./, "")) continue;
+          byText.set(text, new Set([...(byText.get(text) || []), (target.pathname.replace(/\/+$/, "") || "/") + target.search]));
+        } catch {}
+      }
+      return [...byText.entries()].filter(([, targets]) => targets.size >= 2).slice(0, 5).map(([text, targets]) => ({ text, targets: [...targets].slice(0, 3) }));
+    })();
     // A representative bounded sample is enough for the synchronous scan.
     // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
-    const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+    // Link probes run in batches of 8; after two HTTP 429 answers the remaining
+    // links are not requested (QA #207: respect the website's rate limit).
+    let linkProbeRateLimited = 0;
+    const probeLink = async (item: (typeof uniqueInternalAnchors)[number]): Promise<LinkAuditResult> => {
+      const linkFetch = () => safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
       try {
-        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+        let result = await linkFetch();
+        // A single 5xx can be a hiccup: one retry before calling it a server error.
+        if (result.response.status >= 500) { try { await result.response.body?.cancel(); } catch {} await new Promise((resolve) => setTimeout(resolve, 400)); result = await linkFetch(); }
         const res = result.response;
-        const destination = res.url || item.url;
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
+        const destination = result.finalUrl?.toString() || res.url || item.url;
+        // HTTP 200 serving a "page not found" template is a missing page (soft 404).
+        let softNotFound = false;
+        let challenged = false;
+        // Error answers are read too: a 404/410/5xx carrying a bot-check page is not
+        // proof that the page is gone (bot protection, 6 Nov).
+        const errorAnswer = [404, 410].includes(res.status) || res.status >= 500;
+        if ((res.ok || errorAnswer) && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
+          try {
+            const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
+            const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
+            const linkText = stripHtml(head).slice(0, 4000);
+            const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
+            softNotFound = res.ok && linkGate?.kind === "error";
+            challenged = linkGate?.kind === "challenge";
+          } catch {}
+        } else { try { await res.body?.cancel(); } catch {} }
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
       } catch {
-        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
+        // PDF P4: no answer is never a broken link; one retry after a short backoff.
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          const retry = await safePublicFetch(new URL(item.url), { timeoutMs: 6000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+          try { await retry.response.body?.cancel(); } catch {}
+          const destination = retry.finalUrl?.toString() || retry.response.url || item.url;
+          return { sourceHref: item.sourceHref, url: item.url, status: retry.response.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, accountLink: isNonContentUrl(item.url) };
+        } catch {}
+        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
-    }));
+    };
+    const linkAuditResults: LinkAuditResult[] = [];
+    for (let start = 0; start < uniqueInternalAnchors.length && linkProbeRateLimited < 2; start += 8) {
+      const batch = await Promise.all(uniqueInternalAnchors.slice(start, start + 8).map(probeLink));
+      linkProbeRateLimited += batch.filter((item) => item.status === 429).length;
+      linkAuditResults.push(...batch);
+    }
+    phaseMark("internalLinksChecked");
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
-    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null);
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500));
+    // Missing pages (404/410/soft 404), server errors (5xx twice) and unconfirmed links
+    // (401/403/429/no answer) are separate outcomes; see lib/link-status.ts.
+    const linkSummary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
+    const unconfirmedInternalLinks = linkAuditResults.filter((item) => linkOutcome(item) === "unconfirmed");
+    const brokenInternalLinks = linkAuditResults.filter((item) => ["missing", "server_error"].includes(linkOutcome(item)));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -1601,6 +2457,7 @@ async function runScan(request: Request) {
     // Login/account links intentionally redirect to SSO/OAuth providers on many sites.
     // They are not SEO redirect debt and must never produce "link to the OAuth URL" advice.
     const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error && !isAuthUtilityRedirect(item));
+    const NON_NAME_ANCHOR = /(?<![\p{L}])(?:beoordel\p{L}*|rating\p{L}*|reviews?|recensies?|bewertung\p{L}*|avis|valoraci\p{L}*|sterren|stars?|sterne|étoiles|van de (?:5|10)|out of (?:5|10)|sur (?:5|10)|von (?:5|10)|bekijk\p{L}*|meer info|lees meer|read more|shop now|koop nu|bestel nu|buy now|in (?:de )?winkel(?:wagen|mand)\p{L}*|add to (?:cart|bag|basket)|in den warenkorb|ajouter au panier|vergelijk\p{L}*|compare)(?![\p{L}])|[€$£]\s?\d/iu;
     const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
     const semanticTokens = (value: string) => safeDecodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
     const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
@@ -1609,9 +2466,14 @@ async function runScan(request: Request) {
       try { destination = new URL(item.finalUrl || item.url); } catch { return []; }
       // Only judge product-like destinations when the visible anchor itself names a product.
       // Price-only anchors do not contain enough semantic evidence and therefore never fail here.
+      // Ratings, review counts, prices and buttons inside a product card are not the
+      // product's name ("Beoordeling is 8,8 van de 10, gebaseerd op 15 reviews").
+      if (NON_NAME_ANCHOR.test(item.context)) return [];
       const contextTokens = [...new Set(semanticTokens(item.context))];
       const destinationTokens = [...new Set(semanticTokens(destination.pathname))];
-      if (contextTokens.length < 2 || destinationTokens.length < 2) return [];
+      // A two-word use-case or category label ("Asthma management") is not a product
+      // name; short anchors only count when they carry a model number.
+      if (contextTokens.length < 2 || destinationTokens.length < 2 || (contextTokens.length < 3 && !/\d/.test(item.context))) return [];
       const overlap = contextTokens.filter((token) => destinationTokens.includes(token));
       const productLikeDestination = /\/(?:product|products|shop)\//i.test(destination.pathname);
       if (!productLikeDestination || overlap.length > 0) return [];
@@ -1694,15 +2556,15 @@ async function runScan(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"cybersecurity"|"waste_recycling"|"sports_organizations"|"maritime_ports"|"airports"|"agriculture_horticulture"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
-      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
+      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(woning(?:en)?|huizen|te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
-      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
-      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
+      {sector:"home_services",label:"Lokale vakdienst",patterns:[unionPattern(/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,TRADE_IDENTITY_PATTERN),unionPattern(/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i,TRADE_ACTIVITY_PATTERN)],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|accountancy|accountancykantoor|audit(?:ors?)? (?:&|en|and) (?:assurance|advies|tax)|belastingadviseurs?|belastingadvieskantoor|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|bistrot|reserveren|reservation|restaurantmenu|menukaart|ristorante|ristoranti|pizzeria|pizzerie|trattoria|osteria|(?<!per la |forniture per |attrezzature per |fornitori per )ristorazione|restaurante|restaurantes|crêperie)\b/i,/\b(openingstijden|opening hours|tafel reserveren|orari di apertura|prenota(?:re)? (?:un |il )?tavolo|prenotazioni|il nostro menu|menu del giorno|horaires d'ouverture|réserver une table|notre carte|horario de apertura|reservar (?:una )?mesa|nuestra carta|nuestro menú)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|ziekenhuis|ziekenhuizen|hospital|krankenhaus|klinikum|hôpital|ospedale|medisch centrum|universitair medisch centrum|university medical cent(?:er|re)|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|manicure|pedicure|gezichtsbehandeling|gezichtsbehandelingen|beautybehandelingen?|facials?|wimperextensions|brow bar|lash studio)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
       {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
@@ -1716,7 +2578,7 @@ async function runScan(request: Request) {
       // (see anchoredToBusinessIdentity), so passing body mentions never select these sectors.
       {sector:"education",label:"Onderwijs & Opleiding",patterns:[/\b(basisschool|middelbare school|hogeschool|universiteit|university|college|mbo|hbo|onderwijs|opleidingen|opleidingscentrum|cursussen|online cursus|courses|academy|academie|school voor|schule|universität|école|scuola|escuela)\b/i,/\b(studenten|students|leerlingen|aanmelden|inschrijven|enrol|enroll|open dag|open day|studiegids|opleiding|curriculum|docenten|lesrooster)\b/i],modules:["core_seo","geo","local","lead_conversion","education"]},
       {sector:"nonprofit",label:"Goede doelen & Non-profit",patterns:[/\b(stichting|goed doel|goede doelen|charity|non-?profit|ngo|fundraising|vereniging|foundation|hilfsorganisation|association caritative)\b/i,/\b(doneer|doneren|donate|donatie|donation|vrijwilliger|volunteer|steun ons|support us|lid worden|anbi|missie|mission)\b/i],modules:["core_seo","geo","lead_conversion","nonprofit"]},
-      {sector:"energy_utilities",label:"Energie & Nutsvoorzieningen",patterns:[/\b(energieleverancier|energiecontract|stroom en gas|gas en stroom|groene stroom|energy supplier|electricity supplier|netbeheerder|drinkwaterbedrijf|waterbedrijf|stromanbieter|zonnepanelen|warmtepomp|laadpaal|solar panels|heat pumps?)\b/i,/\b(tarieven|rates|contract|aanvragen|offerte|terugleveren|meterstand|kwh|installatie|besparen)\b/i],modules:["core_seo","geo","technical","lead_conversion","energy_utilities"]},
+      {sector:"energy_utilities",label:"Energie & Nutsvoorzieningen",patterns:[/\b(energieleverancier|energiecontract|stroom en gas|gas en stroom|groene stroom|energy supplier|electricity supplier|netbeheerder|drinkwaterbedrijf|waterbedrijf|stromanbieter)\b/i,/\b(zonnepanelen|warmtepomp|laadpaal|solar panels|heat pumps?|tarieven|rates|contract|aanvragen|offerte|terugleveren|meterstand|kwh|installatie|besparen)\b/i],modules:["core_seo","geo","technical","lead_conversion","energy_utilities"]},
       {sector:"events_culture",label:"Evenementen & Cultuur",patterns:[/\b(festival|concertzaal|concerten|theater|theatre|schouwburg|museum|musea|bioscoop|cinema|poppodium|evenementenlocatie|event venue|expo|tentoonstelling|exhibition|dierentuin|zoo|pretpark|attractiepark|theme park)\b/i,/\b(tickets?|kaarten|programma|programme|agenda|line-?up|voorstelling|openingstijden|opening hours|exposities?|events?)\b/i],modules:["core_seo","geo","local","lead_conversion","events_culture"]},
       {sector:"fitness_sports",label:"Sport & Fitness",patterns:[/\b(sportschool|fitness(?:club|centrum|studio)?|gym|crossfit|yoga ?studio|pilates|personal training|sportvereniging|voetbalclub|tennisclub|hockeyclub|golfclub|zwembad|sportclub|football club|sports club|sportverein)\b/i,/\b(lidmaatschap|membership|lid worden|proefles|trial class|rooster|schedule|lessen|classes|trainingen|abonnement|teams?|competitie|wedstrijden)\b/i],modules:["core_seo","geo","local","lead_conversion","fitness_sports"]},
     ];
@@ -1726,12 +2588,6 @@ async function runScan(request: Request) {
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     // Primary identity comes from title, description, H1 and typed schema only;
     // marketing examples, visitors and customer sectors in body text are secondary.
-    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes});
-    // Multilingual primary identity (EU languages, typed schema, government host
-    // label, navigation as a medium-confidence fallback). Cookie/consent dialog
-    // headings are removed first: they describe the banner, not the organisation.
-    const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
-    const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
     const identityNavLabels: string[] = [];
     {
       const navSource = html.slice(0, 600000);
@@ -1739,16 +2595,35 @@ async function runScan(request: Request) {
       let block: RegExpExecArray | null;
       while ((block = blockRe.exec(navSource)) && identityNavLabels.length < 80) {
         for (const anchor of block[2].matchAll(/<a\b[^>]*>([\s\S]{0,400}?)<\/a>/gi)) {
-          const label = stripHtml(anchor[1]).replace(/\s+/g, " ").trim();
+          const label = decode(stripHtml(anchor[1])).replace(/\s+/g, " ").trim();
           if (label && label.length < 40) identityNavLabels.push(label);
           if (identityNavLabels.length >= 80) break;
         }
       }
     }
+    // 1 Nov (YMYL): footer link labels (organisation, legal, supervision pages are
+    // usually linked there). Used only as YMYL accountability evidence.
+    const footerLinkLabels: string[] = [];
+    for (const block of html.slice(0, 900000).matchAll(/<footer\b[^>]*>([\s\S]{0,80000}?)<\/footer>/gi)) {
+      for (const anchor of block[1].matchAll(/<a\b[^>]*>([\s\S]{0,400}?)<\/a>/gi)) {
+        const label = decode(stripHtml(anchor[1])).replace(/\s+/g, " ").trim();
+        if (label && label.length < 40) footerLinkLabels.push(label);
+        if (footerLinkLabels.length >= 120) break;
+      }
+    }
+    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes,navigation:identityNavLabels});
+    // Multilingual primary identity (EU languages, typed schema, government host
+    // label, navigation as a medium-confidence fallback). Cookie/consent dialog
+    // headings are removed first: they describe the banner, not the organisation.
+    const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
+    const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
     const euPrimaryIdentity = detectEuPrimaryIdentity({
-      title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
+      title, description: identityDescription, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
     });
+    const orgIdentityInput = { title, description, h1: identityH1s.join(" · "), siteName: decode(ogSiteName || ""), navLabels: identityNavLabels, schemaTypes };
+    const missionIdentity = missionOrganisationIdentity(orgIdentityInput);
+    const constructionIdentity = constructionGroupIdentity(orgIdentityInput);
     const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
@@ -1760,22 +2635,65 @@ async function runScan(request: Request) {
     if (schemaSet.has("hairsalon") || schemaSet.has("beautysalon")) schemaSectorBoost.beauty = 3;
     if (schemaSet.has("automotivebusiness") || schemaSet.has("autodealer") || schemaSet.has("autorepair")) schemaSectorBoost.automotive = 3;
     if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
+    // Self-declared schema.org business types are primary identity evidence.
+    if (["accountingservice","legalservice","attorney","notary","professionalservice"].some((type)=>schemaSet.has(type))) schemaSectorBoost.professional_services = 3;
+    if (["housepainter","roofingcontractor","generalcontractor","locksmith","hvacbusiness","movingcompany"].some((type)=>schemaSet.has(type))) schemaSectorBoost.home_services = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
     // Scanbewijs priority: domain identity outranks incidental generic words.
-    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
+    // QA-144: a sector word inside the organisation's NAME ("Baker McKenzie", a law
+    // firm) is not a statement about its activity. Title segments that are the
+    // brand (equal to the domain label or the site name) only anchor a sector when
+    // the description or H1 independently supports it.
+    const squashName = (value: string) => value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const brandHostLabel = squashName(finalUrl.hostname.replace(/^www\./i, "").split(".")[0] || "");
+    const brandSiteName = squashName(decode(ogSiteName || ""));
+    const isBrandSegment = (segment: string) => {
+      const value = squashName(segment);
+      return value.length >= 3 && (value === brandHostLabel || (brandSiteName.length >= 3 && value === brandSiteName));
+    };
+    const titleSegments = title.split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean);
+    const brandTitle = titleSegments.filter(isBrandSegment).join(" ");
+    const brandlessTitle = titleSegments.filter((part) => !isBrandSegment(part)).join(" ");
+    // Market mentions ("software for hotels", "hotel booking engine") name the
+    // customers or a product made for them, never the organisation's own trade.
+    // Brand names (hostname label, "Name.com" in own fields) are names, not trades.
+    const brandOwnText = [title, description, h1s.join(" ")].join(" ");
+    // The hostname is identity evidence ("kapsalon-jansen.nl"), unless the site
+    // writes its own name as that domain ("Bakker.com"): then it is a brand.
+    const hostnameIdentity = stripBrandNames(finalUrl.hostname, "", brandOwnText).trim() ? stripBrandNames(finalUrl.hostname, "", brandOwnText) : "";
+    // A person name used as brand ("Leen Bakker") never declares the trade its
+    // surname happens to name (31 Oct: furniture chain typed as a bakery).
+    const anchorIdentitySource = stripMarketMentions(stripBrandNames(stripPersonNameBrands([brandlessTitle, description, h1s.join(" "), finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "), title), finalUrl.hostname, brandOwnText) + " | " + hostnameIdentity);
+    const descriptionAndHeadings = stripMarketMentions(stripBrandNames(stripPersonNameBrands([description, h1s.join(" ")].join(" | "), title), finalUrl.hostname, brandOwnText));
+    const legacyAnchored = (patterns: RegExp[]) => Boolean(patterns[0]?.test(anchorIdentitySource)
+      || (brandTitle && patterns[0]?.test(stripMarketMentions(brandTitle)) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
+    // Anchored in the organisation's own title or description (not only in one of
+    // several H1s such as project or campaign headings): only then may a keyword
+    // decision be presented as confirmed.
+    const legacyAnchoredInMeta = (patterns: RegExp[]) => Boolean(patterns[0]?.test(stripMarketMentions([brandlessTitle, description].join(" | "))));
+    // The homepage's own declaration of a specific activity (law firm, airport,
+    // architecture practice, cybersecurity, car rental...) in two independent
+    // fields or in its self-description sentence. Outranks loose keywords.
+    const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
+      ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes, hostname: finalUrl.hostname }) : null;
+    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
+    // A manufacturer, wholesaler or shop that refers customers to installers is
+    // not itself a local trade (general rule, any language).
+    const supplierOverridesTrade = productSupplierOverridesTrade({ title, h1: identityH1s.join(" "), description: identityDescription });
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
-      const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
-      const identityPriorityBoost = item.patterns[0]?.test(sectorIdentitySource) && item.patterns[1]?.test(sectorSource) ? 1 : 0;
+      const anchored = legacyAnchored(item.patterns);
+      const identityBoost = anchored ? 1 : 0;
+      const identityPriorityBoost = anchored && item.patterns[1]?.test(sectorSource) ? 1 : 0;
       const transportContextBoost = item.sector === "transport_travel" && transportBookingIdentity ? 2 : 0;
       // Content/navigation is only supporting evidence. Never promote an
       // industry solely from terms in FAQ, pricing examples or customer stories.
-      const anchoredToBusinessIdentity = Boolean(item.patterns[0]?.test(sectorIdentitySource) || schemaSectorBoost[item.sector]);
+      const anchoredToBusinessIdentity = Boolean(anchored || schemaSectorBoost[item.sector]);
       // The word "news/nieuws" alone (a company's own news page) is not publisher
       // identity: news needs the same proof as the master news rule.
       const newsWithoutPublisherIdentity = item.sector === "news_media" && !schemaSet.has("newsmediaorganization") && !schemaSet.has("newsarticle")
-        && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media");
-      const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
+        && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media" && !missionIdentity.primary);
+      const suppressedHits = !anchoredToBusinessIdentity || (item.sector === "home_services" && supplierOverridesTrade) || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || anchored))
         ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
@@ -1803,7 +2721,15 @@ async function runScan(request: Request) {
     const catalogTop = evidenceSectorCandidates[0];
     const catalogRunnerUp = evidenceSectorCandidates[1];
     const catalogSectorStrong = Boolean(catalogTop && catalogTop.score >= 4 && (!catalogRunnerUp || catalogTop.score >= catalogRunnerUp.score + 2));
-    const legacyProfile = hasEcommerceSignal
+    // QA-144: a commerce plugin alone (platform-only) or one kind of commerce
+    // signal is not a storefront; see retailPurchaseEvidence below.
+    // A shop has a purchase element on its own page (cart, add-to-cart, checkout or
+    // Product schema). Prices alone are menus, donation amounts or rental rates.
+    const homepagePurchaseElement = Boolean((scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")
+      || (scanEvidence.commerce.addToCart.value && scanEvidence.commerce.addToCart.confidence === "high")
+      || (scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high")
+      || scanEvidence.schema.product);
+    const legacyProfile = hasEcommerceSignal && !platformOnlyCommerceSignal && (homepagePurchaseElement || evidenceCommerceConfirmed)
       ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])]}
       : strongSectorCandidate
         ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
@@ -1827,6 +2753,14 @@ async function runScan(request: Request) {
       events:"events_culture", entertainment:"events_culture", museum_culture:"events_culture", fitness:"fitness_sports", sports_club:"fitness_sports",
       publisher_blog:"news_media", food_delivery:"hospitality", parking:"transport_travel", coworking:"professional_services",
       manufacturer:"manufacturing_industrial", wholesale:"general_business", marketplace:"service_marketplace",
+      // Newly supported sector catalog families: map the catalog key to the
+      // final engine's broad primary sector. This mapping is NOT sufficient
+      // evidence by itself; homepage + separate own-page corroboration below
+      // must confirm the organisation's own activity.
+      cybersecurity:"cybersecurity", waste_recycling:"waste_recycling",
+      sports_organizations:"sports_organizations", maritime_ports:"maritime_ports",
+      airports:"airports", agriculture_horticulture:"agriculture_horticulture",
+      architecture_design:"professional_services", charities_nonprofits:"nonprofit",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     // Even a high-scoring catalog sector requires independent primary evidence;
@@ -1854,9 +2788,18 @@ async function runScan(request: Request) {
     // Short-stay accommodation must outrank generic words such as "te huur".
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
-    const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
+    const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|autowerkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
-    const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
+    // QA 144: a hospitality group or hotel naming "spa and wellness" is not a
+    // beauty business (was Beauty 95%). Wellness/manicure/facial are activities
+    // that support, never decide; the trade noun (salon, day spa) or typed
+    // schema decides, and a lodging/hospitality identity vetoes activity words.
+    const beautyTradeNoun = /\b(?:beauty salon|beautysalon|schoonheidssalon|schoonheidsspecialist\w*|nagelstudio|nail salon|nagelsalon|day spa|dayspa|city spa|kosmetikstudio|institut de beauté|salón de belleza|centro de est[ée]tica|istituto di bellezza)\b/i.test(sectorIdentitySource);
+    const beautyActivityWords = (sectorIdentitySource.match(/\b(?:wellness|manicure|pedicure|facials?|gezichtsbehandeling(?:en)?)\b/gi) || []).map((w) => w.toLowerCase());
+    const lodgingOrHospitalityIdentity = /\b(?:hotels?|hôtels?|resorts?|hospitality|hotelgroep|hotel group|lodging|accommodati\w*|overnacht\w*|vakantiepark\w*|holiday parks?)\b/i.test(sectorIdentitySource);
+    const beautyServiceIdentity = schemaSet.has("beautysalon") || schemaSet.has("dayspa") || schemaSet.has("nailsalon")
+      || (beautyTradeNoun && !lodgingOrHospitalityIdentity)
+      || (new Set(beautyActivityWords).size >= 2 && !lodgingOrHospitalityIdentity && !beautyActivityWords.every((w) => w === "wellness"));
     // Primary telecom subscription identity outranks incidental commerce widgets.
     // Require subscription and network/provider terminology in page identity,
     // not a lone generic price, product, or shopping navigation link.
@@ -1872,7 +2815,11 @@ async function runScan(request: Request) {
     // Publishers/broadcasters name themselves in title, description or H1.
     // That self-description outranks incidental telecom words, unless the page
     // itself sells subscriptions/SIM plans.
-    const newsMediaPrimaryIdentity = (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) || (euPrimaryIdentity?.sector === "news_media" && euPrimaryIdentity.confidence === "high"))
+    // A charity/conservation/humanitarian organisation publishes news and stories but is not a publisher:
+    // only a news schema or a strong publisher/broadcaster term still counts as news for it.
+    const strongPublisherTerm = /(?<![\p{L}])(?:omroep|broadcast(?:er|ing)|krant|newspaper|dagblad|persbureau|news ?agency|zeitung|rundfunk|journaal)(?![\p{L}])/iu.test([title, description, identityH1s.join(" ")].join(" "));
+    const missionBlocksNews = missionIdentity.primary && !schemaSet.has("newsmediaorganization") && !strongPublisherTerm;
+    const newsMediaPrimaryIdentity = !missionBlocksNews && (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) || (euPrimaryIdentity?.sector === "news_media" && euPrimaryIdentity.confidence === "high"))
       && !telecomSubscriptionIdentity && !telecomIndependentIdentity.subscription && !evidenceCommerceConfirmed
       && primaryBusinessEvidence.sector !== "financial_services";
     const telecomProviderIdentity = (
@@ -1880,7 +2827,13 @@ async function runScan(request: Request) {
       telecomServiceIdentity ||
       telecomIndependentIdentity.primary
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
+    const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
+      && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
+    // Employer careers site: the vacancy topic is the page topic, not the site.
+    const careersIdentity = careersSiteIdentity({ title, description: identityDescription, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
+    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = careersIdentity
+      ? {sector:"recruitment",key:careersIdentity.key,label:careersIdentity.label,evidence:careersIdentity.evidence,confidence:careersIdentity.confidence,confidenceScore:careersIdentity.confidenceScore}
+      : newsMediaPrimaryIdentity
       ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
       : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
@@ -1888,6 +2841,13 @@ async function runScan(request: Request) {
       ? {sector:"financial_services",key:primaryBusinessEvidence.financialKind ? `financial_${primaryBusinessEvidence.financialKind}` : "financial_services",label:primaryBusinessEvidence.financialKind==="banking" ? "Bank & financiële producten" : primaryBusinessEvidence.financialKind==="insurance" ? "Verzekeringen" : "Financiële diensten & betaaldiensten",evidence:primaryBusinessEvidence.evidence}
       : euPrimaryIdentity?.sector === "financial_services" && euPrimaryIdentity.confidence === "high"
       ? {sector:"financial_services",key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`)}
+      : missionIdentity.primary && !evidenceCommerceConfirmed
+      ? {sector:"nonprofit",key:"nonprofit",label:"Goede doelen & Non-profit",evidence:missionIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:"high" as const,confidenceScore:88}
+      // Integration 2 Nov: the construction-group rule (PR #219) only fills a gap. A
+      // primary EU identity (B2B construction & infrastructure, a manufacturer) or a
+      // proven primary business identity is more specific and is never overridden.
+      : constructionIdentity.primary && !evidenceCommerceConfirmed && !realEstateIdentity && !euPrimaryIdentity && !primaryBusinessEvidence.sector
+      ? {sector:"home_services",key:"construction",label:"Bouw & Infrastructuur",evidence:constructionIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:"high" as const,confidenceScore:86}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
@@ -1900,12 +2860,49 @@ async function runScan(request: Request) {
           // strong legacy sector candidate; it only fills an otherwise empty decision.
           // Medium (navigation-only) identities of every sector, and high ones of the
           // sectors not handled by a dedicated rule above.
-          : euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
-            && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate)
+          : euPrimaryIdentity && euGenericIdentityApplies
             ? {sector:euPrimaryIdentity.sector as SectorKey,key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
             : euPrimaryIdentity?.sector === "news_media" && !telecomSubscriptionIdentity && !evidenceCommerceConfirmed && !strongSectorCandidate
               ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
               : null;
+    // QA-144: the homepage's own declaration of a specific activity decides when no
+    // dedicated identity rule did, when only a navigation-level (medium) identity
+    // exists, or when it is the more specific form of the same activity (an
+    // airport rather than "passenger transport", cybersecurity rather than generic
+    // software, a law firm within professional services). Homepage-only evidence
+    // is "probable" (76); own pages corroborate it later.
+    const DECLARED_REFINES: Record<string, string[]> = {
+      airports:["transport_travel"], maritime_ports:["transport_travel", ...(declaredPortOperations({title,description:identityDescription,identityHeadings:identityH1s}) ? ["government"] : [])], cybersecurity:["saas_b2b","telecom_technology"],
+      professional_services:["professional_services"], events_culture:["events_culture"], health_wellness:["health_wellness"], nonprofit:["nonprofit"], automotive:["automotive"],
+      // A local trade (hotel, restaurant, hair salon, optician...) refines a
+      // generic keyword decision of the same broad sector.
+      hospitality:["hospitality"], beauty:["beauty"], food_local_retail:["food_local_retail"], real_estate:["real_estate"],
+      // QA international-28: an independent mortgage adviser that names lenders'
+      // products ("hypotheken", "rente") is not a bank; its own declaration refines
+      // the financial subtype (a bank naming itself never declares this, see
+      // detectDeclaredIndustry).
+      financial_services:["financial_services"],
+    };
+    const baseIsEuGeneric = Boolean(baseMasterIdentity && euGenericIdentityApplies && euPrimaryIdentity && baseMasterIdentity.sector === euPrimaryIdentity.sector && baseMasterIdentity.key === euPrimaryIdentity.key);
+    const declaredIdentityApplies = Boolean(homepageDeclared && (
+      !baseMasterIdentity
+      || (baseIsEuGeneric && euPrimaryIdentity?.confidence === "medium")
+      // A broad declaration ("hospital", key = the sector itself) never replaces a
+      // more specific subtype of the same sector (an academic medical centre).
+      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key
+        && !(homepageDeclared.key === homepageDeclared.sector && baseMasterIdentity.sector === homepageDeclared.sector && baseMasterIdentity.key !== baseMasterIdentity.sector))
+    ));
+    // The declaration agrees with an identity already established for the same
+    // broad sector (a dedicated rule or an anchored keyword decision): it refines
+    // the subtype, and the two independent rules together keep that certainty.
+    const declaredAgreeingScore = homepageDeclared ? Math.max(
+      baseMasterIdentity && baseMasterIdentity.sector === homepageDeclared.sector ? (baseMasterIdentity.confidenceScore ?? 90) : 0,
+      strongSectorCandidate && sectorCandidates[0].sector === homepageDeclared.sector && legacyAnchoredInMeta(sectorSignals.find((item)=>item.sector===sectorCandidates[0].sector)?.patterns || []) ? (sectorCandidates[0].hits >= 3 ? 95 : 90) : 0,
+    ) : 0;
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = declaredIdentityApplies && homepageDeclared
+      ? {sector:homepageDeclared.sector as SectorKey,key:homepageDeclared.key,label:homepageDeclared.label,confidence:declaredAgreeingScore >= 80 ? "high" : "medium",confidenceScore:Math.max(76, declaredAgreeingScore),
+          evidence:[`Eigen bedrijfsomschrijving op de homepage: ${homepageDeclared.label}`, ...(baseMasterIdentity ? [`Specifieker dan de algemene identiteit: ${baseMasterIdentity.label}`] : [])]}
+      : baseMasterIdentity;
     // Primary identity outranks generic commerce capability. A dealer, hotel,
     // service provider or other clearly identified business may publish inventory
     // and prices without being an e-commerce storefront. Commerce becomes the
@@ -1929,11 +2926,35 @@ async function runScan(request: Request) {
       // Online-shop self-description in any EU language ("negozio online",
       // "e-pood", "sklep internetowy", ...) plus at least one commerce signal.
       || (euRetailSelfDescription && (evidenceCommerceStrength >= 1 || commerceNavigationSignal));
-    const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
+    // QA-144: what makes the shop the organisation itself. The site says it is a
+    // shop (webshop, online store, official store, Store schema).
+    // Both are evidence-gated: the self-description counts only together with
+    // commerce signals (a store builder SaaS also says "online store").
+    const storefrontIdentity = Boolean(explicitRetailIdentity || storeSchemaRetailIdentity);
+    // A platform plugin, or prices without a purchase element (menus,
+    // donations or rental rates), is not a webshop identity.
+    const retailPurchaseEvidence = storefrontIdentity || evidenceCommerceConfirmed
+      || (hasEcommerceSignal && !platformOnlyCommerceSignal && homepagePurchaseElement);
+    // Any established non-retail identity (own declaration, dedicated identity rule,
+    // or an anchored keyword candidate) stays primary unless the site itself says
+    // it is a shop: a webshop, ticket sale, reservation or donation form is then a
+    // channel of that organisation, not its sector.
+    // A local trade the homepage declares for itself (optician, pharmacy, salon,
+    // hotel, restaurant, bakery) sells through shops, salons or venues; its own
+    // webshop, online ordering or booking is a sales channel of that trade.
+    // A trade named in BOTH the organisation's own title and H1 is its primary
+    // identity: a parts webshop beside it is secondary commerce (hybrid), not a
+    // retail identity. Product suppliers (maker, wholesaler, shop) are excluded.
+    const tradeNamedInOwnHead = !supplierOverridesTrade && TRADE_IDENTITY_PATTERN.test(title) && TRADE_IDENTITY_PATTERN.test(identityH1s.join(" "));
+    const localTradeIdentity = Boolean((masterIdentityOverride && LOCAL_TRADE_KEYS.has(masterIdentityOverride.key))
+      || (tradeNamedInOwnHead && strongSectorCandidate && sectorCandidates[0].sector === "home_services"));
+    const nonRetailIdentityKnown = Boolean((masterIdentityOverride && masterIdentityOverride.sector !== "ecommerce")
+      || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"));
     const retailPrimaryIdentity = retailPurchaseEvidence
       && primaryBusinessEvidence.sector !== "financial_services"
+      && (storefrontIdentity || !nonRetailIdentityKnown)
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
-      && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
+      && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity && !localTradeIdentity
       // A multilingual non-retail identity (bank, carrier, post, government...)
       // means a cart, voucher shop or ticket checkout is a capability, not the sector.
       // A navigation-only (medium) identity also wins over a cart, unless the page
@@ -1944,9 +2965,12 @@ async function runScan(request: Request) {
       && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
-        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
+        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`],
+            // Keyword evidence named only in a heading, the host or the path (not in
+            // the organisation's own title or description) is probable, never confirmed.
+            ...(legacyAnchoredInMeta(sectorSignals.find((item)=>item.sector===sectorCandidates[0].sector)?.patterns || []) || schemaSectorBoost[sectorCandidates[0].sector] ? {} : {confidence:"medium" as const, confidenceScore:74})}
         : null));
-    const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity));
+    const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity && !nonRetailIdentityKnown));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -1971,6 +2995,13 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // Site-level business subtype differs from homepage page type; unknown remains unknown.
+    let realEstateSubtypeDecision = detectRealEstateSubtype({title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes});
+    if (sectorProfile.sector === "real_estate") {
+      Object.assign(sectorProfile, {subtype:realEstateSubtypeDecision.subtype, subtypeLabel:realEstateSubtypeDecision.label, subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore, subtypeEvidence:realEstateSubtypeDecision.evidence});
+      if (realEstateSubtypeDecision.subtype !== "unknown") sectorProfile.label = "Vastgoed · " + realEstateSubtypeDecision.label;
+    }
+
     // Primary vs secondary activities: a university hospital is care first, with
     // teaching and research as secondary activities (shown, never the identity).
     if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
@@ -1985,13 +3016,21 @@ async function runScan(request: Request) {
     // The sector engine must abstain rather than invent a lodging business from
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
-      || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
+      || schemaSet.has("restaurant") || schemaSet.has("foodestablishment")
+      // The homepage's own two-field declaration of a restaurant ("biljartcafé ...
+      // biefstuk en gerechten") is independent restaurant identity evidence.
+      // The homepage's own multilingual declaration of a restaurant or hotel
+      // (ristorante, hôtel, Gasthaus, restaurante...) is the same kind of evidence.
+      || Boolean(declaredIdentityApplies && homepageDeclared?.sector === "hospitality")
+      // A food-service chain recognised from dishes + menu + locations (eu-identity).
+      || Boolean(euPrimaryIdentity?.sector === "hospitality" && euPrimaryIdentity.key === "restaurant");
     if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";
       sectorProfile.label = "Sector niet betrouwbaar vastgesteld";
       sectorProfile.confidence = "low";
-      sectorProfile.confidenceScore = 35;
+      // An abstained sector carries no certainty (report invariant: unknown = 0%).
+      sectorProfile.confidenceScore = 0;
       sectorProfile.evidence = ["Horeca- of verblijfssignalen waren niet onafhankelijk bevestigd in de bedrijfsidentiteit"];
       sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
     }
@@ -2211,6 +3250,17 @@ async function runScan(request: Request) {
             : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
         : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).map((u: string)=>{ try { const x=new URL(u, finalUrl); return x.host + (x.pathname.length > 60 ? x.pathname.slice(0,57)+"…" : x.pathname); } catch { return String(u).slice(0,80); } }).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
 
+    // PDF P9: outdated front-end libraries, judged only from versions visible in URLs.
+    const libraryFindings = detectLibraryVersions(html);
+    const outdatedLibraries = libraryFindings.filter((item) => item.outdated);
+    if (outdatedLibraries.length) {
+      securityChecks.push(securityCheck("warning","security_outdated_libraries","Verouderde JavaScript-bibliotheken",`${outdatedLibraries.length} verouderde bibliotheek(versie)(s) gevonden in de HTML: ${outdatedLibraries.slice(0,4).map((item)=>`${item.name} ${item.version} (${item.fixedIn ? `bekend beveiligingsadvies ${item.advisory}; opgelost vanaf ${item.fixedIn}` : item.advisory})`).join("; ")}. Bron: ${outdatedLibraries.slice(0,2).map((item)=>item.url.slice(0,140)).join(" · ")}. Of de kwetsbare functie echt wordt gebruikt, kan een passieve scan niet bepalen.`,"Werk de genoemde bibliotheken bij naar een ondersteunde versie (of via de CMS-/thema-update) en test daarna formulieren en interactieve onderdelen.",2,4));
+    } else if (libraryFindings.length) {
+      securityChecks.push(securityCheck("pass","security_outdated_libraries","Verouderde JavaScript-bibliotheken",`Zichtbare bibliotheekversies hebben geen bekend openbaar beveiligingsadvies in de RankFix-lijst: ${libraryFindings.slice(0,4).map((item)=>`${item.name} ${item.version}`).join(", ")}.`,"Houd bibliotheken via CMS-, thema- of buildupdates actueel.",4,4));
+    } else {
+      securityChecks.push(securityCheck("not_applicable","security_outdated_libraries","Verouderde JavaScript-bibliotheken","Geen bibliotheekversies zichtbaar in script- of stylesheet-URL's; RankFix raadt geen versies en beoordeelt dit daarom niet.","Controleer bibliotheekversies in de build of het CMS-updateoverzicht.",0,4));
+    }
+
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
     const securityPoints = securityApplicable.reduce((sum,item)=>sum+item.points,0);
@@ -2223,7 +3273,13 @@ async function runScan(request: Request) {
       grade:grade(securityScore),
       summary:securitySummary,
       checks:securityChecks,
-      note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+      note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd.",
+      // A passive scan of one response cannot establish that a website is secure.
+      limitedScope: true,
+      scope: "passive_response_headers_and_html" as const,
+      // PDF P10: header names that the response did not carry (evidence for the action examples).
+      missingHeaders: missingSecurityHeaders,
+      claimPolicy: "Een hoge score betekent alleen dat de gecontroleerde headers en HTML-signalen in orde zijn; het is geen veiligheidsoordeel over de website.",
     };
     const accessibilityApplicable = accessibilityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const accessibilityMax = accessibilityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -2232,6 +3288,14 @@ async function runScan(request: Request) {
     const accessibilityEngine = {
       version:"1.2-axe-hydrated-dom",
       mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
+      // Without a completed axe-core run the number is a limited DOM check (QA 144:
+      // Decathlon showed 100/100 while axe could not finish). It is never shown as
+      // a score that could read as a WCAG assessment.
+      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility && renderedDocument?.axeReport),
+      auditLevel: javascriptExecuted && renderedDocument?.axeReport ? "axe_wcag_a_aa_automated" as const : javascriptExecuted && renderedDocument?.domAccessibility ? "limited_dom_name_label_check" as const : "not_available" as const,
+      axeStatus: !javascriptExecuted ? "not_run_no_rendered_dom" : renderedDocument?.axeReport ? "completed" : `not_completed${renderedDocument?.axeError ? `: ${renderedDocument.axeError}` : ""}`,
+      limitedScope: true,
+      claimPolicy: "Automatisch toetsbare regels; nooit een volledige WCAG-/EAA-conformiteitsbeoordeling.",
       axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
       score:accessibilityScore,
       grade:grade(accessibilityScore),
@@ -2258,11 +3322,20 @@ async function runScan(request: Request) {
     if (sectorProfile.sector === "real_estate") {
       const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
-      const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.areaServed));
+      const agentVerified = realEstateSubtypeDecision.subtype === "real_estate_agent";
+      const rentalVerified = ["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      const rentalProcess = /\b(inschrijven|bezichtiging|huurwoning|huurwoningen|woningaanbod|huurders?|huren in \d+ stappen|huurcontract|mijn huur)\b/i.test(text);
       seoChecks.push(
-        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
-        sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
-        sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningaanbod is in de pagina bevestigd.","RankFix kon vastgoedaanbod in de beschikbare HTML niet betrouwbaar bevestigen.","Maak relevant vastgoedaanbod vindbaar wanneer deze website dit aanbiedt."),
+        agentVerified
+          ? sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Contact-, bezichtigings- of verkoopadviesactie bevestigd.","Een makelaar-CTA is niet betrouwbaar bevestigd.","Maak de passende makelaarsvervolgstap zichtbaar.")
+          : rentalVerified
+            ? sectorCheck("sector_real_estate_leads","Huurwoning- en huurdersproces",rentalProcess,"Huurwoningaanbod of huurdersproces is zichtbaar.","Het huurdersproces kon niet betrouwbaar worden bevestigd.","Maak inschrijven, bezichtigingen en huurdersinformatie bereikbaar.")
+            : check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","Het vastgoedsubtype is nog niet bevestigd: geen makelaar- of verhuurdersadvies zonder bewijs.","Bevestig de primaire rol van de organisatie voor een passend advies.",0,4),
+        agentVerified
+          ? sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Het makelaarswerkgebied is zichtbaar.","Geen lokaal werkgebied bevestigd.","Beschrijf het werkgebied wanneer lokale makelaardij wordt aangeboden.")
+          : check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Niet van toepassing: geen onafhankelijke bevestiging dat de organisatie een makelaar is.","Geen actie zolang een makelaarsidentiteit niet is aangetoond.",0,4)
       );
     } else if (sectorProfile.sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
@@ -2285,7 +3358,7 @@ async function runScan(request: Request) {
     } else if (sectorProfile.sector === "home_services") {
       const serviceSignal = /\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(text);
       const quoteSignal = /\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\b/i.test(text) || hasContactChannelSignal;
-      const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.areaServed));
       seoChecks.push(
         sectorCheck("sector_home_services_offer","Vakdiensten",serviceSignal,"De belangrijkste vak-/servicediensten zijn in de pagina bevestigd.","De aangeboden vakdiensten konden niet betrouwbaar worden bevestigd.","Maak concreet welke werkzaamheden en diensten worden uitgevoerd."),
         sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
@@ -2301,7 +3374,7 @@ async function runScan(request: Request) {
         sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
       );
     } else if (sectorProfile.sector === "hospitality") {
-      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
+      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
       const menuSignal = /\b(menukaart|onze menu's|ons menu|bekijk (?:het|ons) menu|our menu|view (?:the |our )?menu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|ontbijt|lunch|diner|dinner|gerechten|dishes)\b/i.test(text) || links.some((href)=>/\/(?:menu|menukaart|kaart|lunchkaart|dinerkaart)(?:[/.?#-]|$)/i.test(href));
       const reservationSignal = hasContactChannelSignal || /\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\b/i.test(text);
       seoChecks.push(
@@ -2336,20 +3409,25 @@ async function runScan(request: Request) {
       (rawVisibleWords < 100 && rawScriptCount >= 4) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
-    const brokenInternalLinkRatio = checkedInternalLinkCount ? brokenInternalLinks.length / checkedInternalLinkCount : 0;
-    const brokenLinkPoints = brokenInternalLinkRatio <= 0.05 ? 4 : brokenInternalLinkRatio <= 0.15 ? 3 : brokenInternalLinkRatio <= 0.30 ? 2 : 1;
     const redirectedInternalLinkRatio = checkedInternalLinkCount ? redirectedInternalLinks.length / checkedInternalLinkCount : 0;
     const internalRedirectPoints = redirectedInternalLinkRatio <= 0.10 ? 3 : redirectedInternalLinkRatio <= 0.30 ? 2 : 1;
     seoChecks.push(
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
-        : uniqueInternalAnchors.length === 0
-        ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
-        : brokenInternalLinks.length > 0
-          ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
-          : unconfirmedInternalLinks.length > 0
-            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
-            : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
+        : (() => {
+            const conflictNote = anchorTargetConflicts.length ? ` Let op (geen aftrek): dezelfde linktekst verwijst naar verschillende pagina's: ${anchorTargetConflicts.map((c) => `"${c.text}" → ${c.targets.join(", ")}`).join("; ")}.` : "";
+            const linkCheck = check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message + conflictNote, linkSummary.fix, linkSummary.points, 5);
+            (linkCheck as Check & { anchorTargetConflicts?: unknown }).anchorTargetConflicts = anchorTargetConflicts;
+            // Structured evidence: the referring page and every non-OK link with its
+            // status and outcome, so dashboard/PDF/JSON can list URL, reason and action.
+            linkCheck.evidence = { url: finalUrl.toString(), found: linkSummary.missing + linkSummary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: linkSummary.message };
+            (linkCheck as Check & { links?: unknown }).links = linkAuditResults
+              .map((item) => ({ url: item.url, referringPage: finalUrl.toString(), httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) }))
+              .filter((item) => item.outcome !== "ok" && item.outcome !== "skipped");
+            // sourceUrl/targetUrl/finalUrl/httpStatus/evidence/impact/recommendedAction per link.
+            (linkCheck as Check & { linkRecords?: unknown }).linkRecords = brokenLinkRecords(linkAuditResults, finalUrl.toString());
+            return linkCheck;
+          })()
     );
     seoChecks.push(
       linkEvidenceUnavailable
@@ -2372,14 +3450,6 @@ async function runScan(request: Request) {
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
-    const normalizeLegalText = (value: string) =>
-      safeDecodeURIComponent(value)
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
     const legalAnchorEvidence = [...html.matchAll(/<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const attrs = (match[1] || "") + " " + (match[3] || "");
@@ -2389,15 +3459,17 @@ async function runScan(request: Request) {
         const titleAttr = attrFromTag("<a " + attrs + ">", "title");
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
       });
-    const legalLexicon = {
-      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
-      cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
-      terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
-    };
+    const legalLexicon = LEGAL_LINK_LEXICON;
     // Third-party provider policies (e.g. Google's Privacy Policy in an embed)
     // do not establish the scanned business's own privacy, cookies or terms.
+    // A link that opens consent settings ("Privacy-instellingen" → ?modal=cookie-instellingen,
+    // "Cookie settings", javascript:/# handlers) is a preferences dialog, not a policy page.
+    const isConsentSettingsLink = (item: { href: string; label: string; aria: string; title: string }) =>
+      /^(?:javascript:|#)/i.test(item.href.trim())
+      || /[?&#](?:modal|consent|cookie[-_]?settings|privacy[-_]?settings)=?/i.test(item.href)
+      || /(?:instellingen|voorkeuren|settings|preferences|einstellungen|param[eè]tres|preferenze|configuraci[oó]n|beheren|manage)/i.test([item.label, item.aria, item.title].join(" "));
     const findLegalSignal = (pattern: RegExp) =>
-      legalAnchorEvidence.find((item) => isFirstPartyLegalLink(item.href, finalUrl.toString()) && pattern.test(item.haystack)) || null;
+      legalAnchorEvidence.find((item) => isFirstPartyLegalLink(item.href, finalUrl.toString()) && !isConsentSettingsLink(item) && pattern.test(item.haystack)) || null;
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
@@ -2408,18 +3480,19 @@ async function runScan(request: Request) {
       .find(Boolean) || null;
     const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
     const contactFormFound = formBlocks(html).some((form) => isContactForm(form));
-    const visibleContactEmail = findVisibleEmail(text);
+    const visibleContactEmail = businessContactDetails.email;
     // FAQ, help and support pages are not proof of a contact channel.
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
     // A missing cookie link only counts when the site demonstrably uses cookies
     // or tracking: no Set-Cookie and no known tracker means there is nothing to disclose that RankFix can prove.
-    const cookieUseObserved = cookieObservations.length > 0 || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
+    const cookieUseObserved = cookieObservations.length > 0 || detectGoogleTagManager(html).present || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
     const cookieSignalOk = hasCookieLink || !cookieUseObserved;
     const cookieNotRequiredNote = !hasCookieLink && !cookieUseObserved ? " Geen cookies of trackers waargenomen; een cookielink is daarom niet als ontbrekend beoordeeld." : "";
     const hasTermsLink = Boolean(termsEvidence);
-    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
+    // A visible phone number, e-mail or postal address is contact evidence even without a "contact" link.
+    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail || hasBusinessContactDetails);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
     const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");
@@ -2459,95 +3532,18 @@ async function runScan(request: Request) {
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
-    const parseVisiblePrice = (value: string) => {
-      const compact = value.replace(/\s/g, "").replace(/[^0-9.,-]/g, "");
-      if (!compact) return null;
-      const lastDot = compact.lastIndexOf(".");
-      const lastComma = compact.lastIndexOf(",");
-      const separator = lastDot > lastComma ? "." : lastComma > lastDot ? "," : "";
-      let normalized = compact;
-      if (separator) {
-        const separatorIndex = Math.max(lastDot, lastComma);
-        const decimals = compact.length - separatorIndex - 1;
-        const other = separator === "." ? "," : ".";
-        if (decimals === 3 && !compact.slice(separatorIndex + 1).includes(other)) {
-          // 2.699 / 2,699 is a thousands-group price, not 2.69.
-          normalized = compact.replace(/[.,]/g, "");
-        } else {
-          normalized = compact.replace(new RegExp("\\" + other, "g"), "");
-          if (separator === ",") normalized = normalized.replace(",", ".");
-        }
-      }
-      const numeric = Number(normalized);
-      return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
-    };
-    const explicitProductPriceCandidates = [...new Set(
-      [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
-        .flatMap((match) => {
-          const tag = String(match[0] || "");
-          const raw = String(match[1] || match[2] || "");
-          const rawPrice = raw.match(/(\d{1,9}(?:[.,]\d{2})?)/)?.[1];
-          if (!rawPrice) return [];
-          // Schema-style/meta price attributes use a machine-readable decimal value.
-          // Visible class text follows locale formatting. Treating "21850" from a
-          // content attribute as 21.85 created false product-price mismatches.
-          const machineReadable = /(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["'])/i.test(tag) && /content\s*=/i.test(tag);
-          const parsed = machineReadable ? Number(rawPrice.replace(",", ".")) : parseVisiblePrice(rawPrice);
-          return parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
-        })
-    )].slice(0, 20);
-    // Broad price evidence is intentionally currency-aware. It remains weaker
-    // than explicit product markup, but should not silently exclude non-EUR shops.
-    const broadVisiblePriceCandidates = [...new Set(
-      [...text.matchAll(/(?:€\s*|£\s*|\$\s*|(?:EUR|GBP|USD)\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
-        .flatMap((match) => {
-          const parsed = parseVisiblePrice(String(match[1]));
-          return parsed === null ? [] : [parsed];
-        })
-    )].slice(0, 20);
-    // Platform price markup nests the amount (WooCommerce: <p class="price"><span
-    // class="woocommerce-Price-amount"><bdi><span>&euro;</span>&nbsp;13,95</bdi>;
-    // Shopify: <span class="price-item price-item--regular">€13,95</span>). Read
-    // the text right after a price-classed element, with a currency in it.
-    const nestedPriceSnippets: string[] = [];
-    const nestedProductPriceCandidates = explicitProductPriceCandidates.length ? [] : [...new Set(
-      [...html.matchAll(/<(?:p|span|div|ins|bdi|strong)\b[^>]*class\s*=\s*["'][^"']*(?:woocommerce-Price-amount|price-item|price__regular|price__sale|product[-_ ]?price|\bprice\b)[^"']*["'][^>]*>([\s\S]{0,260})/gi)]
-        .flatMap((match) => {
-          const snippet = decodeHtmlEntities(String(match[1] || "").replace(/<(?:del|s)\b[\s\S]*?<\/(?:del|s)>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim().slice(0, 60);
-          const m = snippet.match(/^(?:(?:€|£|\$|EUR|GBP|USD)\s*(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)|(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:€|£|\$|EUR|GBP|USD))/i);
-          const parsed = m ? parseVisiblePrice(m[1] || m[2]) : null;
-          if (parsed !== null && m) nestedPriceSnippets.push(m[0]);
-          return parsed === null ? [] : [parsed];
-        })
-    )].slice(0, 20);
-    const markedProductPriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : nestedProductPriceCandidates;
-    const visiblePriceCandidates = markedProductPriceCandidates.length ? markedProductPriceCandidates : broadVisiblePriceCandidates;
-    const visiblePriceEvidenceStrength = markedProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
-    const explicitPriceMarkupText = explicitProductPriceCandidates.length
-      ? [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:(?:amount|currency)["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
-          .map((match) => String(match[0] || "")).join(" ")
-      : nestedPriceSnippets.join(" ");
-    const explicitVisibleCurrencyCodes = [...new Set([
-      ...(explicitPriceMarkupText.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
-      ...(explicitPriceMarkupText.includes("€") ? ["EUR"] : []),
-      ...(explicitPriceMarkupText.includes("£") ? ["GBP"] : []),
-      ...(explicitPriceMarkupText.includes("$") ? ["USD"] : []),
-    ])];
-    const pageCurrencyCodes = [...new Set([
-      ...(text.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
-      ...(text.includes("€") ? ["EUR"] : []),
-      ...(text.includes("£") ? ["GBP"] : []),
-      ...(text.includes("$") ? ["USD"] : []),
-    ])];
-    const visibleCurrencyCodes = explicitVisibleCurrencyCodes.length ? explicitVisibleCurrencyCodes : pageCurrencyCodes;
+    // Visible price, currency and stock evidence (shared with the sample pages).
+    const { visiblePriceCandidates, visiblePriceEvidenceStrength, pageCurrencyCodes, visibleCurrencyCodes, visibleAvailabilityStates, visibleAvailabilityState, visibleAvailabilityAmbiguous } = visibleOfferEvidence(html, text);
+    const selectorCurrencyCodes = pageCurrencyCodes.filter((code) => !visibleCurrencyCodes.includes(code));
     const structuredCurrencyCodes = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.currency).filter((currency) => /^[A-Z]{3}$/.test(currency))))];
     // A currency mismatch is actionable only when the visible price is tied to
     // explicit product markup. Currency symbols elsewhere on the page may belong
     // to selectors, shipping examples or other products and are not contradiction proof.
     const currencyConflict = isProductPage && visiblePriceEvidenceStrength === "explicit_product_markup" && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] !== visibleCurrencyCodes[0];
-    const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1 && explicitVisibleCurrencyCodes.length > 1;
+    const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1;
     const pricingCurrencyEvidence = {
       visibleCurrencies: visibleCurrencyCodes,
+      selectorCurrencies: selectorCurrencyCodes,
       structuredCurrencies: structuredCurrencyCodes,
       visiblePriceCount: visiblePriceCandidates.length,
       visiblePriceEvidenceStrength,
@@ -2566,19 +3562,6 @@ async function runScan(request: Request) {
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
     const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|agotado|sin stock|no disponible|preventa)\b/i.test(text);
-    // Availability must be unambiguous before comparing it with Product/Offer schema.
-    // Global navigation, recommendations and hidden variant text can contain several states.
-    const visibleAvailabilityMatches = {
-      out_of_stock: text.match(/\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/gi) || [],
-      preorder: text.match(/\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/gi) || [],
-      backorder: text.match(/\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/gi) || [],
-      in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/gi) || [],
-    };
-    type AvailabilityState = "out_of_stock" | "preorder" | "backorder" | "in_stock";
-    const visibleAvailabilityStates: AvailabilityState[] = (Object.keys(visibleAvailabilityMatches) as AvailabilityState[])
-      .filter((state) => visibleAvailabilityMatches[state].length > 0);
-    const visibleAvailabilityState = visibleAvailabilityStates.length === 1 ? visibleAvailabilityStates[0] : null;
-    const visibleAvailabilityAmbiguous = visibleAvailabilityStates.length > 1;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
     const structuredAvailabilityStates = [...new Set(structuredAvailabilityValues.map((value) =>
       /OutOfStock|SoldOut|Discontinued/i.test(value) ? "out_of_stock" :
@@ -2618,7 +3601,11 @@ async function runScan(request: Request) {
     // stripHtml keeps entities encoded, so decode the visible text before checking rendering.
     // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
     const decodedVisibleText = decode(text);
-    const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
+    const VISIBLE_ENTITY = /&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i;
+    // After one decode an entity left in title/description/H1 is double-encoded:
+    // search results and the page show it literally ("Nederland&#x27;s").
+    const metadataEscapes = [["title", title], ["meta description", description], ["H1", h1s.join(" ")]].filter(([, value]) => VISIBLE_ENTITY.test(value)).map(([field, value]) => ({ field, sample: (value.match(/&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i) || [""])[0] }));
+    const hasVisibleHtmlEscape = VISIBLE_ENTITY.test(decodedVisibleText) || metadataEscapes.length > 0;
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
@@ -2660,6 +3647,25 @@ async function runScan(request: Request) {
         } catch { hreflangReciprocity.failed++; }
       }));
     }
+    // PDF P9 (hreflang automatic): without hreflang, a same-host locale link is
+    // fetched (max 2). Proof of a translated version = the page answers 200 on the
+    // same host and its <html lang> matches the locale folder and differs from
+    // this page's language. Anything less stays "not confirmed".
+    const provenAlternateLanguages: { url: string; language: string }[] = [];
+    if (hreflangAssessment.kind === "none" && otherLocaleLinks.length && documentLanguage) {
+      const candidates = [...new Set(otherLocaleLinks.map((item) => item.url))].slice(0, 2);
+      await Promise.all(candidates.map(async (candidate) => {
+        try {
+          const folder = (new URL(candidate).pathname.split("/").filter(Boolean)[0] || "").toLowerCase().slice(0, 2);
+          const fetched = await safePublicFetch(candidate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
+          if (!fetched.response.ok || new URL(fetched.finalUrl).host !== finalUrl.host) return;
+          if (normalizeScanUrl(fetched.finalUrl.toString()) === normalizeScanUrl(finalUrl.toString())) return;
+          const alternateHtml = await readResponseTextLimited(fetched.response, 400_000);
+          const alternateLang = (alternateHtml.match(/<html\b[^>]*\blang\s*=\s*["']([^"']+)["']/i)?.[1] || "").toLowerCase();
+          if (alternateLang && alternateLang.slice(0, 2) === folder && alternateLang.slice(0, 2) !== documentLanguage.slice(0, 2)) provenAlternateLanguages.push({ url: fetched.finalUrl.toString(), language: alternateLang });
+        } catch { /* unconfirmed */ }
+      }));
+    }
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
     const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
@@ -2671,7 +3677,9 @@ async function runScan(request: Request) {
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
     const gtmContainerIds = [...new Set(html.match(/\bGTM-[A-Z0-9]{4,}\b/gi) || [])];
     const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
-    const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html);
+    // 1 Nov: shared detector, also GTM served from the site's own domain.
+    const gtmDetection = detectGoogleTagManager(html);
+    const hasGtmLoader = gtmDetection.loaders.length > 0;
     const configuredGa4Ids = [...new Set(
       [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](G-[A-Z0-9]{6,})["']/gi)].map((match) => match[1].toUpperCase())
     )];
@@ -2713,8 +3721,8 @@ async function runScan(request: Request) {
     // Keep structured and visible commerce evidence separate. A footer link or
     // JSON-LD policy proves availability of information, not that product-page
     // shoppers can actually see it where they make the purchase decision.
-    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío)/gi) || [];
-    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento)/gi) || [];
+    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío|portes de envio|envio|entrega|frakt\p{L}*|fragt\p{L}*|leverans\p{L}*|toimitu\p{L}*|wysyłk\p{L}*|dostaw\p{L}*|doprava|doručení|doručenie|szállítás\p{L}*|livrare|transport gratuit|tarne|piegāde|pristatym\p{L}*|αποστολ\p{L}*|dostava|poštnina|poštarina)/giu) || [];
+    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento|devolução|devoluções|direito de livre resolução|returrätt|ångerrätt|angrerett|angrefrist|fortrydelsesret|returret|palautus\p{L}*|peruuttamisoikeu\p{L}*|zwrot\p{L}*|prawo odstąpienia|odstoupení od smlouvy|vrácení zboží|odstúpenie od zmluvy|elállási jog|visszaküldés|dreptul de retragere|retur(?:nare)?|taganemisõigus|atteikuma tiesības|teisė atsisakyti|δικαίωμα υπαναχώρησης|pravo na odstop|pravo na raskid|14\s*(?:dagen|days|tage|jours|días|dias|giorni|dni|dní|dnů|päivää|päivän|dage|dagar|dager|nap|zile|päeva|dienu|dienų|ημέρες))/giu) || [];
     const hasVisibleShippingSignal = visibleShippingMatches.length > 0;
     const hasVisibleReturnsSignal = visibleReturnsMatches.length > 0;
     const hasShippingSignal = hasStructuredShipping || hasVisibleShippingSignal;
@@ -2723,7 +3731,7 @@ async function runScan(request: Request) {
     const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
     const ecommerceVariantUrlSignal = isProductPage && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
     const cartHrefSignal = links.some((href) => /(?:\/cart(?:\/|$|[?#])|\/basket(?:\/|$|[?#])|\/winkelwagen(?:\/|$|[?#]))/i.test(href));
-    const checkoutHrefSignal = links.some((href) => /(?:\/checkout(?:\/|$|[?#])|\/afrekenen(?:\/|$|[?#])|\/kassa(?:\/|$|[?#]))/i.test(href));
+    const checkoutHrefSignal = checkoutActionInHtml(html);
     const addToCartMarkupSignal = hasStrongCommerceAction || /(?:add[-_]?to[-_]?cart|add_to_cart|product-form|name\s*=\s*["']add-to-cart["'])/i.test(html);
     const shippingCostSignal = /(?:verzendkosten|shipping cost|delivery cost|bezorgkosten|versandkosten|frais de livraison|spese di spedizione|gastos de envío)\s*[:€£$]?\s*(?:gratis|free|\d)/i.test(text);
     const paymentMethodSignal = /\b(?:ideal|visa|mastercard|bancontact|klarna|paypal|apple pay|google pay|mollie)\b/i.test(text);
@@ -2789,18 +3797,33 @@ async function runScan(request: Request) {
 
 
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
-    const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+    // Multiple absent fundamentals alongside existing OG metadata is a weak/incomplete
+    // head evidence pattern. Never turn it into a proven SEO failure without a render.
+    const incompleteHeadEvidence = !javascriptExecuted && Boolean(title) && Boolean(ogTitle || ogDescription)
+      && !headMetadata.evidence.description && !headMetadata.evidence.canonical
+      && !headMetadata.evidence.viewport && !headMetadata.evidence.lang;
+    const metadataMayBeClientRendered = (javascriptCandidate && !javascriptExecuted) || incompleteHeadEvidence;
+    // "No JSON-LD" is only a proven absence when a render saw the final DOM, or the raw
+    // HTML is server-rendered and nothing (a tag manager) can add markup later.
+    const jsonLdInjectors = jsonLdInjectorSignals(rawHtml);
+    const schemaAbsence = structuredDataAbsence({ validJsonLd, otherStructuredItems, renderNetworkQuiet: structuredDataProbe.attempted ? (structuredDataProbe.networkQuiet ?? null) : null, rendered: structuredDataProbe.ok, clientRenderedRisk: metadataMayBeClientRendered && !structuredDataProbe.ok, injectors: jsonLdInjectors, scriptsPresent: hasExecutableScripts(rawHtml) || (javascriptExecuted && hasExecutableScripts(html)), renderedIncomplete: javascriptExecuted && !structuredDataProbe.ok });
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
+    // Structured data is only "unconfirmed" when JSON-LD can realistically be injected client-side:
+    // a near-empty raw document, or a client-rendering framework without substantive server HTML.
+    // A server-rendered page without JSON-LD simply lacks it (attention point), it is not unknown.
+    const schemaMayBeClientInjected = metadataMayBeClientRendered && (rawVisibleWords < 50 || (!rawSubstantiveDocument && javascriptFrameworkSignal));
     // One shared rule for text/link evidence. A thin client shell is insufficient
     // evidence for negative content, trust or commercial-link conclusions.
+    // A short page without any script is complete static HTML, not a JavaScript shell.
     const thinRawHtmlEvidence = !javascriptExecuted && (
-      rawVisibleWords < 60 ||
-      (rawVisibleWords < 100 && rawScriptCount >= 4) ||
+      (rawVisibleWords < 60 && rawScriptCount >= 1 && !rawServerRendered) ||
+      (rawVisibleWords < 100 && rawScriptCount >= 4 && !rawServerRendered) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
 
+    const metadataMismatch = metadataTopicMismatch(title,description,h1s,headings.filter(h=>h.level===2).map(h=>h.text),localSchemaCandidates);
     // Search snippets truncate in pixels, not at an exact number of characters.
     // Length alone cannot justify a material ranking penalty.
     const titleLengthPoints = (length: number) => length >= 15 && length <= 110 ? 10 : 9;
@@ -2813,8 +3836,13 @@ async function runScan(request: Request) {
       return 4;
     };
 
+    // "tekens" in the report are characters (code points), not UTF-16 units: an emoji is one character.
+    const titleChars = [...title].length;
+    const descriptionChars = [...description].length;
     seoChecks.push(
-      !title
+      metadataMismatch
+        ? check("unable_to_confirm","title","seo","Meta title","De title en description noemen een andere activiteit dan de H1 en H2. Of de metadata bij deze pagina hoort, vraagt inhoudelijke controle.","Vergelijk de metadata met de aantoonbare hoofdinhoud; wijzig niets op basis van alleen een onderwerpheuristiek.",0,10)
+        : !title
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "title", "seo", "Meta title", "De meta title kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
           : check("fail", "title", "seo", "Meta title", "Er is geen meta title gevonden.", "Voeg een unieke, beschrijvende title toe.", 0, 10)
@@ -2822,44 +3850,70 @@ async function runScan(request: Request) {
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "title", "seo", "Meta title", `De raw HTML bevat alleen een standaardtitel ("${title}"); deze JavaScript-pagina kon niet volledig worden gerenderd, dus de echte title is niet bevestigd.`, "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
             : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
+        : isGenericBrandTitle(title, finalUrl.hostname)
+          ? check("warning", "title", "seo", "Meta title", `De title bestaat alleen uit een algemeen woord en de merknaam ("${title}") en zegt niets over wat de organisatie doet.`, "Noem het belangrijkste aanbod of de plaats in de title, bijvoorbeeld \"Kapper in Utrecht | Merk\".", 8, 10)
+        : invisibleTitleCharacters(title) > 0
+          ? check("warning", "title", "seo", "Meta title", `De title bevat ${invisibleTitleCharacters(title)} onzichtbaar teken(s) (zoals een zacht koppelteken U+00AD); die kunnen in zoekresultaten en bij delen als vreemde tekens verschijnen.`, "Verwijder zachte koppeltekens en andere onzichtbare tekens uit de title.", 9, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
           ? check("warning", "title", "seo", "Meta title", isHomepage ? `De title bevat alleen de merknaam ("${title}"). Voor de homepage van een bekende organisatie is dat gebruikelijk; een korte omschrijving van wat de organisatie doet kan de zoekpreview verduidelijken. Licht advies.` : `De title bevat alleen de merknaam ("${title}"); het onderwerp van deze pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 9 : 5, 10)
+        : templateFieldLeak(title, finalUrl.hostname, finalUrl.pathname)
+          ? check("warning", "title", "seo", "Meta title", `De title bevat een sjabloonveld ("${templateFieldLeak(title, finalUrl.hostname, finalUrl.pathname)}"); het CMS print waarschijnlijk een veldnaam in plaats van een waarde.`, "Controleer het title-sjabloon en vervang de veldnaam door de bedoelde tekst.", 7, 10)
         : hasDanglingTitleSeparator(title)
           ? check("warning", "title", "seo", "Meta title", `De title begint of eindigt met een scheidingsteken ("${title}"); waarschijnlijk vult het template een paginanaam niet in.`, "Vul het ontbrekende deel van de title in of verwijder het losse scheidingsteken, bijvoorbeeld \"Onderwerp | Merk\".", 7, 10)
         : duplicateTitleSegment(title)
-          ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
+          ? check("warning", "title", "seo", "Meta title", `De title is ${titleChars} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(titleChars)), 10)
         : titleQualityIssue
-          ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
+          ? check("warning", "title", "seo", "Meta title", `De title is ${titleChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
             ? check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} Advies, geen aftrek.`, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 10, 10)
-            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
+            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${titleChars} tekens). ${titlePixelEstimate.message}` : titleChars > 70 ? `Meta title gevonden (${titleChars} tekens). Titels boven ongeveer 70 tekens worden in zoekresultaten vaak afgekapt; zet het onderwerp vooraan. Advies, geen aftrek: lengte in tekens is geen harde SEO-eis en zonder pixelmeting is afkapping niet bewezen.` : `Meta title gevonden (${titleChars} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
-      !description
+      metadataMismatch
+        ? check("unable_to_confirm","description","seo","Meta description","De metadata en inhoudelijke headings wijzen op verschillende activiteiten.","Controleer eerst of de description werkelijk deze pagina samenvat.",0,10)
+        : !description
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
-          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
+          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : outsideHeadDescription ? "Er staat een meta description in de HTML, maar buiten <head> (in de body, bijvoorbeeld door streaming rendering). Zoekmachines lezen die daar mogelijk niet; in <head> is geen description gevonden." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
+        : isTransientSeoCopy(description)
+          ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
-          ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
+          ? check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
           // A long description is truncated in the snippet, not a defect: advice
           // without deduction (same rule as titles and as the sampled pages).
-          : description.length > 160
-            ? check("pass", "description", "seo", "Meta description", `De description is ${description.length} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
-          : description.length >= 70 && description.length <= 160
-            ? check("pass", "description", "seo", "Meta description", description.length >= 120 && description.length <= 160
-                ? `De description is ${description.length} tekens en goed gevuld.`
-                : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
-            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
+          // PDF P9: > 250 characters is an attention point (most of it is cut off).
+          : descriptionChars > 250
+            ? check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens. Boven ongeveer 160 tekens wordt de tekst in de zoekpreview ingekort; bij meer dan 250 tekens valt het grootste deel weg (aandachtspunt, −1).`, "Zet de kern in de eerste 150 tekens en kort de rest in tot ongeveer 120–160 tekens.", 9, 10)
+          : descriptionChars > 160
+            ? check("pass", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
+          : descriptionChars >= 70 && descriptionChars <= 160
+            ? check("pass", "description", "seo", "Meta description", descriptionChars >= 120 && descriptionChars <= 160
+                ? `De description is ${descriptionChars} tekens en goed gevuld.`
+                : `De description is ${descriptionChars} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
+            : check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(descriptionChars), 10)
     );
-    seoChecks.push(h1s.length === 1
+    // PDF P9: identical H1 copies (responsive variants of Framer/Webflow) are one H1.
+    const h1Distinct = distinctH1s(h1s);
+    seoChecks.push(rawH1s.some(h=>!h.trim())
+      ? check("warning","h1","seo","H1-heading","Lege H1-heading gevonden naast de beoordeelde H1-inhoud.","Verwijder een leeg template-element of vul een inhoudelijk passende heading in.",7,8)
+      : h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
+      : h1s.length > 1 && h1Distinct.distinct.length === 1
+        ? check("pass", "h1", "seo", "H1-heading", `Er is één H1-heading gevonden ("${h1Distinct.distinct[0].slice(0, 80)}"). De HTML bevat ${h1s.length} identieke kopieën, meestal responsieve varianten van een websitebouwer die per schermformaat worden getoond; RankFix telt dit als één H1.`, "Geen actie nodig voor SEO. Controleer alleen of verborgen kopieën ook voor schermlezers verborgen zijn (display:none of aria-hidden).", 8, 8)
       : h1s.length === 0
         ? bodyStructureMayBeClientRendered
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
-          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
+          // The text matches the deduction (PDF P6: "niet als fout geteld" but −2).
+          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
-    const subheadingCount = headings.length;
+    // PDF P9: very large HTML is a finding only when the fetched document proves it.
+    const rawHtmlBytes = htmlByteSize(html);
+    if (rawHtmlBytes > LARGE_HTML_BYTES) {
+      const mb = (rawHtmlBytes / 1024 / 1024).toFixed(1);
+      seoChecks.push(check("warning", "html_size", "seo", "HTML-documentgrootte", `Het HTML-document is ${mb} MB (gemeten op de opgehaalde server-HTML, zonder afbeeldingen, CSS of scripts). Zeer grote HTML vertraagt downloaden en verwerken; zoekmachines en AI-crawlers verwerken mogelijk niet alle inhoud onderaan de pagina.`, "Verplaats grote inline data (JSON-state, SVG's, base64-afbeeldingen, herhaalde menu's) naar externe bestanden of laad ze pas wanneer nodig. Streef naar ruim onder 2 MB HTML.", 1, 3));
+    }
+    const subheadingCount = headings.filter(h=>h.level>1).length;
     const hasH2 = headings.some((h) => h.level === 2);
     const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
     seoChecks.push(subheadingCount > 0 && hasH2
@@ -2913,21 +3967,28 @@ async function runScan(request: Request) {
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) !== canonicalHost(finalUrl.hostname));
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
     seoChecks.push(
-      canonicalInvalid
+      headDirectives.conflictingCanonicals
+        ? check("warning","canonical","seo","Canonical URL",`Tegenstrijdige canonical-verklaringen gevonden: ${headDirectives.canonicals.join(" | ")}.`,"Behoud één aantoonbaar bedoelde voorkeurs-URL; controleer redirects en indexeerbaarheid.",3,7)
+        : canonicalInvalid
         ? check("fail", "canonical", "seo", "Canonical URL", `Er is een canonical gevonden, maar de waarde is geen geldige URL: "${canonical}".`, "Corrigeer de canonical naar één geldige absolute of relatieve voorkeurs-URL.", 0, 7)
         : !canonicalUrl
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
-            : check("warning", "canonical", "seo", "Canonical URL", "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
+            : check("warning", "canonical", "seo", "Canonical URL", headMetadata.outsideHead.canonical ? "Er staat een canonical-link in de HTML, maar buiten <head> (in de body). Zoekmachines negeren een canonical buiten <head>; in <head> is geen canonical gevonden." : "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
         : canonicalIsSelf || canonicalIsLocalePreferred || canonicalDropsKnownListingParams
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
             ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
             : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
     );
-    const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*no(?:$|[,;\s])/i.test(viewportContent) ||
+    // "user-scalable=0" blocks zoom just like "=no" (PDF: Croatia Airlines).
+    const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*(?:no|0)(?:$|[,;\s])/i.test(viewportContent) ||
       /(?:^|[,;\s])maximum-scale\s*=\s*(?:0(?:\.\d+)?|1(?:\.0+)?)(?:$|[,;\s])/i.test(viewportContent);
-    seoChecks.push(!viewportContent
+    seoChecks.push(!viewportContent && (rawServerRendered || javascriptExecuted)
+      // The viewport lives in <head>: on a server-rendered or rendered page its
+      // absence is proven, not "unconfirmed".
+      ? check("fail", "viewport", "seo", "Mobiele viewport", "Er staat geen viewport meta tag in de <head> van deze pagina. Mobiele browsers tonen de pagina dan als verkleinde desktopweergave.", "Voeg <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> toe aan de <head>.", 0, 5)
+      : !viewportContent
       ? check("unable_to_confirm", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML.", "Bevestig de viewport in de gerenderde pagina; ontbrekende raw HTML alleen bewijst geen afwezigheid.", 0, 5)
       : !viewportIsResponsive
         ? check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
@@ -2963,6 +4024,32 @@ async function runScan(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML hebben alt-attributen.${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML missen alt (${Math.round(missingAltRatio * 100)}%).${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
     );
+    // Schema context follows sector: the local and transport hints above were
+    // decided from keywords before the sector. A non-local primary sector (bank,
+    // telecom, charity…) gets no LocalBusiness advice, and "logistiek" in a
+    // recruitment agency's vacancies does not make it a transport homepage.
+    {
+      const sector = String(sectorProfile.sector || "unknown");
+      const transportContext = transportLogisticsSchemaContext && (sector === "unknown" || ["transport_travel", "maritime_ports", "airports"].includes(sector));
+      const localContext = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportContext && !ecommerceSchemaContext && !newsMediaSchemaContext && !isNonLocalSector(sector);
+      if (localContext !== effectiveLocalSchemaSignal || transportContext !== transportLogisticsSchemaContext) {
+        if (!localContext) localBusinessDetails = null;
+        effectiveLocalSchemaSignal = localContext;
+        ({ recommendedSchema, schemaContextLabel, hasRelevantContextSchema } = schemaContextFor(localContext, transportContext));
+      }
+    }
+    // Sector-specific schema advice (PDF P9): advice only, points unchanged; a
+    // page that already carries the sector type counts as relevant.
+    {
+      const sectorType = sectorSchemaType({ sector: sectorProfile.sector, key: sectorProfile.key, identityText: [title, description, h1s.join(" "), schemaTypes.join(" ")].join(" "), schemaTypes });
+      if (sectorType && (isGenericSchemaAdvice(recommendedSchema) || (recommendedSchema === "OnlineStore + WebSite" && sectorProfile.sector !== "ecommerce")
+        // Trade subtypes from the early Dutch-only keyword list ("installateur" →
+        // Plumber) yield to the multilingual trade mapping once the sector is known.
+        || (sectorProfile.sector === "home_services" && /^(?:Plumber|Electrician|GeneralContractor|RoofingContractor|HomeAndConstructionBusiness)$/.test(recommendedSchema))) && !isProductPage && (isHomepage || !hasCategorySignal)) {
+          recommendedSchema = isHomepage ? `${sectorType} + WebSite` : `${sectorType} / WebPage`;
+        if (schemaSet.has(sectorType.toLowerCase())) hasRelevantContextSchema = true;
+      }
+    }
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
@@ -2980,7 +4067,14 @@ async function runScan(request: Request) {
       ? check("pass", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt HTTPS.", "Behoud HTTPS op alle publieke pagina's en redirects.", 7, 7)
       : check("fail", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt geen HTTPS.", "Zet de site volledig achter HTTPS.", 0, 7)
     );
-    seoChecks.push(response.status === 200
+    // Crawler block: the website refused RankFix's own request (401/403/405/202 or a
+    // challenge) while a real browser received the page. That is a decision about
+    // the scanner, not a website error: the status and RankFix's response time are
+    // unconfirmed and never scored (field report 16-10: HTTP 200 in the sample,
+    // HTTP 403 as a website warning in the same report).
+    seoChecks.push(scannerAccessBlocked
+      ? check("unable_to_confirm", "status", "seo", "HTTP-status", `Het verzoek van RankFix werd geweigerd (${rankfixRefusal}), maar een browser kreeg de pagina wel te zien. Dit wijst op bot- of crawlerbeveiliging tegenover RankFix en is geen bewezen fout van de website. Of gewone bezoekers en zoekmachines HTTP 200 krijgen, kan RankFix niet bevestigen.`, "Geen actie nodig voor bezoekers. Controleer in Google Search Console of Googlebot de pagina zonder blokkade kan ophalen.", 0, 6)
+      : response.status === 200
       ? check("pass", "status", "seo", "HTTP-status", "De pagina gaf HTTP 200 terug.", "Behoud HTTP 200 voor normale indexeerbare pagina's.", 6, 6)
       : response.ok
         ? check("warning", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug. Dat is succesvol op HTTP-niveau, maar niet de normale 200-response voor een indexeerbare HTML-pagina.`, "Controleer waarom deze URL geen HTTP 200 teruggeeft.", 3, 6)
@@ -2989,11 +4083,29 @@ async function runScan(request: Request) {
     // responseTime is RankFix's own end-to-end fetch duration from its scan environment.
     // It is useful as a server-response signal, but it is not browser TTFB and must never
     // be presented as measured Core Web Vitals (LCP/CLS/INP).
-    seoChecks.push(responseTime < 1500
-      ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
-      : responseTime < 3000
-        ? check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.`, "Onderzoek server, caching, database en SSR als mogelijke oorzaken; bevestig prestaties afzonderlijk met browser- of veldmetingen.", 3, 5)
-        : check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Deze ene meting is traag, maar bewijst geen structureel performanceprobleem en is geen Core Web Vitals-meting.`, "Herhaal de meting en onderzoek pas daarna server, caching, database of SSR wanneer de vertraging reproduceerbaar is.", 2, 5)
+    // 31 Oct (PDF P6): one slow measurement is no finding. A slow first response is
+    // measured twice more; the MEDIAN counts, and only a median above 3 s costs points.
+    const responseSamples = [responseTime];
+    if (!scannerAccessBlocked && responseTime >= 1500) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const t0 = Date.now();
+        try {
+          const again = (await safePublicFetch(finalUrl.toString(), { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html" })).response;
+          await readResponseTextLimited(again, 2_000_000, 8000).catch(() => "");
+          responseSamples.push(Date.now() - t0);
+        } catch { /* an unanswered re-measurement is not a sample */ }
+      }
+    }
+    const responseMedian = [...responseSamples].sort((a, b) => a - b)[Math.floor((responseSamples.length - 1) / 2)];
+    const responseBasis = responseSamples.length > 1 ? `mediaan van ${responseSamples.length} metingen (${responseSamples.join(", ")} ms)` : `1 meting`;
+    seoChecks.push(scannerAccessBlocked
+      ? check("unable_to_confirm", "response", "seo", "Server response", `De gemeten responstijd hoort bij een geweigerd verzoek van RankFix (${rankfixRefusal}), niet bij de pagina die bezoekers krijgen; daarom niet beoordeeld.`, "Meet serverrespons en Core Web Vitals met browser- of velddata.", 0, 5)
+      : responseMedian < 3000
+      ? check("pass", "response", "seo", "Server response", `RankFix ontving de volledige HTTP-response in ongeveer ${responseMedian} ms (${responseBasis}) vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital; aftrek pas boven 3 seconden.`, responseMedian >= 1500 ? "De respons is aan de trage kant; onderzoek caching en serverbelasting en meet LCP, CLS en INP met browser- of velddata." : "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
+      : responseSamples.length < 3
+        // One slow measurement without confirmation is not evidence of a slow server.
+        ? check("unable_to_confirm", "response", "seo", "Server response", `De eerste meting duurde ongeveer ${responseTime} ms, maar de herhaalmetingen konden niet worden uitgevoerd. Eén meting bewijst geen trage server; daarom geen aftrek.`, "Meet de serverrespons opnieuw en met browser- of velddata.", 0, 5)
+        : check("warning", "response", "seo", "Server response", `De volledige HTTP-response duurde ongeveer ${responseMedian} ms (${responseBasis}) vanuit de scanomgeving: boven 3 seconden. Dit is geen browser-TTFB of Core Web Vitals-meting.`, "Onderzoek server, caching, database en SSR; bevestig met browser- of velddata (LCP, INP).", 2, 5)
     );
     const missingOpenGraphFields = [
       !ogTitle ? "og:title" : null,
@@ -3003,7 +4115,23 @@ async function runScan(request: Request) {
     const invalidOpenGraphFields = [
       ogImage && !ogImageIsAbsolute ? "og:image (geen absolute http(s)-URL)" : null,
       ogUrl && !ogUrlIsAbsolute ? "og:url (geen absolute http(s)-URL)" : null,
+      // og:url should name the same page as the canonical (tracking parameters such as ?ref=og split the shares).
+      ogUrl && ogUrlIsAbsolute && canonical && isAbsoluteHttpUrl(canonical) && normalizeScanUrl(ogUrl) !== normalizeScanUrl(canonical)
+        ? `og:url (${ogUrl}) wijkt af van de canonical (${canonical})` : null,
     ].filter(Boolean) as string[];
+    // PDF P9: og:url should be the canonical URL (HousingNet "?ref=og"), and
+    // og:type=article belongs on articles only (Charité contact page).
+    const ogUrlDiffers = (() => {
+      if (!ogUrl || !canonical) return false;
+      try {
+        const a = new URL(ogUrl, finalUrl); const b = new URL(canonical, finalUrl);
+        const norm = (u: URL) => `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/+$/, "") || "/"}${u.search}`;
+        return norm(a) !== norm(b);
+      } catch { return false; }
+    })();
+    const ogArticleOnNonArticle = ogType === "article" && !["article","newsarticle","blogposting","reportagenewsarticle"].some((t)=>schemaSet.has(t)) && !getMeta("article:published_time") && !/<time\b[^>]*datetime=/i.test(html);
+    if (ogUrlDiffers) invalidOpenGraphFields.push(`og:url (${ogUrl}) wijkt af van de canonical (${canonical}); gedeelde links verwijzen dan naar een andere URL`);
+    if (ogArticleOnNonArticle) invalidOpenGraphFields.push("og:type=article op een pagina die geen artikel is (gebruik og:type=website)");
     seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
       : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", Math.max(1, 4 - Math.min(3, missingOpenGraphFields.length + invalidOpenGraphFields.length)), 4)
@@ -3031,21 +4159,21 @@ async function runScan(request: Request) {
     geoChecks.push(
       effectiveLocalSchemaSignal
         ? hasRelevantLocalSchema
-          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
-          : validJsonLd > 0
-            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
-            : metadataMayBeClientRendered
-            ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
-            : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
-        : validJsonLd > 0
+          ? check("pass", "schema", "geo", "Structured data", `${structuredFormsLabel()} met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
+          : structuredItems > 0
+            ? check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
+            : !schemaAbsence.proven
+            ? check("unable_to_confirm", "schema", "geo", "Structured data", structuredDataUnprovenMessage(schemaAbsence.basis, schemaContextLabel, jsonLdInjectors), `Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt. Ontbreekt het ook in de browser, dan is voor dit paginatype ${recommendedSchema} de belangrijkste richting.`, 0, 12)
+            : check("warning", "schema", "geo", "Structured data", `Geen structured data gevonden voor deze ${schemaContextLabel} (geen geldige JSON-LD, Microdata of RDFa${structuredDataProbe.ok ? "; ook niet na volledige browserwaarneming" : ""}). Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
+        : structuredItems > 0
           ? hasRelevantContextSchema
-            ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een voor deze ${schemaContextLabel} relevant schema-type gevonden.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+            ? check("pass", "schema", "geo", "Structured data", `${structuredFormsLabel()} met een voor deze ${schemaContextLabel} relevant schema-type gevonden.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
             : hasEntitySchema
-              ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
-              : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
-          : metadataMayBeClientRendered
-            ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
-            : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
+              ? check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
+              : check("warning", "schema", "geo", "Structured data", `${structuredFormsLabel()} gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
+          : !schemaAbsence.proven
+            ? check("unable_to_confirm", "schema", "geo", "Structured data", structuredDataUnprovenMessage(schemaAbsence.basis, schemaContextLabel, jsonLdInjectors), `Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt. Ontbreekt het ook in de browser, dan is voor dit paginatype ${recommendedSchema} de belangrijkste richting.`, 0, 12)
+            : check("warning", "schema", "geo", "Structured data", `Geen structured data gevonden voor deze ${schemaContextLabel} (geen geldige JSON-LD, Microdata of RDFa${structuredDataProbe.ok ? "; ook niet na volledige browserwaarneming" : ""}). Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
     );
     const normalizedTwitterCard = twitterCard.toLowerCase();
     const validTwitterCards = new Set(["summary", "summary_large_image", "app", "player"]);
@@ -3059,7 +4187,9 @@ async function runScan(request: Request) {
     );
 
     seoChecks.push(!multilingualUrlEvidence
-      ? languageSelectorSignal
+      ? provenAlternateLanguages.length
+        ? check("warning", "hreflang", "seo", "Meertalige SEO", `Er bestaat aantoonbaar een vertaalde versie van deze site (${provenAlternateLanguages.map((item) => `${item.language}: ${shortUrl(item.url)}`).join("; ")}, bereikbaar met HTTP 200 en met een eigen <html lang>), maar deze pagina bevat geen hreflang-links. Zoekmachines kunnen de taalversies daardoor verwarren of de verkeerde taal tonen.`, "Voeg op elke taalversie wederkerige <link rel=\"alternate\" hreflang=\"…\"> links toe (inclusief een verwijzing naar zichzelf en eventueel x-default).", 2, 5)
+        : languageSelectorSignal
         ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
       : hreflangAssessment.kind === "invalid"
@@ -3085,7 +4215,7 @@ async function runScan(request: Request) {
     );
 
     seoChecks.push(hasVisibleHtmlEscape
-      ? check("warning", "html_escape", "seo", "Tekstweergave", "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
+      ? check("warning", "html_escape", "seo", "Tekstweergave", metadataEscapes.length ? `Dubbel gecodeerde tekst in ${metadataEscapes.map((item) => `${item.field} (${item.sample})`).join(", ")}: bezoekers en zoekmachines zien deze code letterlijk.` : "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
@@ -3192,13 +4322,16 @@ async function runScan(request: Request) {
       placeholders: placeholderMatches,
       details: businessContactDetails,
       registration: findCompanyRegistration(text),
+      testRegistration: findPlaceholderRegistration(text),
       schemaContact: schemaObjects.some((item)=>Boolean(item?.address || item?.telephone || item?.email)),
       thinShell: thinRawHtmlEvidence,
     });
     seoChecks.push(businessDetails.status === "fail"
       ? check("fail", "business_placeholders", "seo", "Bedrijfsgegevens", `Er staan nog ${placeholderMatches.length} placeholder(s) zoals ${placeholderMatches.slice(0, 4).join(", ")} op de pagina.`, "Vervang placeholders door echte bedrijfs- en contactgegevens voordat de site live gaat.", 0, 6)
       : businessDetails.status === "pass"
-        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.${businessContactDetails.suspectedTestData?.length ? ` Daarnaast staan er voorbeeldgegevens in de tekst (${businessContactDetails.suspectedTestData.slice(0,3).join(", ")}); die tellen niet als bewijs.` : ""}`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+      : businessDetails.status === "warning"
+        ? check("warning", "business_placeholders", "seo", "Bedrijfsgegevens", `De zichtbare contactgegevens lijken voorbeeld- of testgegevens (${businessDetails.testData.slice(0,4).join(", ")}). Die identificeren geen echt bedrijf en tellen niet als bedrijfsbewijs.`, "Vervang voorbeeldgegevens (zoals example.com-adressen, 1234 AB-postcodes of oplopende nummers) door de echte bedrijfs- en contactgegevens.", 2, 6)
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
@@ -3295,6 +4428,41 @@ async function runScan(request: Request) {
             : visiblePriceEvidenceStrength === "explicit_product_markup"
               ? check("warning","product_price_consistency","seo","Productprijs consistentie",`Expliciet gemarkeerde productprijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Synchroniseer de zichtbare productprijs met Product/Offer structured data.",2,6)
               : check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Er zijn eurobedragen en structured-data prijzen gevonden, maar de zichtbare bedragen zijn niet betrouwbaar aan de primaire productprijs te koppelen.","Gebruik expliciete productprijs-markup en houd die gelijk aan Product/Offer structured data.",0,6));
+    // Content integrity on shop pages: test products, order buttons that cannot work, contradicting review claims.
+    // Only on product pages or pages with hard shop evidence; weak or script-driven cases abstain.
+    const integrityEvidence: { testProducts: string[]; inertButtons: string[]; reviewConflicts: string[] } = { testProducts: [], inertButtons: [], reviewConflicts: [] };
+    if (isProductPage || hasEcommerceSignal) {
+      const typeOf = (item: Record<string, unknown>) => schemaTypeValues(item).map((t) => String(t).toLowerCase());
+      const productObjects = schemaObjects.filter((item) => typeOf(item).includes("product"));
+      const productNames = [...productObjects.map((item) => String(item?.name || "")), ...(isProductPage ? h1s : [])].filter(Boolean);
+      const testProducts = findTestProducts({ productNames, visibleText: text });
+      integrityEvidence.testProducts = testProducts;
+      if (testProducts.length > 0) {
+        seoChecks.push(check("warning", "test_content", "seo", "Test- of voorbeeldcontent", `Er is mogelijk test- of voorbeeldcontent gevonden: ${testProducts.slice(0, 3).join("; ")}.`, "Controleer of dit werkelijk achtergebleven testinhoud is. Behoud verkoopbare samples en demo-artikelen; verwijder of noindexeer alleen na bevestiging.", 0, 0));
+      }
+      const inertButtons = findInertOrderButtons(html);
+      integrityEvidence.inertButtons = inertButtons.map((b) => `${b.label}:${b.reason}`);
+      if (inertButtons.length > 0) {
+        seoChecks.push(check("warning", "order_button", "seo", "Bestelknop", `${inertButtons.length} bestelknop(pen) lijken in de HTML niet te kunnen werken (${inertButtons.slice(0, 3).map((b) => `"${b.label}": ${b.reason === "empty_href" ? "link naar # of lege bestemming" : b.reason === "disabled_always" ? "permanent uitgeschakeld zonder voorraadmelding of variantkeuze" : "verzendknop buiten een formulier"}`).join("; ")}). Dit is gemeten in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML.`, "Controleer de bestelknop handmatig in een echte browser; koppel hem aan een formulier of actie en test het toevoegen aan de winkelwagen.", 2, 4));
+      }
+      const ratingOwner = schemaObjects.find((item) => item?.aggregateRating);
+      const ratingObject = ratingOwner?.aggregateRating ? schemaRecord(ratingOwner.aggregateRating) : null;
+      const ownerId = ratingOwner?.["@id"] || ratingOwner?.url;
+      const reviewText = boundVisibleReviewText(html, typeof ownerId === "string" ? ownerId : undefined, finalUrl.toString());
+      const visibleRating = reviewText ? parseVisibleRating(reviewText) : null;
+      const reviewConflicts = ratingObject && reviewText ? reviewContradictions({
+        schemaBestRating: Number(ratingObject.bestRating || 5),
+        schemaRating: Number.parseFloat(String(ratingObject.ratingValue ?? "").replace(",", ".")) || null,
+        schemaCount: Number.parseInt(String(ratingObject.reviewCount ?? ratingObject.ratingCount ?? ""), 10) || null,
+        visibleRating: visibleRating?.rating ?? null,
+        visibleScale: visibleRating?.scale ?? null,
+        visibleCount: parseVisibleReviewCount(reviewText),
+      }) : [];
+      integrityEvidence.reviewConflicts = reviewConflicts;
+      if (reviewConflicts.length > 0) {
+        seoChecks.push(check("warning", "review_claims", "seo", "Reviewclaims", `Reviewgegevens spreken elkaar tegen: ${reviewConflicts.join("; ")}.`, "Laat structured data en zichtbare reviewcijfers uit dezelfde bron komen; gemarkeerde reviews moeten overeenkomen met wat bezoekers zien.", 2, 4));
+      }
+    }
     seoChecks.push(!isProductPage
       ? check("not_applicable","product_availability","seo","Productvoorraad","Geen duidelijke productpagina-signalen gevonden; voorraadcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
       : availabilityContradiction
@@ -3334,13 +4502,23 @@ async function runScan(request: Request) {
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
-        : metadataMayBeClientRendered && validJsonLd === 0
-          ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
-          : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.", "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
+        : !schemaAbsence.proven && structuredItems === 0
+          ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", (schemaAbsence.basis === "tag_manager_unrendered" || schemaAbsence.basis === "scripts_unrendered" || schemaAbsence.basis === "render_not_complete" || schemaAbsence.basis === "render_network_busy") ? structuredDataUnprovenMessage(schemaAbsence.basis, "homepage", jsonLdInjectors).replace("Structured data is", "Organization/WebSite structured data is") : "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
+          : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : `De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.${structuredItems === 0 ? " Zelfde onderliggende oorzaak als 'Structured data' (geen structured data op de homepage): de aftrek telt één keer in de score." : ""}`, "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
-    const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    // QA 144: the page's OWN product (URL, article number in the URL, or name =
+    // H1/title), never simply the first Product object (a sibling model, an
+    // accessory). Several unmatched products: not confirmable, never merged.
+    const pageProductMatch = selectPageProduct(productSchemaObjects.map((product: Record<string, unknown>) => ({
+      name: typeof product?.name === "string" ? product.name : "",
+      sku: typeof product?.sku === "string" ? product.sku : "",
+      url: typeof product?.url === "string" ? product.url : "",
+      id: typeof product?.["@id"] === "string" ? product["@id"] : "",
+      productIds: [product?.productID, product?.gtin, product?.gtin13, product?.gtin8, product?.gtin12, product?.gtin14, product?.mpn].filter((value) => typeof value === "string" || typeof value === "number").map(String),
+    })), { url: finalUrl.toString(), title, h1s });
+    const primaryProductEvidence = pageProductMatch.index !== null ? productOfferEvidence[pageProductMatch.index] : null;
     // "Bevestigde productvelden" means the same five product fields everywhere
     // (name, image, SKU, price + currency, availability); copy sources are counted apart.
     const primaryProductFieldCount = primaryProductEvidence ? [
@@ -3420,7 +4598,15 @@ async function runScan(request: Request) {
       hasSocialOrReviewSignal
     );
     const organizationExpertiseSignal = hasOrganizationIdentity && hasServiceExpertiseSignal;
-    geoChecks.push(isHomepage
+    // PDF P9: YMYL homepages (health, finance, legal, insurance) are not N.v.t.:
+    // expertise and accountability are judged from organisation-level evidence.
+    const ymylHomepage = isHomepage && isYmylSector(sectorProfile.sector, sectorProfile.key);
+    const ymylEvidence = ymylHomepage ? ymylExpertiseEvidence({ text: [title, description, h1s.join(" "), text].join(" "), navigation: [...identityNavLabels, ...footerLinkLabels], schemaTypes, host: finalUrl.hostname }) : [];
+    geoChecks.push(ymylHomepage
+      ? ymylEvidence.length >= 2
+        ? check("pass", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch). Op de homepage zijn ${ymylEvidence.length} onafhankelijke expertise- en verantwoordingssignalen bevestigd: ${ymylEvidence.join("; ")}.`, "Houd team, kwalificaties, registraties en toezichthouders actueel en zichtbaar; link naar de bron van registraties waar mogelijk.", 8, 8)
+        : check("unable_to_confirm", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch), waar zoekmachines en AI-systemen extra letten op expertise en verantwoording. Op de homepage ${ymylEvidence.length ? `is alleen bevestigd: ${ymylEvidence.join("; ")}` : "zijn geen team-, registratie- of organisatiesignalen bevestigd"}. Eén pagina bewijst niet dat dit elders ontbreekt; daarom geen aftrek.`, "Maak vanaf de homepage zichtbaar wie de zorg, het advies of de financiële dienst levert: team of specialisten, registraties (bijvoorbeeld BIG, AFM, DNB of de beroepsorde) en een over-ons-pagina.", 0, 8)
+      : isHomepage
       ? check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.", "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.", 0, 8)
       : hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal) || organizationExpertiseSignal
         ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : organizationExpertiseSignal ? "Duidelijke organisatie- en expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
@@ -3441,8 +4627,11 @@ async function runScan(request: Request) {
     // page-summary evidence here: the normal meta description and meaningful
     // visible page copy. Open Graph remains a social-preview concern above.
     const hasExplicitPageSummary = Boolean(description) && wordCount >= (isProductPage ? 40 : 80);
+    const missingMetaButSubstantiveBody = !description && wordCount >= (isProductPage ? 40 : 80);
     geoChecks.push(hasExplicitPageSummary
       ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina.", "Houd de meta description en zichtbare introductie inhoudelijk consistent.", 6, 6)
+      : missingMetaButSubstantiveBody
+        ? check("unable_to_confirm", "answer", "geo", "Expliciete paginasamenvatting", "De meta description ontbreekt in het beschikbare bewijs, maar er is inhoudelijke paginatekst aanwezig. Dat is dezelfde mogelijke hoofdoorzaak als de SEO-descriptioncontrole; RankFix rekent hiervoor geen tweede aftrek zonder onafhankelijk bewijs dat de zichtbare samenvatting ontbreekt.", "Beoordeel apart of een duidelijke zichtbare introductie aanwezig is.", 0, 6)
       : metadataMayBeClientRendered
         ? check("unable_to_confirm", "answer", "geo", "Expliciete paginasamenvatting", "De beschikbare raw HTML bewijst geen complete paginasamenvatting en deze JavaScript-pagina kon niet volledig worden gerenderd.", "Controleer de zichtbare introductie opnieuw met een volledige render voordat dit als GEO-verbeterpunt wordt aangemerkt.", 0, 6)
         : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen.", "Voeg een concrete meta description en duidelijke zichtbare introductie toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
@@ -3499,7 +4688,7 @@ async function runScan(request: Request) {
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
       title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
       description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "LOW" : "HIGH" },
-      h1: { rule_id: h1s.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
+      h1: { rule_id: h1Distinct.distinct.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
       alt: { rule_id: "IMAGE_ALT_MISSING", severity: "LOW" },
       social: { rule_id: "SOCIAL_METADATA_INCOMPLETE", severity: "LOW" },
       schema: { rule_id: "STRUCTURED_DATA_MISSING", severity: "MEDIUM" },
@@ -3509,6 +4698,9 @@ async function runScan(request: Request) {
       html_escape: { rule_id: "HTML_ESCAPE_VISIBLE", severity: "LOW" },
       image_sources: { rule_id: "EXTERNAL_IMAGE_SOURCE", severity: "LOW" },
       business_placeholders: { rule_id: "BUSINESS_PLACEHOLDER", severity: "HIGH" },
+      test_content: { rule_id: "TEST_CONTENT_LIVE", severity: "MEDIUM" },
+      order_button: { rule_id: "ORDER_BUTTON_INERT", severity: "HIGH" },
+      review_claims: { rule_id: "REVIEW_CLAIMS_CONTRADICT", severity: "MEDIUM" },
       price_format: { rule_id: "PRICE_FORMAT", severity: "LOW" },
       webshop_trust: { rule_id: "WEBSHOP_TRUST_SIGNALS", severity: "HIGH" },
       variant_url: { rule_id: "PRODUCT_VARIANT_URL", severity: "MEDIUM" },
@@ -3533,21 +4725,23 @@ async function runScan(request: Request) {
         // Proven absence is evidence too. Keep an explicit marker so missing title/description
         // can safely pass the AI/GitHub fix evidence gate without weakening that gate.
         title: title || (item.key === "title" ? "metaTitlePresent=false" : null),
+        html_size: `htmlBytes=${rawHtmlBytes}`,
         description: description || (item.key === "description" ? "metaDescriptionPresent=false" : null),
-        h1: h1s.length,
+        h1: h1Distinct.duplicateCopies ? `${h1s.length} (identieke kopieën: ${h1Distinct.duplicateCopies}; uniek: ${h1Distinct.distinct.length})` : h1s.length,
         headings: headings.length,
         canonical: canonical || (item.key === "canonical" ? "canonicalPresent=false" : null),
-        viewport: viewportContent || null,
+        // A missing viewport on a server-rendered/rendered page is proven by the head itself.
+        viewport: viewportContent || (item.key === "viewport" && (rawServerRendered || javascriptExecuted) ? "viewportMetaPresent=false; head=server-rendered" : null),
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? "validJsonLdBlocks=0" : null),
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}${structuredDataProbe.addedBlocks ? `; observation=present_after_javascript; browserBlocks=${structuredDataProbe.addedBlocks}; source=browser-DOM; window=${structuredDataProbe.window || "n.v.t."}; consent=${structuredDataProbe.consent || "none"}` : ""}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}${structuredDataProbe.attempted ? `; browserProbe=${structuredDataProbe.ok ? "completed" : `incomplete:${structuredDataProbe.error}`}; window=${structuredDataProbe.window || "n.v.t."}; consent=${structuredDataProbe.consent || "none"}` : ""}` : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
-        response: responseTime,
+        response: responseMedian,
         sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrls.length ? `declared=${robotsDeclaredSitemapUrls.join(",")}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
-        hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
+        hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : provenAlternateLanguages.length ? `hreflangPresent=false; provenAlternates=${provenAlternateLanguages.map((item) => `${item.language}=>${item.url}`).join(" | ")}` : null,
         twitter_card: twitterCard || null,
         security_headers: presentSecurityHeaders.length ? `present=${presentSecurityHeaders.map(([name])=>name).join(",")}; core=${coreSecurityHeadersPresent}` : "present=none; core=false",
         faq: (hasFaqContent || hasFaqSchema) ? `content=${hasFaqContent}; schema=${hasFaqSchema}` : (item.key === "faq" ? "faqContent=false; faqSchema=false" : null),
@@ -3562,6 +4756,9 @@ async function runScan(request: Request) {
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         product_copy_optimizer: isProductPage ? `verifiedSourceFields=${productOptimizerSourceCount}; product=${primaryProductEvidence?.name || "unknown"}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
+        test_content: integrityEvidence.testProducts.length ? `testProducts=${integrityEvidence.testProducts.join(" | ")}` : null,
+        order_button: integrityEvidence.inertButtons.length ? `inertButtons=${integrityEvidence.inertButtons.join(" | ")}` : null,
+        review_claims: integrityEvidence.reviewConflicts.length ? `conflicts=${integrityEvidence.reviewConflicts.join(" | ")}` : null,
         broken_links: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         internal_redirects: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         semantic_link_destination: uniqueInternalAnchors.length ? `links=${uniqueInternalAnchors.length}; semanticMismatches=${semanticLinkMismatches.length}; cardMismatches=${productCardMismatches.length}; featuredMismatches=${featuredProductMismatches.length}` : null,
@@ -3586,18 +4783,18 @@ async function runScan(request: Request) {
         webshop_trust: hasEcommerceSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
         entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : businessDetails.status === "pass" ? `businessDetails=${businessDetails.found.join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails || hasContactChannelSignal}; externalProfile=${hasSocialOrReviewSignal}` : null),
-        author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
+        author: ymylHomepage ? (ymylEvidence.length ? `ymyl=true; evidence=${ymylEvidence.join(" | ")}` : null) : (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
         sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
-        sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
+        sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item)=>Boolean(item?.areaServed))}` : null,
         sector_automotive_services: sectorProfile.sector==="automotive" ? "sector=automotive; workshop evidence evaluated" : null,
         sector_automotive_conversion: sectorProfile.sector==="automotive" ? "sector=automotive" : null,
         sector_automotive_inventory: sectorProfile.sector==="automotive" ? "sector=automotive; inventory evidence evaluated" : null,
         sector_home_services_offer: sectorProfile.sector==="home_services" ? "sector=home_services; service evidence evaluated" : null,
         sector_home_services_quote: sectorProfile.sector==="home_services" ? `sector=home_services; contact=${hasContactChannelSignal}` : null,
-        sector_home_services_area: sectorProfile.sector==="home_services" ? `sector=home_services; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
+        sector_home_services_area: sectorProfile.sector==="home_services" ? `sector=home_services; areaServed=${schemaObjects.some((item)=>Boolean(item?.areaServed))}` : null,
         identity: `brandSignals=${visibleBrandSignals}/4; found=${foundBrandSignals.join(",") || "none"}; missing=${missingBrandSignals.join(",") || "none"}`,
       };
       const heuristicKeys = new Set([
@@ -3664,12 +4861,12 @@ async function runScan(request: Request) {
             })
           });
           if (!aiResponse.ok) return;
-          const aiJson:any = await aiResponse.json();
+          const aiJson: {choices?: Array<{message?: {content?: string}}>} = await aiResponse.json();
           const parsed = JSON.parse(aiJson?.choices?.[0]?.message?.content || "{}");
-          const translated = Array.isArray(parsed?.items) ? parsed.items : [];
-          const byKey = new Map(translated.map((item:any) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
+          const translated: Record<string, unknown>[] = Array.isArray(parsed?.items) ? parsed.items.filter((value: unknown) => value && typeof value === "object" && !Array.isArray(value)) : [];
+          const byKey = new Map(translated.map((item) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
           for (const item of items) {
-            const translatedItem:any = translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
+            const translatedItem = translated.find((candidate)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
             if (!translatedItem) continue;
             if (typeof translatedItem.title === "string" && translatedItem.title.trim()) item.title = translatedItem.title.trim();
             if (typeof translatedItem.message === "string" && translatedItem.message.trim()) item.message = translatedItem.message.trim();
@@ -3717,6 +4914,18 @@ async function runScan(request: Request) {
       }
     }
 
+    // Preserve exact source/destination URLs after optional translation and its
+    // generic fallback. Link evidence is measured, never generated by a model.
+    if (!linkEvidenceUnavailable && scanLanguage !== "nl") {
+      const item = seoChecks.find((c) => c.key === "broken_links");
+      if (item) {
+        const copy = localizedBrokenLinkCopy(linkAuditResults, finalUrl.toString(), scanLanguage);
+        item.message = copy.message;
+        item.fix = copy.fix;
+        item.evidence.details = copy.message;
+      }
+    }
+
     // Keep high-value warnings concrete even when the optional AI translation layer
     // is unavailable. These messages are derived from scan evidence, not generated guesses.
     const concreteWarningCopy: Record<string, { canonicalMissing:string; canonicalOther:string; canonicalInvalid:string; trust:(missing:string)=>string; canonicalFix:string; trustFix:string }> = {
@@ -3735,7 +4944,7 @@ async function runScan(request: Request) {
       if(item.status!=="warning"&&item.status!=="fail") continue;
       if(item.key==="canonical"){
         item.title=({nl:"Canonical URL",en:"Canonical URL",de:"Canonical-URL",fr:"URL canonique",it:"URL canonico",es:"URL canónica"} as Record<string,string>)[scanLanguage]||"Canonical URL";
-        item.message=canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
+        item.message=headDirectives.conflictingCanonicals?`Conflicting canonical declarations: ${headDirectives.canonicals.join(" | ")}`:canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
         item.fix=concreteCopy.canonicalFix;
         item.evidence.details=item.message;
       }
@@ -3781,16 +4990,33 @@ async function runScan(request: Request) {
     // Absences in such a response prove nothing about the website, so negative
     // results that depend on them stay unconfirmed instead of becoming advice.
     const botCookieNames = botManagerCookies(passiveSecurity.cookieFlags.cookies.map((cookie)=>cookie.name));
+    const botHeaderNames = botManagerHeaders(response.headers);
     const reducedBotResponse = !javascriptExecuted && isReducedBotResponse({
       botCookies: botCookieNames,
+      botHeaders: botHeaderNames,
       jsonLdBlocks: (html.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length,
       ogTags: (html.match(/<meta\b[^>]*property\s*=\s*["']og:/gi) || []).length,
       h1Count: h1s.length,
+      visibleWords: rawVisibleWords,
+      descriptionPresent: Boolean(description),
     });
-    if (reducedBotResponse) {
-      const botNote = `De website beantwoordde deze scan via bot-beveiliging (${botCookieNames.slice(0,3).join(", ")}) met een uitgeklede pagina zonder structured data, Open Graph of H1. Ontbrekende onderdelen in zo'n response bewijzen niet dat ze op de echte website ontbreken.`;
+    // A homepage document without a single same-site link has no navigation or footer
+    // loaded (consent wall, partial hydration, blocked render): links it lacks are not
+    // proven missing from the website.
+    const noInternalLinksOnHomepage = isHomepage && allUniqueInternalAnchors.length === 0;
+    if (noInternalLinksOnHomepage) {
+      const note = "De opgehaalde pagina bevat geen enkele interne link: navigatie en footer zijn niet geladen. Ontbrekende privacy-, cookie-, contact- of merklinks zijn daarom niet bewezen.";
       for (const item of [...seoChecks, ...geoChecks]) {
-        if (!BOT_SENSITIVE_CHECKS.has(item.key) || (item.status !== "warning" && item.status !== "fail")) continue;
+        if (!["trust_legal_signals","identity","trust","entity"].includes(item.key) || (item.status !== "warning" && item.status !== "fail")) continue;
+        Object.assign(item, { status: "unable_to_confirm", issue_status: "UNABLE_TO_CONFIRM", points: 0, confidence: "low", reasonCode: "weak_evidence", message: note, fix: "Controleer dit opnieuw wanneer de volledige pagina met navigatie en footer kan worden opgehaald.", evidence: { url: finalUrl.toString(), found: null, details: note } });
+      }
+    }
+    const absentHead: Record<string, boolean> = { description: !description, geo_description: !description, canonical: !canonical, lang: !lang, hreflang: true };
+    if (reducedBotResponse) {
+      const botNote = `De website beantwoordde deze scan via bot-beveiliging (${[...botCookieNames, ...botHeaderNames].slice(0,3).join(", ")}) met een uitgeklede pagina zonder structured data of Open Graph. Ontbrekende onderdelen in zo'n response bewijzen niet dat ze op de echte website ontbreken.`;
+      for (const item of [...seoChecks, ...geoChecks]) {
+        const sensitive = BOT_SENSITIVE_CHECKS.has(item.key) || (BOT_SENSITIVE_WHEN_ABSENT.has(item.key) && absentHead[item.key]);
+        if (!sensitive || (item.status !== "warning" && item.status !== "fail")) continue;
         item.status = "unable_to_confirm";
         item.issue_status = "UNABLE_TO_CONFIRM";
         item.points = 0;
@@ -3981,11 +5207,17 @@ async function runScan(request: Request) {
       es:"RankFix renderizó este sitio JavaScript en un navegador limitado. No se ejecutaron los flujos de inicio de sesión, carrito ni pago."
     };
     const rendering = {
+      // Diagnostic evidence only: network failures do not create scored checks.
+      browserDiagnostics: renderedDocument?.diagnostics || null,
+      // Targeted structured-data observation (not a full browser report).
+      structuredDataProbe,
       mode: javascriptExecuted ? "javascript_rendered" as const : "raw_html" as const,
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
       fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
+      // Diagnostic class of the browser error (no URLs or stack), for TestLab analysis.
+      fallbackDetail: javascriptCandidate && !javascriptExecuted ? renderFailureDetailText : null,
       attempts: primaryRenderAttempts,
       rejectedBrowserSnapshot,
       // The page missed DOMContentLoaded within the budget; its DOM snapshot passed the evidence gate.
@@ -4006,8 +5238,8 @@ async function runScan(request: Request) {
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other"; evidence: string[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; aiText?: string; ownIdentityText?: string; shopInfo?: ShopInfoSignals; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4022,8 +5254,10 @@ async function runScan(request: Request) {
         if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
         const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
         if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        // API and feed endpoints are not pages (QA #207: /wp-json/wp/v2/product/58 was sampled as a product).
+        if (isApiOrFeedPath(path, candidate.search)) return null;
         const pathSegments = path.split("/").filter(Boolean);
-        const legalUtilitySegment = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)$/i;
+        const legalUtilitySegment = LEGAL_PATH_SEGMENT;
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
@@ -4056,18 +5290,109 @@ async function runScan(request: Request) {
         if (editorialPage) evidence.push("press/news/article path");
         if (eventPage) evidence.push("event path");
         if (corporatePage) evidence.push("corporate information path");
-        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : (articlePath || editorialPage) ? "article" : eventPage ? "event" : corporatePage ? "corporate" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
+        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : (articlePath || editorialPage) ? "article" : eventPage ? "event" : corporatePage ? "corporate" : storePage && looksLikeLocationPath(path) ? "location" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
         return { url: candidate.toString(), type, evidence };
       } catch { return null; }
     };
     const anchorContextByUrl = new Map(allUniqueInternalAnchors.map((item)=>[normalizeScanUrl(item.url), item.context || ""] as const));
-    const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
+    // Alternative link sources (3.5): a document with fewer than 3 same-site links
+    // (blocked or partially hydrated render, consent wall, app shell) cannot drive the
+    // sample. Then use, in order: links in the raw server HTML, SiteNavigationElement
+    // URLs in structured data, and the sitemap. These only nominate pages; every
+    // candidate is fetched and judged on its own evidence. No site or path rules.
+    // Child sitemaps of a sitemap index (bounded: two files, 5 s, 2 MB each) so a
+    // site that publishes its pages only through an index still nominates them.
+    if (!sitemapPageUrls.length && sitemapChildUrls.length && !clock.expired) {
+      for (const child of sitemapChildUrls) {
+        try {
+          const r = (await safePublicFetch(new URL(child), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
+          if (!r.ok) { try { await r.body?.cancel(); } catch {} continue; }
+          const body = await readResponseTextLimited(r, 2_000_000);
+          if (!/<(?:(?:[a-z0-9_-]+):)?urlset\b/i.test(body)) continue;
+          const origin = new URL(child).origin;
+          for (const m of body.matchAll(/<(?:(?:[a-z0-9_-]+):)?loc\b[^>]*>([\s\S]*?)<\/(?:(?:[a-z0-9_-]+):)?loc>/gi)) {
+            const value = decode(String(m[1] || "").trim());
+            try { if (new URL(value).origin === origin && sitemapPageUrls.length < 200) sitemapPageUrls.push(value); } catch {}
+          }
+        } catch { /* a child sitemap that does not answer only means fewer candidates */ }
+      }
+    }
+    const sampleLinkSource: "page_links" | "fallback" = allUniqueInternalAnchors.length >= 3 ? "page_links" : "fallback";
+    const fallbackSources: string[] = [];
+    const fallbackAnchors: Array<{ url: string; context: string; sourceHref: string }> = [];
+    if (sampleLinkSource === "fallback") {
+      const addFallback = (urls: string[], source: string) => {
+        let added = 0;
+        for (const raw of urls) {
+          try {
+            const parsed = new URL(raw, finalUrl);
+            if (!/^https?:$/.test(parsed.protocol) || normalizeHost(parsed.hostname) !== siteHost) continue;
+            parsed.hash = "";
+            const key = normalizeScanUrl(parsed.toString());
+            if (key === normalizeScanUrl(finalUrl.toString()) || fallbackAnchors.some((item) => normalizeScanUrl(item.url) === key) || allUniqueInternalAnchors.some((item) => normalizeScanUrl(item.url) === key)) continue;
+            fallbackAnchors.push({ url: parsed.toString(), context: "", sourceHref: raw });
+            added++;
+            if (fallbackAnchors.length >= 60) break;
+          } catch { /* not a URL */ }
+        }
+        if (added) fallbackSources.push(`${source} (${added})`);
+      };
+      if (rawHtml && rawHtml !== html) addFallback([...neutralizeTemplateBindings(rawHtml).matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => decode(m[1] || "")).filter((href) => !isTemplateHref(href) && !isCartActionUrl(href)), "links in de ruwe HTML");
+      addFallback(schemaObjects.flatMap((item) => {
+        const types: string[] = schemaTypesOf(item);
+        return types.some((type: unknown) => /^sitenavigationelement$/i.test(String(type || ""))) ? [item?.url].flat().filter((value: unknown): value is string => typeof value === "string") : [];
+      }), "navigatie in structured data");
+      addFallback(sitemapPageUrls, "sitemap");
+    }
+    const discoveredMultiPage = [...new Map([...allUniqueInternalAnchors, ...fallbackAnchors].flatMap((item) => {
       const candidate = classifyMultiPageCandidate(item.url);
       if (!candidate) return [];
       const context = (item.context || "").trim();
       if (context) { const cleanContext = context.replace(/\s*(?:""|“”|''|«\s*»)\s*$/,"").trim(); if (cleanContext) candidate.evidence.push(`link-context: ${cleanContext.slice(0,120)}`); }
       return [[normalizeScanUrl(candidate.url), candidate] as const];
     })).values()];
+    // Section gap fill: when the page's own links do not reach a relevant part of
+    // the site (contact, legal, support, services, or categories/products for a
+    // shop), nominate URLs the site itself publishes for it — sitemap entries and
+    // links in the raw server HTML — up to two per missing part. Never guessed paths.
+    const sectionGapFill: Array<{ type: string; source: string; count: number }> = [];
+    {
+      const shopLike = Boolean(masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal);
+      const wanted: MultiPageCandidate["type"][] = shopLike ? ["category", "product", "contact", "legal", "support"] : ["service", "contact", "legal", "support"];
+      const have = new Set(discoveredMultiPage.map((item) => item.type));
+      const known = new Set(discoveredMultiPage.map((item) => normalizeScanUrl(item.url)));
+      const pools: Array<[string, string[]]> = [
+        ["sitemap", sitemapPageUrls],
+        ["ruwe HTML", rawHtml && rawHtml !== html ? [...neutralizeTemplateBindings(rawHtml).matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => decode(m[1] || "")).filter((href) => !isTemplateHref(href) && !isCartActionUrl(href)) : []],
+      ];
+      for (const type of wanted) {
+        if (have.has(type)) continue;
+        for (const [source, urls] of pools) {
+          let added = 0;
+          for (const raw of urls) {
+            if (added >= 2) break;
+            let parsed: URL; try { parsed = new URL(raw, finalUrl); } catch { continue; }
+            if (!/^https?:$/.test(parsed.protocol) || normalizeHost(parsed.hostname) !== siteHost) continue;
+            parsed.hash = "";
+            const key = normalizeScanUrl(parsed.toString());
+            if (known.has(key) || key === normalizeScanUrl(finalUrl.toString())) continue;
+            const candidate = classifyMultiPageCandidate(parsed.toString());
+            if (!candidate || candidate.type !== type) continue;
+            candidate.evidence.push(`aanvulling: ${source} (ontbrekend onderdeel ${type})`);
+            discoveredMultiPage.push(candidate); known.add(key); added++;
+          }
+          if (added) { sectionGapFill.push({ type, source, count: added }); have.add(type); break; }
+        }
+      }
+    }
+    // Product cards on the scanned page nominate product candidates for the FIRST
+    // sample (inside the same page budget), whatever their URL shape. A rendered or
+    // slow shop otherwise ran out of time before the later product hunt.
+    let productCardNominations = 0;
+    if (masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal) {
+      const cardLinks = [...productCardLinks(neutralizeTemplateBindings(html), finalUrl.toString(), siteHost, 12), ...extractProductDetailLinks(html, finalUrl.toString(), siteHost, 12)];
+      productCardNominations = nominateProductCards(discoveredMultiPage, cardLinks, normalizeScanUrl, classifyMultiPageCandidate, 6);
+    }
     // Evidence-first representative selection. URL shape is only a weak fallback;
     // structural link context from the scanned page is the primary signal. This keeps
     // narrative/news/history pages from outranking pages that expose services,
@@ -4078,25 +5403,30 @@ async function runScan(request: Request) {
       const context = (anchorContextByUrl.get(normalizeScanUrl(item.url)) || "").toLowerCase();
       const firstPathSegment = path.split("/").filter(Boolean)[0] || "";
       const candidateLocale = localeSegmentPattern.test(firstPathSegment) ? firstPathSegment.split("-")[0].toLowerCase() : "";
-      const isLegal = /(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path);
-      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
+      const isLegal = path.split("/").filter(Boolean).some((segment) => LEGAL_PATH_SEGMENT.test(segment));
+      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery)\b/i.test(context);
+      // First-party About/Organisation/Services pages are identity evidence;
+      // they must not be ranked like legal, account or editorial utility pages.
+      const identityContext = /\b(over ons|over het bedrijf|onze organisatie|about us|about the company|who we are|what we do|our organisation|our organization|company|expertise|our mission|nos activités|qui sommes-nous|über uns|chi siamo)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
-      let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
+      let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "location" ? 20 : item.type === "legal" || isLegal ? 18 : 8;
       if (preferredLocale && candidateLocale === preferredLocale) score += 12;
       else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
       else if (preferredLocale && !candidateLocale) score += 2;
       if (capabilityContext) score += 24;
+      if (identityContext && !isLegal) score += 18;
       if (contextWords >= 2) score += 4;
       if (utilityContext && !capabilityContext) score -= 30;
       // Path semantics are deliberately weak evidence only; they can break ties but
       // cannot by themselves dominate structural link context.
       if (/(?:dienst|service|product|shop|store|catalog|aanbod|voorraad|woning|property|occasion|transport|logist|warehouse|behandel|treatment|booking|reserve)/i.test(path)) score += 6;
-      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery|over-ons|about-us)/i.test(path)) score -= 12;
+      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery)/i.test(path)) score -= 12;
+      if (/(?:\/about(?:-us)?|\/over-ons|\/over-het-bedrijf|\/wie-zijn-wij|\/unternehmen|\/ueber-uns|\/uber-uns|\/qui-sommes-nous|\/chi-siamo|\/our-company)(?:\/|$)/i.test(path)) score += 7;
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
-    const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
+    const rankedMultiPage = eligibleSampleCandidates(discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a)), preferredLocale);
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
     // into an unbounded crawler. Cap the selection at thirty distinct URLs;
@@ -4114,11 +5444,11 @@ async function runScan(request: Request) {
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
           ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("article", 2),
-          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("corporate", 1), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
+          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("corporate", 1), ...pickMultiPage("event", 1), ...pickMultiPage("location", 1), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("corporate", 2), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
+          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("corporate", 2), ...pickMultiPage("event", 1), ...pickMultiPage("location", 1), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -4146,8 +5476,27 @@ async function runScan(request: Request) {
     // One site section (e.g. /klantenservice/ or /keuzehulp/) may fill at most five
     // fill-phase slots, so the sample keeps covering categories, products and services.
     // Product detail pages keep their own per-type ceiling.
-    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>normalizeScanUrl(stripTrackingParams(url)), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] });
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>sampleIdentityKey(normalizeScanUrl(stripTrackingParams(url))), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] }, 2);
+    // A non-news homepage with Article/BlogPosting schema: the CMS adds it to every page.
+    const homepageArticleTemplate = (isSiteHomepagePath(finalUrl.pathname) || isHomepage) && sectorProfile.sector !== "news_media"
+      && ["article","newsarticle","blogposting"].some((type)=>schemaSet.has(type));
+    // Every sampled page (fetch, redirects, browser recovery, render queue) must
+    // finish before the hard sample stop; a page still running then counts as
+    // "not confirmed" instead of holding up the whole scan.
+    const SAMPLE_HARD_STOP_AT = started + Math.min(SAMPLE_DEADLINE_MS + 40_000, SCAN_HARD_LIMIT_MS - 50_000);
+    const sampleTimeLimited = (page: MultiPageCandidate): MultiPageAudit => ({ ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] });
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
+      const remainingMs = SAMPLE_HARD_STOP_AT - Date.now();
+      if (remainingMs <= 1_000 || clock.expired) return sampleTimeLimited(page);
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          auditMultiPageWithinBudget(page),
+          new Promise<MultiPageAudit>((resolve) => { stopTimer = setTimeout(() => resolve(sampleTimeLimited(page)), remainingMs); }),
+        ]);
+      } finally { if (stopTimer) clearTimeout(stopTimer); }
+    };
+    const auditMultiPageWithinBudget = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       if (Date.now() - started > SAMPLE_DEADLINE_MS) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] };
       }
@@ -4173,18 +5522,28 @@ async function runScan(request: Request) {
         }
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
+        // The scanned page reuses the main document, which is the browser DOM when JavaScript ran.
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
+        if (isScannedPage && javascriptExecuted) representativeEvidenceSource = "rendered_html";
         let representativeTitlePixelWidth: number | null = null;
         // Motor v2.1: representative pages get the same single bounded recovery
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderRepresentativeOnce();
-            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
+            if (isSubstantiveRender(recoveredPage.html, { afterRefusal: true, hostname: finalCandidate.hostname })) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
-          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
+          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:r.status === 401 || r.status === 403
+            ? `HTTP ${r.status}: de website weigerde de toegang tot deze pagina, ook bij weergave in een browser. Een toegangsfout is geen inhoudspagina; deze pagina telt niet mee in de steekproef of de score.`
+            : r.status === 404 || r.status === 410
+              ? `HTTP ${r.status}: deze pagina bestaat niet (meer), terwijl de website ernaar linkt. Pas de link aan of zet een 301-redirect naar de juiste pagina. Telt niet mee in de steekproefscore.`
+              : r.status === 429
+                ? "HTTP 429: de website beperkte tijdelijk het aantal verzoeken. Geen bewijs van een fout; deze pagina telt niet mee in de steekproef."
+                : r.status >= 500
+                  ? `HTTP ${r.status}: de server gaf een fout voor deze pagina. Mogelijk tijdelijk; controleer of bezoekers dezelfde fout krijgen. Telt niet mee in de steekproefscore.`
+                  : `HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
         const htmlSample = pageHtml
@@ -4214,15 +5573,18 @@ async function runScan(request: Request) {
             } else {
               page.evidence.push("javascript render poorer than raw HTML; raw HTML retained");
             }
-          } catch {
-            page.evidence.push("javascript rendering unavailable; raw HTML retained");
+          } catch (sampleRenderError) {
+            // Name why the browser did not finish (crash, network, time limit), so a
+            // TestLab run shows the cause per sampled page, as for the scanned page.
+            const sampleRenderDetail = renderFailureDetail(sampleRenderError);
+            page.evidence.push(`javascript rendering unavailable (${renderFailureCode(sampleRenderError)}${sampleRenderDetail ? `: ${sampleRenderDetail}` : ""}); raw HTML retained`);
           }
         }
         const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
-        const pageDescriptionTag = pageHtml.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
-          pageHtml.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
-        const pageDescriptionContent = pageDescriptionTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-        const pageQualityDescription = pageDescriptionContent ? stripHtml(pageDescriptionContent[2]).trim() : "";
+        // Same evidence rules for sampled pages and homepage.
+        const pageHead = extractHeadMetadata(pageHtml);
+        const pageDescriptionTag = pageHead.evidence.description;
+        const pageQualityDescription = decode(stripHtml(pageHead.description));
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
         // Structural fingerprint: language-independent DOM evidence used to detect
@@ -4239,9 +5601,15 @@ async function runScan(request: Request) {
           "li"+Math.min(9,Math.floor(countTag("li")/10)),
           "schema"+Math.min(5,(pageHtml!.match(/"@type"\s*:/gi)||[]).length),
         ].join("|");
-        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
+        }
+        // Maintenance, error and block pages answer with HTTP 200 too; they are not
+        // evidence of the website and never enter the sample or its scores.
+        const pageNonContent = classifyNonContentPage({ title: pageQualityTitle, text: pageQualityText, words: pageQualityWords, html: pageHtml });
+        if (pageNonContent) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, nonContent:pageNonContent.kind, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:nonContentDetail(pageNonContent)}] };
         }
         if ((r.status !== 200 && pageQualityWords < 40 && !pageQualityTitle && !pageQualityDescription) ||
             (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
@@ -4250,7 +5618,7 @@ async function runScan(request: Request) {
         const pageTitle = pageQualityTitle;
         const pageDescription = pageQualityDescription;
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
-        const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
+        const pageCanonical = decode(pageHead.canonical);
         const pageForms = formBlocks(pageHtml);
         const pagePasswordForm = pageForms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\"\']password[\"\']", "i").test(form));
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
@@ -4264,23 +5632,43 @@ async function runScan(request: Request) {
         const pageProductSchema = !pageFinancialOffer && pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
         const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
         const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore)$/.test(type));
-        const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
-        const pageProductLinks = [...pageHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
+        // Visible text, or a purchase control in the markup (icon-only buttons named by
+        // aria-label/title, cart-add forms, platform hooks): commerce 72/72 QA.
+        const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText) || purchaseActionInHtml(pageHtml);
+        // Insurance modules, loans or accounts published as Product/Offer data are a
+        // financial service, not merchandise (own URL/title/H1, no purchase action).
+        const pageFinancialServicePage = !pageFinancialOffer && financialServiceOfferPage({ url: finalCandidate.toString(), title: pageTitle, h1s: pageH1s, purchaseAction: pageStrongCommerceAction, checkout: checkoutActionInHtml(pageHtml) });
+        const pageFinancial = pageFinancialOffer || pageFinancialServicePage;
+        // Product links by URL shape (multilingual product segments, product ids)
+        // or by structure: the link inside a product card/tile of a grid, as
+        // WooCommerce, Shopify, Magento, PrestaShop and OpenCart print them
+        // (QA #203: "/producten/zon" with 7 products was typed "product").
+        const pageTemplateFreeHtml = neutralizeTemplateBindings(pageHtml);
+        const pageCardProductLinks = productCardLinks(pageTemplateFreeHtml, finalCandidate.toString(), siteHost, 24);
+        const pageProductLinks = [...[...pageTemplateFreeHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
           .map((m)=>safeDecodeURIComponent(m[1]||""))
-          .filter((href)=>/(?:^|\/)(?:product|products|product-page|p)(?:\/|$)|\/(?:dp|artikel|prodotto|produto)\//i.test(href));
-        const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+          .filter((href)=>!isTemplateHref(href) && !isCartActionUrl(href) && (/(?:^|\/)(?:product|products|producten|produkt|produkte|produit|produits|prodotto|prodotti|producto|productos|produto|produtos|produkty|product-page|p)\/[^/?#]+|\/(?:dp|artikel|prodotto|produto)\/|[?&]product_id=\d+/i.test(href))),
+          ...pageCardProductLinks.filter((href)=>!isTemplateHref(href) && !isCartActionUrl(href) && !/^(?:#|mailto:|tel:|javascript:)/i.test(href))];
+        // Whole page text (bounded): on large category pages the product grid starts
+        // far beyond the 12k-character quality excerpt (297 prices were read as 9).
+        const pagePriceSignals = priceSignalCount(stripHtml(pageHtml));
         const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
+          // Every top-level Product (nested related/accessory products excluded),
+          // then the one that belongs to THIS page (QA 144: SKU of a sibling model
+          // was shown). Ambiguous: no product, never a merge.
+          const found:Record<string, unknown>[] = [];
           for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
             try {
               const parsed = JSON.parse(raw);
               pageJsonLdRoots.push(parsed);
-              const queue:any[] = Array.isArray(parsed) ? [...parsed] : [parsed];
+              const queue:unknown[] = Array.isArray(parsed) ? [...parsed] : [parsed];
               while (queue.length) {
-                const value = queue.shift();
+                const rawValue = queue.shift();
+                const value = schemaRecord(rawValue);
                 if (!value || typeof value !== "object") continue;
-                const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
-                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) return value;
+                const types: string[] = schemaTypesOf(value);
+                if (types.some((t)=>String(t||"").toLowerCase()==="product")) { found.push(value as Record<string, unknown>); continue; }
                 for (const nested of Object.values(value)) {
                   if (Array.isArray(nested)) queue.push(...nested);
                   else if (nested && typeof nested==="object") queue.push(nested);
@@ -4288,11 +5676,13 @@ async function runScan(request: Request) {
               }
             } catch {}
           }
-          return null;
+          if (found.length <= 1) return found[0] || null;
+          const match = selectPageProduct(found.map((product)=>({ name: typeof product?.name==="string" ? product.name : "", sku: typeof product?.sku==="string" ? product.sku : "", url: typeof product?.url==="string" ? product.url : "", id: typeof product?.["@id"]==="string" ? product["@id"] : "", productIds: [product?.productID, product?.gtin, product?.gtin13, product?.mpn].filter((v)=>typeof v==="string"||typeof v==="number").map(String) })), { url: finalCandidate.toString(), title: pageQualityTitle, h1s: [...pageHtml.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1]).trim()).filter(Boolean).slice(0,3) });
+          return match.index === null ? null : found[match.index];
         })();
-        const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
+        const pageOffer = schemaRecord(pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null);
         const pageImageValue = pageProductJson?.image;
-        const pageProductEvidence = pageProductJson && !pageFinancialOffer ? {
+        const pageProductEvidence = pageProductJson && !pageFinancial ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
           // image may be a URL, an ImageObject, an array or an @id reference in the @graph.
           image: resolveSchemaImage(pageImageValue, indexJsonLdIds(pageJsonLdRoots)),
@@ -4300,45 +5690,83 @@ async function runScan(request: Request) {
           price: offerPrice(pageOffer).price != null ? String(offerPrice(pageOffer).price) : null,
           currency: offerPrice(pageOffer).currency || null,
           availability: typeof pageOffer?.availability==="string" ? pageOffer.availability : null,
+          // Shape of the Offer that was read: missing fields are only a proven defect
+          // when ONE plain Offer was read completely (not an AggregateOffer or a list).
+          offerKind: (Array.isArray(pageProductJson.offers) ? "list" : !pageOffer ? "none" : /aggregateoffer/i.test(schemaTypesOf(pageOffer).join(" ")) ? "aggregate" : "offer") as "offer" | "aggregate" | "list" | "none",
         } : null;
+        // Visible price/currency/stock/buy-button evidence of this page, read once.
+        const pageVisibleOffer = visibleOfferEvidence(pageHtml, stripHtml(pageHtml));
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
-          productSchemaCount: pageFinancialOffer ? 0 : (pageHtml.match(/"@type"\s*:\s*"Product"/g)||[]).length,
-          financialOffer: pageFinancialOffer,
+          // Product objects that are not nested in another Product: related or
+          // accessory products inside a product's own data do not make a grid.
+          productSchemaCount: pageFinancial ? 0 : countIndependentProducts(pageHtml),
+          financialOffer: pageFinancial,
           eventSchema: pageSchemaTypes.some((type)=>/^(?:event|educationevent|businessevent|socialevent|exhibitionevent|musicevent|theaterevent)$/i.test(type)),
           itemListSchema: pageItemListSchema,
           storeSchema: pageStoreSchema,
           strongCommerceAction: pageStrongCommerceAction,
+          checkoutDestination: checkoutActionInHtml(pageHtml),
           repeatedProductLinks: new Set(pageProductLinks).size >= 3,
           priceSignals: pagePriceSignals,
           product: pageProductEvidence,
-          confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
+          // Product schema with only a name (software, a manufacturer's model page) is
+          // product information; a retail page needs an offer: price + currency,
+          // stock status, a visible price or a buy action (live QA scan 2627bab0).
+          // Visible price/currency/stock of this page, same rules as the scanned page.
+          visibleOffer: (() => { const o = pageVisibleOffer; return { priceCandidates: o.visiblePriceCandidates.slice(0, 8), priceStrength: o.visiblePriceEvidenceStrength as "explicit_product_markup" | "broad_page_text" | "none", currencies: o.visibleCurrencyCodes, availabilityState: o.visibleAvailabilityState, availabilityAmbiguous: o.visibleAvailabilityAmbiguous, availabilityScope: o.visibleAvailabilityScope, availabilityPhrases: o.visibleAvailabilityPhrases.slice(0, 3), purchaseButton: o.purchaseButton }; })(),
+          // No Product anywhere in the markup: JSON-LD @type, microdata itemtype or RDFa typeof.
+          productMarkupAbsent: !pageProductSchema && !pageFinancial
+            && !/itemtype\s*=\s*["'][^"']*schema\.org\/(?:Product|IndividualProduct|ProductModel|ProductGroup)\b/i.test(pageHtml)
+            && !/\btypeof\s*=\s*["'][^"']*\b(?:schema:)?Product\b/i.test(pageHtml),
+          // Set below once the page is known not to be a JavaScript shell.
+          serverRendered: false as boolean,
+          confirmedRetailPage: !pageFinancial && ((pageProductSchema && hasProductOffer({ product: pageProductEvidence, priceSignals: pagePriceSignals, strongCommerceAction: pageStrongCommerceAction })) || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2)),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
-        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth);
-        const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
+        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth, finalCandidate.pathname);
+        const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag), representativeEvidenceSource === "rendered_html" ? "rendered" : "raw");
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const pageMissingEvidenceUnverified = partialHeadOnly || missingJsHeadEvidenceUnverified({
+        pageCommerceEvidence.serverRendered = representativeEvidenceSource !== "rendered_html" && !pageClientShell && pageH1s.length > 0;
+        const sampleIncompleteHead = representativeEvidenceSource !== "rendered_html"
+          && Boolean(pageQualityTitle) && /<meta\b[^>]+(?:property|name)\s*=\s*["'](?:og:|twitter:)/i.test(pageHtml)
+          && !pageHead.evidence.description && !pageHead.evidence.canonical
+          && !pageHead.evidence.viewport && !pageHead.evidence.lang;
+        const pageMissingEvidenceUnverified = partialHeadOnly || sampleIncompleteHead || missingJsHeadEvidenceUnverified({
           frameworkSignal: representativeJsFramework,
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
         });
+        // QA 30 Oct (nu.nl): a missing H1 in server HTML is only proven when the page
+        // was rendered or cannot add content with JavaScript (fewer than 3 scripts).
+        const pageScriptCount = (pageHtml.match(/<script\b(?![^>]*type\s*=\s*["']application\/(?:ld\+)?json["'])/gi) || []).length;
+        const pageH1UnverifiedWithoutRender = representativeEvidenceSource !== "rendered_html" && pageScriptCount >= 3;
         const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
           || /<meta\b[^>]*content\s*=\s*["'][^"']*\bnoindex\b[^"']*["'][^>]*name\s*=\s*["'](?:robots|googlebot)["']/i.test(pageHtml)
           || /\bnoindex\b/i.test(r.headers.get("x-robots-tag") || "");
-        if (pageNoindex && !isScannedPage) {
+        // PDF P8: HTTP status and robots are separate facts. A refused page (401/403)
+        // often serves a WAF template with noindex; that is "geblokkeerd" (handled by
+        // the access rules below), never "noindex".
+        if (pageNoindex && !isScannedPage && r.status !== 401 && r.status !== 403) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"noindex",status:"UNABLE_TO_CONFIRM",details:"Pagina staat op noindex en telt daarom niet mee in de steekproefscore."}] };
         }
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
-          {key:"http",status:"PASS",details:`HTTP ${r.status}`},
+          // The scanned page's real status (a refusal to RankFix is not a website 200 or error).
+          isScannedPage && scannerAccessBlocked
+            ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`${rankfixRefusal} voor RankFix; de pagina is via een browser opgehaald (crawlerblokkade, geen bewezen websitefout).`}
+            // A sampled page that refused RankFix (4xx/5xx) and only reached us through
+            // the browser has no confirmed status: never "passed" on a refusal.
+            : !isScannedPage && !r.ok
+              ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status} voor RankFix; de inhoud is via een browser opgehaald. Of bezoekers en zoekmachines deze pagina zonder blokkade krijgen, is niet bevestigd.`}
+              : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":(pageMissingEvidenceUnverified||pageH1UnverifiedWithoutRender)?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1s.length===0&&pageH1UnverifiedWithoutRender?`0 H1-heading(s) in de server-HTML; deze pagina laadt ${pageScriptCount} scripts en is niet in een browser gerenderd, dus een via JavaScript toegevoegde H1 is niet uitgesloten. Niet als fout geteld.`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return canonicalEquivalent(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageMissingEvidenceUnverified ? "UNABLE_TO_CONFIRM" : "WARNING",
@@ -4355,14 +5783,31 @@ async function runScan(request: Request) {
           if (item.key === "canonical") return pageCanonical ? 0.85 : 0.9;
           return 0.5;
         };
+        // Own identity (heading, title head, schema) decides over the URL; a page that
+        // sells one product or lists a priced product range is never re-typed by it.
+        const pageIdentity = pageIdentityType({ title: pageTitle, h1s: pageH1s, schemaTypes: pageSchemaTypes, path: finalCandidate.pathname,
+          sellsOneProduct: (pageProductSchema && pageStrongCommerceAction && (pageCommerceEvidence.productSchemaCount || 0) <= 1)
+            || (pageStrongCommerceAction && pageH1s.length === 1 && pageVisibleOffer.visiblePriceEvidenceStrength === "explicit_product_markup" && pageVisibleOffer.visiblePriceCandidates.length <= 2)
+            || ((pageCommerceEvidence.productSchemaCount || 0) >= 2) || (pageCommerceEvidence.repeatedProductLinks && pagePriceSignals >= 3) });
+        if (pageIdentity) page.evidence.push(`inhoud: ${pageIdentity.reason}`);
         const refinedType = refineSamplePageType({
+          identity: pageIdentity,
           proposed: page.type,
           path: finalCandidate.pathname,
           serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
-          articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type)),
+          // Content evidence in any EU language: the page's own identity describes a
+          // service, or its structured data types it as a Service.
+          serviceEvidence: SERVICE_INTENT.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")) || pageSchemaTypes.some((type)=>SERVICE_SCHEMA_TYPES.has(type)),
+          datedArticle: /"datePublished"\s*:/i.test(pageHtml) && pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage|report|pressrelease)$/i.test(type))
+            || /<meta\b[^>]*property\s*=\s*["']article:published_time["']/i.test(pageHtml)
+            || /<article\b[\s\S]{0,4000}?<time\b[^>]*datetime\s*=/i.test(pageHtml),
+          // Article schema that the homepage itself also carries is a site-wide template
+          // (service pages of a CMS get it too): it makes an article only with a publish date.
+          articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type))
+            && (!homepageArticleTemplate || /"datePublished"\s*:/i.test(pageHtml)),
           breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
-          financialOffer: pageFinancialOffer,
+          financialOffer: pageFinancial,
           // Wired from the page's own evidence (these inputs were defined but never passed).
           productSchemaCount: pageCommerceEvidence.productSchemaCount,
           eventSchema: pageCommerceEvidence.eventSchema,
@@ -4372,10 +5817,19 @@ async function runScan(request: Request) {
           purchaseAction: pageStrongCommerceAction,
           visiblePrices: pagePriceSignals,
           uniqueH1: pageH1s.length === 1,
+          // Platform single-product markup (WooCommerce body class / main add-to-cart button,
+          // Magento product-info-main, Shopify product form): a detail page with a
+          // "related products" grid stays a product page (QA #207).
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
+          singleProductZone: (() => { const o = pageVisibleOffer; return pageH1s.length === 1 && o.purchaseButton === "enabled" && o.zonePriceCandidates.length >= 1 && o.zonePriceCandidates.length <= 2; })(),
+          singleMarkedOffer: pageVisibleOffer.visiblePriceEvidenceStrength === "explicit_product_markup" && pageVisibleOffer.visiblePriceCandidates.length >= 1 && pageVisibleOffer.visiblePriceCandidates.length <= 2,
+          subscriptionOffer: !pageVisibleOffer.visibleAvailabilityState && subscriptionPriced(stripHtml(pageHtml).slice(0, 80000)),
+          singleProductMarkup: Boolean(/class\s*=\s*["'][^"']*(?<![\w-])(?:single-product|product-info-main|product-single|product__info-wrapper|product-detail(?:s)?-main)(?![\w-])|single_add_to_cart_button|id\s*=\s*["']product-addtocart-button["']/i.test(pageHtml.slice(0,600000))),
         });
+        // Concrete business details on this sampled page (address, phone, e-mail, registration).
+        const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), aiText:aiContentText(pageHtml, 2500), accountabilitySnippet: accountabilitySnippet(finalCandidate.toString(), stripHtml(pageHtml)), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), shopInfo: shopInfoSignals(stripHtml(pageHtml).slice(0, 60000)), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4391,7 +5845,9 @@ async function runScan(request: Request) {
                 : /5\d\d/.test(rawReason)
                   ? "serverfout"
                   : "ophalen mislukt";
-        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
+        const fetchFailure = fetchFailureCode(multiPageError);
+        const detailedReason = reason === "ophalen mislukt" && fetchFailure === "FETCH_CONNECTION" ? "verbinding geweigerd of verbroken" : reason;
+        return { ...page, status:"unable_to_confirm", httpStatus:null, fetchFailure, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${detailedReason}).`}] };
       }
     };
     // Keep multi-page scans predictable on small production instances. Up to 20
@@ -4399,19 +5855,61 @@ async function runScan(request: Request) {
     // concurrently. This prevents a JavaScript-heavy site from spawning 20
     // simultaneous Puppeteer recoveries and exhausting memory/CPU.
     const representativeAuditConcurrency = 4;
+    trace.phase = "sample";
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
+    // QA #207 (17/18 and 30/33 sample pages HTTP 429): after the website signals a
+    // rate limit twice, RankFix stops requesting more pages instead of collecting
+    // more 429s. The pages not requested are reported as such, never as errors.
+    const sampleRateLimit = { hits: 0, stopped: false, skipped: 0 };
     const representativeWorkers = Array.from(
       { length: Math.min(representativeAuditConcurrency, uniqueMultiPagePages.length) },
       async () => {
         while (true) {
           const index = nextRepresentativePageIndex++;
           if (index >= uniqueMultiPagePages.length) return;
-          multiPageAudits[index] = await auditMultiPage(uniqueMultiPagePages[index]);
+          const candidate = uniqueMultiPagePages[index];
+          if (sampleRateLimit.stopped && normalizeScanUrl(candidate.url) !== normalizeScanUrl(finalUrl.toString())) {
+            sampleRateLimit.skipped++;
+            multiPageAudits[index] = { ...candidate, status:"unable_to_confirm", httpStatus:null, fetchFailure:"RATE_LIMIT_RESPECTED", title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"rate_limited",status:"UNABLE_TO_CONFIRM",details:"Niet opgevraagd: de website meldde een verzoekenlimiet (HTTP 429). RankFix respecteert die en vraagt geen extra pagina's op. Geen bewijs van een fout; deze pagina telt niet mee in de steekproef."}] };
+            continue;
+          }
+          multiPageAudits[index] = await auditMultiPage(candidate);
+          if (multiPageAudits[index]?.httpStatus === 429 && ++sampleRateLimit.hits >= 2) sampleRateLimit.stopped = true;
         }
       },
     );
     await Promise.all(representativeWorkers);
+    phaseMark("samplePagesAudited");
+    // Some firewalls drop parallel connections from one client while serving the
+    // same pages one at a time (QA #186: 15 of 16 sample pages failed in 4 s with
+    // no HTTP status). When most fetches failed at network level, retry a bounded
+    // number of them sequentially with a pause. Same requests, slower; an HTTP
+    // refusal (403/429), a timeout or a block page is never retried here.
+    const sampleRetryPass = { triggered: false, attempted: 0, recovered: 0, stoppedReason: null as string | null };
+    {
+      const networkFailed = multiPageAudits
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item?.status === "unable_to_confirm" && item.httpStatus === null && ["FETCH_CONNECTION", "FETCH_FAILED"].includes(item.fetchFailure || ""));
+      const attempted = multiPageAudits.filter((item) => item && !(normalizeScanUrl(item.url) === normalizeScanUrl(finalUrl.toString()))).length;
+      if (networkFailed.length >= 3 && networkFailed.length >= attempted * 0.5) {
+        // Hard budget: at most 30 s for the whole pass and never closer than 40 s
+        // to the sample deadline, so one slow retry (fetch + redirects + one
+        // browser recovery) still ends before later scan phases need the time.
+        const retryUntil = Math.min(Date.now() + 30_000, started + SAMPLE_DEADLINE_MS - 40_000);
+        sampleRetryPass.triggered = true;
+        for (const { index } of networkFailed.slice(0, 6)) {
+          if (Date.now() > retryUntil) { sampleRetryPass.stoppedReason = "time_budget"; break; }
+          await new Promise((resolve) => setTimeout(resolve, 700));
+          sampleRetryPass.attempted++;
+          const retried = await auditMultiPage(uniqueMultiPagePages[index]);
+          if (retried.status === "audited") { sampleRetryPass.recovered++; retried.evidence = [...(retried.evidence || []), "opgehaald bij een tweede, sequentiële poging"]; }
+          multiPageAudits[index] = retried;
+          // Still refused after a pause: the site limits this client; stop asking.
+          if (retried.status !== "audited" && retried.httpStatus === null) { sampleRetryPass.stoppedReason = "still_refused"; break; }
+        }
+      }
+    }
     // Utility pages reached via redirects leave the sample entirely.
     for (let i = multiPageAudits.length - 1; i >= 0; i--) if (multiPageAudits[i]?.excludedUtility) multiPageAudits.splice(i, 1);
     // Second hop for retail sites: product links often appear only on category or
@@ -4419,63 +5917,187 @@ async function runScan(request: Request) {
     // from audited listing pages (rendering at most two listings that load products
     // client-side) and audit them. URL shape only nominates; a sample counts as
     // retail evidence only when the fetched page itself proves it.
-    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal;
+    // A sampled listing with a grid of linked, priced products is retail context too
+    // (QA commerce 72/72: shops without shop words on the homepage).
+    const listingWithProducts = multiPageAudits.some((item)=>item?.status==="audited" && (item.type==="category" || item.type==="listing" || item.type==="other")
+      && Boolean(item.commerceEvidence?.repeatedProductLinks) && (item.commerceEvidence?.priceSignals||0) >= 3);
+    // A payment/financial/SaaS service lists its own fees on /products/ pages:
+    // that is not a product grid, so it does not start the product hunt.
+    const pricedServiceForSample = Boolean(primaryNonCommerceIdentity) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal || (listingWithProducts && !pricedServiceForSample);
     const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
-    if (retailContextForProducts && !confirmedProductSample) {
-      const sampledUrls = new Set(multiPageAudits.map((item)=>normalizeScanUrl(item.url)));
-      const unsampled = (urls: string[]) => [...new Set(urls)].filter((url)=>!sampledUrls.has(normalizeScanUrl(url)));
-      const auditProductCandidates = async (urls: string[]) => {
-        const audits = await Promise.all(unsampled(urls).slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
-        for (const audit of audits) sampledUrls.add(normalizeScanUrl(audit.url));
+    // Optional second hop: only with enough time left before the sample deadline.
+    const productHuntTime = () => Date.now() - started < SAMPLE_DEADLINE_MS - 20_000 && !clock.expired;
+    // Every product candidate gets an outcome (confirmed / blocked / not loaded /
+    // missing / rejected), so "0 productpagina's" always says why (6 Nov, bonprix).
+    const productHuntAudits: ProductCandidateAudit[] = [];
+    const productHuntSources: string[] = [];
+    let productHuntFound = 0;
+    let productHuntRan = false;
+    // Listing pages behind the hunt: how many were read, and how many showed no
+    // product card after rendering or could not be rendered (JS shops, 6 Nov).
+    const productHuntListings = { checked: 0, renderedWithoutCards: 0, renderFailed: 0 };
+    if (retailContextForProducts && !confirmedProductSample && productHuntTime() && !sampleRateLimit.stopped) {
+      productHuntRan = true;
+      // 31 Oct (five-site QA, P7): the same language/variant key as the first
+      // selection, so /de/, /at/, /bg/ copies of a sampled page never re-enter.
+      const sampleKey = (url: string) => sampleIdentityKey(normalizeScanUrl(stripTrackingParams(url)));
+      const sampledUrls = new Set(multiPageAudits.map((item)=>sampleKey(item.url)));
+      const unsampled = (urls: string[]) => {
+        const picked: string[] = [];
+        for (const url of [...new Set(urls)]) { const key = sampleKey(url); if (sampledUrls.has(key) || picked.some((other) => sampleKey(other) === key)) continue; picked.push(url); }
+        return picked;
+      };
+      const auditProductCandidates = async (urls: string[], source = "links op bemonsterde pagina's") => {
+        const fresh = unsampled(urls);
+        productHuntFound += fresh.length;
+        if (fresh.length) productHuntSources.push(source);
+        const audits = await Promise.all(fresh.slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
+        for (const audit of audits) sampledUrls.add(sampleKey(audit.url));
+        productHuntAudits.push(...audits);
         multiPageAudits.push(...audits);
         return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
       };
+      const listingAudits = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other"));
+      productHuntListings.checked = listingAudits.length;
+      productHuntListings.renderedWithoutCards = listingAudits.filter((item)=>item.evidenceSource==="rendered_html" && !(item.productLinks || []).length).length;
       let productConfirmed = await auditProductCandidates(multiPageAudits.flatMap((item)=>item?.productLinks || []));
       // Sitemaps often list product URLs directly and need no browser. Read at most
       // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
-      if (!productConfirmed) {
+      if (!productConfirmed && productHuntTime()) {
         const readSitemap = async (url: string) => {
           const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "application/xml,text/xml" });
           return fetchedSitemap.response.ok ? readResponsePrefix(fetchedSitemap.response, 1_500_000) : "";
         };
         const sitemapSources = [...new Set([...robotsDeclaredSitemapUrls, ...(confirmedSitemapUrl ? [confirmedSitemapUrl] : [])])].filter((url)=>!/\.gz(?:$|\?)/i.test(url)).slice(0,3);
         for (const sitemapSource of sitemapSources) {
+          if (!productHuntTime()) break;
           try {
             let sitemapXml = await readSitemap(sitemapSource);
             const childSitemap = childSitemapsFromIndex(sitemapXml)[0];
             if (childSitemap) sitemapXml = await readSitemap(childSitemap);
-            productConfirmed = await auditProductCandidates(productUrlsFromSitemap(sitemapXml, siteHost, 8));
+            productConfirmed = await auditProductCandidates(productUrlsFromSitemap(sitemapXml, siteHost, 8), "sitemap");
           } catch {}
           if (productConfirmed) break;
         }
       }
-      if (!productConfirmed) {
+      if (!productConfirmed && productHuntTime()) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
+          if (!productHuntTime()) break;
           try {
             const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
-            if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
-          } catch {}
+            if (isSubstantiveRender(renderedListing.html)) {
+              const links = extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8);
+              if (!links.length) productHuntListings.renderedWithoutCards += 1;
+              productConfirmed = await auditProductCandidates(links, "gerenderde lijstpagina");
+            } else productHuntListings.renderFailed += 1;
+          } catch { productHuntListings.renderFailed += 1; }
           if (productConfirmed) break;
         }
+      }
+    }
+    const productHunt: ProductHuntSummary | null = productHuntRan ? summarizeProductHunt(productHuntFound, productHuntSources, productHuntAudits, productHuntListings) : null;
+    // The scanned page's sample reuses the main response body. Report the status the
+    // website really gave RankFix (and that a browser recovered it), never a
+    // synthetic 200 that contradicts the HTTP-status check of the same report.
+    for (const item of multiPageAudits) {
+      if (item.status === "audited" && normalizeScanUrl(item.url) === normalizeScanUrl(finalUrl.toString())) {
+        item.httpStatus = response.status;
+        if (scannerAccessBlocked) { item.evidenceSource = "rendered_html"; (item as MultiPageAudit & { accessRecoveredByBrowser?: boolean }).accessRecoveredByBrowser = true; }
       }
     }
     // Redirects can make two distinct candidates resolve to the same final URL.
     // Deduplicate after fetching as well as before selection, so the customer
     // never sees the same successfully audited page counted twice.
+    // The same page reached via tracking-parameter variants, or a page whose
+    // same-site canonical names a page already in the sample, is counted once.
     const reportedMultiPageAudits: MultiPageAudit[] = [];
     const seenFinalAuditUrls = new Set<string>();
-    for (const item of multiPageAudits) {
+    let duplicateSamplesRemoved = 0;
+    const canonicalKeyOf = (item: MultiPageAudit) => {
+      if (!item.canonical) return null;
+      try {
+        const resolved = new URL(item.canonical, item.url);
+        return /^https?:$/.test(resolved.protocol) && normalizeHost(resolved.hostname) === normalizeHost(new URL(item.url).hostname) ? normalizeScanUrl(resolved.toString()) : null;
+      } catch { return null; }
+    };
+    // A canonical that points many pages (or the homepage) at one URL is a site
+    // defect the sample must show, not a duplicate to hide.
+    const canonicalTargets = new Map<string, number>();
+    for (const item of multiPageAudits) { const key = item.status === "audited" ? canonicalKeyOf(item) : null; if (key && key !== normalizeScanUrl(item.url)) canonicalTargets.set(key, (canonicalTargets.get(key) || 0) + 1); }
+    const rootKeys = new Set([normalizeScanUrl(new URL("/", finalUrl).toString()), normalizeScanUrl(representativeHomeUrl)]);
+    const usableCanonicalKey = (item: MultiPageAudit) => { const key = canonicalKeyOf(item); return key && !rootKeys.has(key) && (canonicalTargets.get(key) || 0) <= 2 ? key : null; };
+    // Pages that are their own canonical first, so a duplicate never displaces the original.
+    const auditOrder = [...multiPageAudits].sort((a, b) => Number(canonicalKeyOf(b) === normalizeScanUrl(b.url)) - Number(canonicalKeyOf(a) === normalizeScanUrl(a.url)));
+    for (const item of auditOrder) {
       if (item.status === "audited") {
+        item.url = stripTrackingParams(item.url);
         const finalKey = normalizeScanUrl(item.url);
-        if (seenFinalAuditUrls.has(finalKey)) continue;
+        const canonicalKey = usableCanonicalKey(item);
+        if (seenFinalAuditUrls.has(finalKey) || (canonicalKey && seenFinalAuditUrls.has(canonicalKey))) { duplicateSamplesRemoved++; continue; }
         seenFinalAuditUrls.add(finalKey);
+        if (canonicalKey) seenFinalAuditUrls.add(canonicalKey);
       }
       reportedMultiPageAudits.push(item);
     }
+    // Keep the original sample order for the report.
+    reportedMultiPageAudits.sort((a, b) => multiPageAudits.indexOf(a) - multiPageAudits.indexOf(b));
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = reportedMultiPageAudits.filter((item)=>item.status==="audited");
+    // Independent sector proof from the homepage FIRST, then own internal
+    // company/service pages. This is not an additional network scan; it uses
+    // evidence already fetched by the representative-page audit above.
+    // Strong checkout capabilities never convert an independently confirmed
+    // service organisation into a webshop. Unproven/inconsistent cases abstain.
+    const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description: identityDescription,
+          identityHeadings:identityH1s, schemaTypes}
+      : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
+    const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
+    const specificIndustry = extendedIndustry.decision;
+    // QA-144: corroborated own declarations (homepage + own pages) also replace a
+    // decision that rested only on loose keywords, and refine a broader identity of
+    // the same activity (airport within passenger transport, cybersecurity within
+    // software). A dedicated identity of another sector is never overruled here.
+    const keywordOnlyDecision = Boolean(!masterIdentityOverride && primaryNonCommerceIdentity && strongSectorCandidate && primaryNonCommerceIdentity.sector === sectorCandidates[0].sector && sectorProfile.sector === primaryNonCommerceIdentity.sector);
+    // A broad corroborated activity (key = the sector itself, e.g. "hospital") never
+    // replaces a more specific subtype of the same sector already decided.
+    const broadOverSpecific = Boolean(specificIndustry && specificIndustry.key === specificIndustry.sector
+      && sectorProfile.sector === specificIndustry.sector && sectorProfile.key && sectorProfile.key !== sectorProfile.sector);
+    // Field report 6 Nov (eDreams-type, "Hotel & accommodatie (bevestigd)"): a
+    // booking platform's pages list third-party hotels or restaurants. When the
+    // site's own identity is mediation, a corroborated local trade never replaces it.
+    const mediationIdentity = ["travel","service_marketplace","marketplace","booking_platform","comparison_platform"].includes(String(euPrimaryIdentity?.key || primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const localTradeOverMediation = Boolean(specificIndustry && mediationIdentity && (LOCAL_TRADE_KEYS.has(String(specificIndustry.key)) || specificIndustry.sector === "hospitality"));
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage && !broadOverSpecific && !localTradeOverMediation &&
+      (sectorProfile.sector === specificIndustry.sector ||
+       ["unknown","general_business"].includes(sectorProfile.sector) ||
+       keywordOnlyDecision ||
+       (specificIndustry.sector === "service_marketplace" && specificIndustry.key === "service_marketplace") ||
+       (DECLARED_REFINES[specificIndustry.sector] || []).includes(sectorProfile.sector) ||
+       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription && !storeSchemaRetailIdentity)));
+    if (acceptExtendedIndustry && specificIndustry) {
+      sectorProfile.sector = specificIndustry.sector as SectorKey;
+      sectorProfile.key = specificIndustry.key;
+      sectorProfile.label = specificIndustry.label;
+      sectorProfile.confidence = specificIndustry.confidence as "high"|"medium";
+      sectorProfile.confidenceScore = specificIndustry.confidenceScore;
+      sectorProfile.evidence = [...specificIndustry.evidence, "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([
+        ...sectorProfile.applicableModules,
+        ...(sectorSignals.find(item=>item.sector===specificIndustry.sector)?.modules || []),
+      ])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {extendedIndustryEvidence:{
+      reason:extendedIndustry.reason, homepageIdentity:extendedIndustry.homepageIdentity,
+      supportingPages:extendedIndustry.supportingPages, candidates:extendedIndustry.candidates,
+      applied:acceptExtendedIndustry,
+    }});
+
+    const verifiedNonCommerceIndustry = Boolean(acceptExtendedIndustry && specificIndustry && specificIndustry.sector !== "ecommerce");
     const auditedMultiPages: MultiPageAudit[] = [];
     const seenStructures = new Set<string>();
     for (const item of auditedRawPages) {
@@ -4484,6 +6106,30 @@ async function runScan(request: Request) {
       seenStructures.add(key);
       auditedMultiPages.push(item);
     }
+    // Why a sample stayed small (3.5.1): the report names each source RankFix tried
+    // instead of silently showing "1 / 1". Descriptive only; never changes a score.
+    const extraAuditedPages = reportedMultiPageAudits.filter((item)=>item.status==="audited").filter((item)=>normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    const sampleLimitation = extraAuditedPages >= 2 ? null : (() => {
+      const reasons: Array<{ nl: string; en: string }> = [];
+      const pageLinks = allUniqueInternalAnchors.length;
+      reasons.push(pageLinks === 0
+        ? { nl: "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)", en: "the scanned page contained no internal links (navigation and footer not loaded)" }
+        : { nl: `de gescande pagina bevatte maar ${pageLinks} interne link(s)`, en: `the scanned page contained only ${pageLinks} internal link(s)` });
+      if (sampleLinkSource === "fallback") {
+        if (scannerAccessBlocked) reasons.push({ nl: `de ruwe HTML was een geweigerde response (${rankfixRefusal}) zonder links`, en: `the raw HTML was a refused response (${rankfixRefusal}) without links` });
+        if (sitemapRefusals.length) { const codes = [...new Set(sitemapRefusals)].join("/"); reasons.push({ nl: `de sitemap weigerde RankFix (HTTP ${codes})`, en: `the sitemap refused RankFix (HTTP ${codes})` }); }
+        else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? { nl: "de sitemap is een index zonder direct bruikbare pagina-URL's", en: "the sitemap is an index without directly usable page URLs" } : { nl: "er is geen bruikbare sitemap gevonden", en: "no usable sitemap was found" });
+        if (!fallbackSources.length) reasons.push({ nl: "er was geen andere bron met pagina-URL's", en: "no other source of page URLs was available" });
+      }
+      const failed = reportedMultiPageAudits.filter((item)=>item.status!=="audited" && !item.excludedUtility).length;
+      if (failed) reasons.push({ nl: `${failed} geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald`, en: `${failed} selected page(s) could not be fetched reliably` });
+      return {
+        extraPagesAudited: extraAuditedPages,
+        reasons: reasons.map((r) => r.nl),
+        note: `De steekproef bleef klein omdat ${reasons.map((r) => r.nl).join("; ")}. Sitebrede conclusies rusten daarom vooral op de gescande pagina.`,
+        noteEn: `The sample stayed small because ${reasons.map((r) => r.en).join("; ")}. Site-wide conclusions therefore rest mainly on the scanned page.`,
+      };
+    })();
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
@@ -4492,8 +6138,11 @@ async function runScan(request: Request) {
     // Sector decisions may only use what sampled pages say about themselves
     // (title, description, H1). Body text of a news article about traffic or a
     // footer link to "Transport" is not the organisation's identity.
-    const multiPageOwnIdentityText = auditedMultiPages.map((item)=>item.ownIdentityText||item.title||"").join(" · ");
-    const pagesWithOwnIdentity = (pattern: RegExp) => auditedMultiPages.filter((item)=>pattern.test(item.ownIdentityText||item.title||"")).length;
+    // Industry/customer pages describe the clients a company serves; audience
+    // phrases ("Payment für Transport") name customers. Neither is own identity.
+    const ownIdentityPages = auditedMultiPages.filter((item)=>!isAudiencePagePath(item.url)).map((item)=>({...item, ownIdentityText:stripAudience(item.ownIdentityText||item.title||"")}));
+    const multiPageOwnIdentityText = ownIdentityPages.map((item)=>item.ownIdentityText).join(" · ");
+    const pagesWithOwnIdentity = (pattern: RegExp) => ownIdentityPages.filter((item)=>pattern.test(item.ownIdentityText)).length;
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
@@ -4583,9 +6232,9 @@ async function runScan(request: Request) {
       for (const capability of ["ecommerce","products","pricing"]) {
         if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
       }
-      for (const module of ["ecommerce","product","pricing_currency","merchant"]) {
-        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
-        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
+      for (const activeModule of ["ecommerce","product","pricing_currency","merchant"]) {
+        if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
+        if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
       }
       for (const capability of ["ecommerce","products","pricing","merchant","consumer_rights"]) {
         if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
@@ -4598,9 +6247,11 @@ async function runScan(request: Request) {
     // technology and multi-page evidence have all had a chance to contribute.
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
-    const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    // A named product without any offer (price, stock, buy action) is product
+    // information, not commerce: software vendors and manufacturers publish it too.
+    const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product) && hasProductOffer(item.commerceEvidence));
     const verifiedRepresentativeProductDetail = auditedMultiPages.some((item)=>item.type==="product" &&
-      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.product));
+      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.product) && hasProductOffer(item.commerceEvidence));
     const verifiedRepresentativePurchase = auditedMultiPages.some((item)=>item.type==="product" &&
       Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.strongCommerceAction &&
         item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency));
@@ -4620,22 +6271,39 @@ async function runScan(request: Request) {
     // This applies to ALL independently recognized service providers, not
     // only one industry. Payment/booking/checkout widgets are a capability,
     // not proof that the provider is itself a retail webshop.
-    const hardCommerceEvidence = primaryNonCommerceIdentity
+    // Hard store signals (cart link/API plus add-to-cart, price + order button or payment logos)
+    // are sector-independent proof of a store, also for hybrids such as service + webshop.
+    const hardStoreSignals = detectHardCommerceSignals(html);
+    const hardCommerceEvidence = (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
       ? confirmedRetailEvidenceForService({
           representativePurchase: verifiedRepresentativePurchase,
           productDetailSchema: confirmedCurrentProduct,
           addToCart: confirmedAddToCart,
           productAndPrice: corroboratedProductAndPrice,
+          // The site's OWN title/description must also name selling ("banden kopen",
+          // "bestel online"); a telecom provider with a phone shop stays a provider.
+          storefrontChain: Boolean(/(?<![\p{L}])(?:kopen|bestellen|bestel(?:\s+\p{L}+)?\s+online|online\s+(?:kopen|bestellen)|webshop|webwinkel|kaufen|bestellen sie|online[- ]?shop|acheter|commander|comprar|acquista|buy|order online|shop online)(?![\p{L}])/iu.test([title, description].join(" "))
+            && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high"
+            && scanEvidence.commerce.prices.value.count > 0 && scanEvidence.commerce.prices.value.currencies.length > 0 && scanEvidence.commerce.prices.confidence === "high"
+            && !serviceCommerceSignals.subscription
+            // Recurring prices (plans, rent) are never retail products, in any EU language.
+            && !/(?:\/\s?(?:mnd|maand|month|mo|monat|mon|mes|mois|mese|mies|mies\.|měs|mån|kk|kuu|hó|lună)(?![\p{L}])|(?:per|pro|par|al|a|na|za)\s(?:maand|month|monat|mois|mes|mese|miesiąc|měsíc|månad)|monatlich|mensuel|mensual|mensile|miesięcznie|měsíčně|månadsvis)/iu.test(text.slice(0, 60000))),
+          // Integration 2 Nov: for a primary service identity the stricter storefrontChain
+          // above decides; generic hard store signals (cart + payment logos) alone are not
+          // enough there (a telecom provider with a phone shop stays a provider).
         })
-      : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+      : sitewideCommerceEvidence.confirmed || representativeRetailProduct || hardStoreSignals.storefrontProven || Boolean(
           confirmedCurrentProduct ||
           confirmedAddToCart ||
           corroboratedProductAndPrice
         );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
-    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
+    const secondaryCommerceOnly = Boolean((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
+      // QA-144: a platform plugin or commerce script without products, cart or
+      // storefront on the page is a hint, never a confirmed webshop.
+      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
+        && (storefrontIdentity || evidenceCommerceConfirmed || (!platformOnlyCommerceSignal && homepagePurchaseElement))),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -4648,33 +6316,178 @@ async function runScan(request: Request) {
     // This is evidence of product intent, NOT of a working retail checkout.
     // A /products/ page of a manufacturer or service company is product
     // information, not commerce: it needs a purchase action, a price or an Offer.
+    // Evidence comes from the fetched page, never from URL vocabulary: product paths
+    // are named in every EU language (/prodotti/, /negozio/, /produkty/, /boutique/).
     const representativeCommercialProductIntent = auditedMultiPages.some((item)=>item.status==="audited"
       && item.type==="product"
-      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname)
+      && !item.commerceEvidence?.financialOffer
       && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
+    // QA #207/#209: a comparison or quote platform (own title/description, or own
+    // About page + referral wording) without its own cart is not a webshop: its
+    // products/specialists are sold by connected shops or providers.
+    const platformIdentity = comparisonPlatformIdentity({
+      ownText: [title, description, identityH1s.join(" ")].join(" · "),
+      aboutTexts: auditedMultiPages.filter((item)=>item.status==="audited" && (item.type==="corporate" || /(?:^|\/)(?:over|over-ons|over-\p{L}+|about|about-us|uber-uns|ueber-uns|qui-sommes-nous|chi-siamo|quienes-somos)(?:\/|$)/iu.test(new URL(item.url).pathname))).map((item)=>[item.ownIdentityText || "", (item.identityText || "").slice(0, 1500)].join(" ")),
+    });
+    const ownCartEvidence = Boolean(confirmedAddToCart || auditedMultiPages.some((item)=>item.status==="audited" && item.commerceEvidence?.strongCommerceAction));
+    const referralPlatform = Boolean(platformIdentity && !ownCartEvidence);
+    if (referralPlatform) finalCommerceDecision.confirmed = false;
+    // 1 Nov (P5 phase 2): JSON-LD on the site's own sampled subpages is shown as
+    // context on the homepage checks, with source URLs. It never changes their
+    // status or points: Organization/WebSite on the homepage is its own check.
+    {
+      const own = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") === finalUrl.hostname.replace(/^www\./, ""); } catch { return false; } };
+      const subpagesWithSchema = auditedMultiPages.filter((item) => item.status === "audited" && own(item.url) && !isSiteHomepagePath(new URL(item.url).pathname) && (item.schemaTypes || []).length > 0);
+      if (subpagesWithSchema.length) {
+        const summary = subpagesWithSchema.slice(0, 3).map((item) => `${shortUrl(item.url)} (${entityTypesForDisplay(item.schemaTypes || []).slice(0, 4).join(", ")})`).join("; ");
+        const identityOnSubpages = subpagesWithSchema.filter((item) => (item.schemaTypes || []).some((type) => /^(organization|website|corporation|localbusiness|onlinestore|newsmediaorganization)$/i.test(type)));
+        for (const item of geoChecks) {
+          if (item.key === "schema" && item.status !== "pass") {
+            item.message = `${item.message} Context (telt niet mee voor deze homepagecontrole): op ${subpagesWithSchema.length} eigen subpagina('s) staat wel JSON-LD, bijvoorbeeld ${summary}.`;
+            if (item.evidence) item.evidence.details = item.message;
+          }
+          if (item.key === "organization_website" && item.status !== "pass" && identityOnSubpages.length) {
+            item.message = `${item.message} Context: Organization/WebSite-schema staat wel op ${shortUrl(identityOnSubpages[0].url)}; voor de homepage-identiteit telt alleen de homepage zelf.`;
+            if (item.evidence) item.evidence.details = item.message;
+          }
+        }
+      }
+    }
+    // 31 Oct (five-site QA, P6/P9): YMYL expertise from the site's own sampled
+    // organisation, team/expert, contact and legal pages, each named by URL.
+    // Two independent kinds of evidence confirm it; fewer stays "unconfirmed"
+    // (never a deduction): a narrow homepage check alone cannot judge it.
+    if (ymylHomepage) {
+      const ymylItem = geoChecks.find((item) => item.key === "author");
+      const sampleSignals = ymylSampleEvidence(auditedMultiPages, finalUrl.hostname);
+      const kinds = new Map<string, string>();
+      for (const label of ymylEvidence) kinds.set(/navigatie|footer/.test(label) ? "org" : /team|specialist/.test(label) ? "team" : /vergunning|registratie/.test(label) ? "oversight" : "schema", label);
+      for (const signal of sampleSignals) if (!kinds.has(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight")) kinds.set(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight", `${signal.label} (${shortUrl(signal.url)})`);
+      if (ymylItem && ymylItem.status === "unable_to_confirm" && kinds.size >= 2 && sampleSignals.length) {
+        const found = [...kinds.values()];
+        Object.assign(ymylItem, check("pass", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch). Op de homepage en de eigen steekproefpagina's zijn ${found.length} onafhankelijke expertise- en verantwoordingssignalen bevestigd: ${found.join("; ")}.`, "Houd team, kwalificaties, registraties en toezichthouders actueel en vanaf de homepage bereikbaar.", 8, 8));
+        ymylItem.evidence = { url: finalUrl.toString(), found: `ymyl=true; evidence=${found.join(" | ")}`, details: ymylItem.message };
+        ymylItem.confidence = "high";
+      }
+    }
+    const pricedServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    // Passenger carriers only (rail, air, public transport); logistics and postal
+    // operators in the same broad sector keep the general retail rule.
+    const transportServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && PASSENGER_CARRIER_KEYS.test(String(sectorProfile.key || ""));
+    // P5 re-run (NS): an events list (ItemList + priced links) and a priced
+    // service page (OV-fiets, Product schema) both counted as "confirmed retail
+    // samples". For a passenger carrier only pages with an actual purchase chain
+    // (add-to-cart / buy action on a product with its own product data) prove a
+    // separate webshop (one such page suffices); listings and service prices never do.
+    const transportRetailChainPages = auditedMultiPages.filter((item)=>item.status==="audited" && hasTransportRetailChain(item.commerceEvidence)).length;
+    const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
-      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
-      thinShell: thinRawHtmlEvidence,
+      // A thin raw page is only a "JavaScript shell" with script/framework evidence; a short
+      // server-rendered page is thin content, which says nothing about whether a store exists.
+      thinShell: thinRawHtmlEvidence && (javascriptFrameworkSignal || rawScriptCount >= 4),
       marketSelector: marketSelectorPage,
+      sectorUnknown: sectorProfile.sector === "unknown",
+      hardCommerceSignals: hardStoreSignals.count > 0,
       auditedRepresentativePages: representativeAuditedPageCount,
-      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
+      // 31 Oct (five-site QA, P2): for a confirmed payment, financial or SaaS
+      // service, transaction fees, /products/ URLs and its own pay/checkout demo
+      // buttons describe the service itself. Secondary product sales then need
+      // hard retail proof: a sampled page with Product schema and an offer.
+      // P5 (NS): a passenger carrier sells its own transport (tickets, bike
+      // rental, subscriptions); a priced service page is that service, not a
+      // shop. A secondary webshop then needs confirmed shop function (cart /
+      // add-to-cart chain) on at least two sampled pages.
+      verifiedSecondaryCommerce: transportServiceIdentity
+        ? transportRetailChainPages >= 1 && pricedServiceRetailProof
+        : pricedServiceIdentity
+        ? pricedServiceRetailProof
+        : Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
+      referralPlatform,
+      refusedRetailPages: multiPageAudits.filter((item)=>item && (item.type==="product" || item.type==="category" || item.type==="listing") && item.status!=="audited" && [202,401,403,405,429].includes(Number(item.httpStatus))).length,
     });
-    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
+    if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
-      technologyProfile.isCommerce = false;
+      technologyProfile.isCommerce = finalCommerceDecision.confirmed;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
-      technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
       }
     }
+    // The early "commerce signals" line describes hints (shop links, category paths,
+    // a plugin), not a shop. Without a confirmed shop it must never say "confirmed",
+    // whatever the sector, and no "Custom" shop platform is shown.
+    if (!finalCommerceDecision.confirmed && technologyProfile.evidence.some((line)=>/^Commerce-signalen bevestigd/.test(line))) {
+      technologyProfile.evidence = [...technologyProfile.evidence.filter((line)=>!/^Commerce-signalen bevestigd/.test(line)), "Losse commerce-aanwijzingen gevonden (zoals een shoplink of categoriepagina's), maar geen webshop vastgesteld: geen product-, winkelwagen- of afrekenketen bevestigd."].slice(0,8);
+      if (technologyProfile.commercePlatform === "Custom / niet bevestigd") technologyProfile.commercePlatform = null;
+    }
+    const multilingualPageIdentity = sectorPageEvidence(finalUrl.toString(), auditedRawPages);
+    if (!masterIdentityOverride && sectorProfile.sector === "unknown" && !retailPrimaryIdentity
+      && !finalCommerceDecision.confirmed && !marketSelectorPage && multilingualPageIdentity.decision) {
+      const decision = multilingualPageIdentity.decision;
+      Object.assign(sectorProfile, decision);
+      sectorProfile.applicableModules = [...new Set(["core_seo", "geo", "technical",
+        ...(sectorSignals.find(item => item.sector === decision.sector)?.modules || [])])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
+
+
+    // Set when the decision below makes the shop a sales channel; the later
+    // commerce reconciliation must then not overturn it (one decision, one owner).
+    let commerceIsChannel = Boolean(verifiedNonCommerceIndustry && finalCommerceDecision.confirmed);
+    if (commerceIsChannel) {
+      Object.assign(sectorProfile, {secondaryActivities:[{
+        sector:"ecommerce", label:"Webshop als secundair verkoopkanaal",
+        evidence:["Product- of winkelwagenfuncties bewijzen niet de hoofdsector"],
+      }]});
+    }
+    // QA #186: a confirmed cart is a sales channel. Without the site calling itself
+    // a shop (webshop, online store, Store schema), commerce stays the primary
+    // sector only when nothing better is known. Two independent own pages naming
+    // another activity (a telecom operator, an energy supplier that sells devices),
+    // or a product-registration service of a manufacturer, decide the sector; the
+    // shop is kept as a secondary activity and its checks stay applicable.
+    {
+      // retailPrimaryIdentity is already true for any confirmed cart; what matters
+      // here is whether the site itself says it is a shop.
+      const commerceOnlyIdentity = sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription;
+      const pageDecision = multilingualPageIdentity.decision;
+      const shopAsChannel = (evidence: string[]) => ({ sector: "ecommerce", label: "Online verkoop (webshop als verkoopkanaal)", evidence: evidence.slice(0, 3) });
+      const decidedModules = (sector: string) => [...new Set([...sectorProfile.applicableModules, ...(sectorSignals.find((item) => item.sector === sector)?.modules || [])])];
+      if (commerceOnlyIdentity && !masterIdentityOverride && pageDecision && pageDecision.sector !== "ecommerce") {
+        const channel = shopAsChannel(sectorProfile.evidence);
+        Object.assign(sectorProfile, pageDecision, {
+          evidence: [...pageDecision.evidence, "Winkelwagen/checkout bevestigd als verkoopkanaal; de eigen pagina's beschrijven een andere hoofdactiviteit"].slice(0, 6),
+          applicableModules: decidedModules(pageDecision.sector),
+          secondaryActivities: [channel],
+        });
+        commerceIsChannel = true;
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      } else if ((commerceOnlyIdentity || sectorProfile.sector === "unknown") && !masterIdentityOverride && !marketSelectorPage) {
+        const registration = manufacturerRegistrationEvidence(auditedMultiPages);
+        if (registration) {
+          const channel = commerceOnlyIdentity ? [shopAsChannel(sectorProfile.evidence)] : [];
+          Object.assign(sectorProfile, {
+            sector: "manufacturing_industrial", key: "brand_manufacturer", label: "Industrie & productie · merkfabrikant",
+            confidence: "medium", confidenceScore: 76,
+            evidence: [registration.evidence, commerceOnlyIdentity ? "Winkelwagen/checkout bevestigd als eigen verkoopkanaal van de fabrikant" : "Geen eigen winkelidentiteit gevonden"],
+            applicableModules: decidedModules("manufacturing_industrial"),
+            ...(channel.length ? { secondaryActivities: channel } : {}),
+          });
+          commerceIsChannel = true;
+          masterEvidence.activeModules = sectorProfile.applicableModules;
+        }
+      }
+    }
+
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageOwnIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
-      const primaryIdentityHit = item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
+      const primaryIdentityHit = item.sector === "home_services" && supplierOverridesTrade ? 0 : item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
       const activityHit = item.patterns[1]?.test(reconciledIdentitySource) ? 1 : 0;
       const schemaBoost = schemaSectorBoost[item.sector] || 0;
       return { sector:item.sector, label:item.label, score:primaryIdentityHit + activityHit + schemaBoost, modules:item.modules };
@@ -4684,17 +6497,80 @@ async function runScan(request: Request) {
     // The homepage itself did not establish this sector, so sampled pages must
     // agree independently: at least two pages name it in their own identity.
     const reconciledPages = reconciledTop ? pagesWithOwnIdentity(sectorSignals.find((item)=>item.sector===reconciledTop.sector)?.patterns[0] || /$^/) : 0;
-    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && reconciledPages >= 2 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    // 31 Oct (five-site QA): a brand-only homepage (no description, no H1) can
+    // still show its activity in the navigation. Navigation alone never decides;
+    // it can replace the second sampled page only for a sector whose navigation
+    // is specific (hospitality: a menu AND a reservation entry, multilingual).
+    const navigationCorroborates = (sector: string) => sector === "hospitality" && hospitalityNavigationEvidence(identityNavLabels);
+    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (reconciledPages >= 2 || (reconciledPages >= 1 && navigationCorroborates(reconciledTop.sector))) && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
+    if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && multilingualPageIdentity.reason !== "conflicting_page_identities" && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
       // Corroborated by sampled pages only, not by the homepage identity: medium.
       sectorProfile.confidence = "medium";
       sectorProfile.confidenceScore = Math.min(78, 66 + reconciledTop.score * 2);
-      sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`];
+      sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`, ...(reconciledPages < 2 ? ["Navigatiebewijs: menu- en reserveringsonderdeel in de eigen navigatie"] : [])];
       sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
       masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+
+    // A detail URL can hide the organization identity in its own title. Require
+    // independently fetched site pages to agree before recovering a sector.
+    // Do not infer a landlord subtype from an individual listing's title alone.
+    const independentlyNamedRentalPages = auditedMultiPages.filter(page=>
+      /\b(?:huurwoningen?|woningaanbod|woningverhuur|woningbelegger|rental housing|properties for rent)\b/i.test(page.ownIdentityText||"")
+    );
+    const housingDetailUrl = /\/(?:huurwoningen?|rental[-/]homes?|woningaanbod|rental[-/]properties)(?:[-/]|$)/i.test(finalUrl.pathname);
+    if (sectorProfile.sector === "unknown" && housingDetailUrl && independentlyNamedRentalPages.length >= 2 && !finalCommerceDecision.confirmed) {
+      sectorProfile.sector = "real_estate";
+      sectorProfile.key = "real_estate";
+      sectorProfile.label = "Vastgoed · subtype nog niet bevestigd";
+      sectorProfile.confidence = "medium";
+      sectorProfile.confidenceScore = Math.min(82,74+independentlyNamedRentalPages.length*2);
+      sectorProfile.evidence = [
+        "Deze detailpagina bevat woningverhuur in de URL, maar bewijst de organisatie-identiteit niet zelfstandig",
+        independentlyNamedRentalPages.length+" opgehaalde sitepagina's bevestigen huurwoningen/woningaanbod in eigen titel, H1 of omschrijving"
+      ];
+      sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...((sectorSignals.find(x=>x.sector==="real_estate")?.modules)||[])])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+      // This sector was recovered after the page-level checks: only add
+      // confirmed positive site-level evidence, never invented agent rules.
+      if (!seoChecks.some(item=>item.key==="sector_real_estate_listings")) {
+        const source = independentlyNamedRentalPages[0];
+        const item = check("pass","sector_real_estate_listings","seo","Vastgoedaanbod","De representatieve steekproef bevat ten minste twee onafhankelijk bevestigde woningaanbodpagina's.","Behoud de woningaanbodinformatie.",4,4);
+        item.evidence = {url:source.url,found:true,details:item.message};
+        seoChecks.push(item);
+      }
+    }
+
+    // Sparse corporate homepages can still establish industrial identity when a
+    // checked first-party About/Unternehmen page declares a tech/industrial group
+    // and an independent services page confirms the same economic activity.
+    // This is not a keyword fallback: no customer names, no secondary news body.
+    const corporateIndustrial = industrialCorporateEvidence({
+      homeHeadings:headings.filter(h=>h.level===2 || h.level===3).map(h=>h.text).slice(0,24),
+      pages:auditedMultiPages.map(p=>({
+        url:p.url,type:p.type,identityText:p.identityText||"",
+        ownIdentityText:p.ownIdentityText||p.title||""
+      })),
+    });
+    if (corporateIndustrial && !masterIdentityOverride && !finalCommerceDecision.confirmed
+      && !retailPrimaryIdentity && sectorProfile.sector==="unknown" && !marketSelectorPage) {
+      sectorProfile.sector=corporateIndustrial.sector;
+      sectorProfile.key=corporateIndustrial.sector;
+      sectorProfile.label="Industrie & technologie";
+      sectorProfile.confidence="high";
+      sectorProfile.confidenceScore=corporateIndustrial.confidenceScore;
+      sectorProfile.evidence=corporateIndustrial.evidence;
+      sectorProfile.applicableModules=[...new Set([...sectorProfile.applicableModules,"manufacturing_industrial"])];
+      Object.assign(sectorProfile,{
+        subtype:corporateIndustrial.subtype,
+        subtypeLabel:"Industrieel technologieconcern",
+        subtypeConfidenceScore:corporateIndustrial.confidenceScore,
+        subtypeEvidence:corporateIndustrial.evidence
+      });
+      masterEvidence.activeModules=sectorProfile.applicableModules;
     }
 
     // An international country/language selector (proven by hreflang) is a brand
@@ -4702,10 +6578,11 @@ async function runScan(request: Request) {
     // fallback can guess one from a single word on a corporate subpage (transport,
     // restaurant, booking). Commerce applicability stays "unconfirmed".
     if (marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
-      sectorProfile.key = "market_selector";
-      sectorProfile.label = "Internationaal merk- en landkeuzeportaal";
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = 90;
+      // A market selector is a page type, not evidence of the business sector.
+      // Keep the sector unknown until independent sector evidence is found.
+      sectorProfile.label = "Sector nog niet bevestigd (internationaal landkeuzeportaal)";
+      sectorProfile.confidence = "low";
+      sectorProfile.confidenceScore = 0;
       sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
     }
 
@@ -4713,7 +6590,7 @@ async function runScan(request: Request) {
     // business, and never at high confidence: one word in a subpage body (a
     // traffic report, an "airport" news section) is not a sector.
     const transportOwnPages = pagesWithOwnIdentity(/\b(?:transport(?:bedrijf|onderneming| company)?|logistics?|logistiek|freight|vrachtvervoer|forwarding|expeditie|wegtransport|road transport|warehousing|koerier|courier)\b/i);
-    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && transportOwnPages >= 2 && sectorProfile.key==="unknown") {
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && transportOwnPages >= 2 && sectorProfile.key==="unknown" && multilingualPageIdentity.reason !== "conflicting_page_identities") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
       sectorProfile.label = "Transport & Logistiek";
@@ -4721,7 +6598,7 @@ async function runScan(request: Request) {
       sectorProfile.confidenceScore = Math.min(76, Math.max(70, sectorProfile.confidenceScore));
       sectorProfile.evidence = [...sectorProfile.evidence, `${transportOwnPages} representatieve sitepagina's noemen transport/logistiek in hun eigen titel of omschrijving; de homepage bevestigt dit niet zelf`].slice(0,6);
       sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, "transport_travel", "lead_conversion", "local"])];
-      for (const module of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+      for (const activeModule of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
     }
     // Motor v2.1: module applicability follows the final Master commerce decision,
     // not an early incidental capability. Page-specific checks still require proof.
@@ -4729,32 +6606,71 @@ async function runScan(request: Request) {
     // A service business can have transactional capabilities without becoming a webshop.
     const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout"]);
     const allCommerceModules = new Set([...commerceModules, "eu_consumer"]);
+    // QA #203 (WooCommerce shop reported as "hoofdsector niet vastgesteld · 0%"):
+    // a brand homepage without product cards, whose cart is injected by
+    // JavaScript, is still a webshop when the pages it links to directly are
+    // product or category pages with offers, on a confirmed shop platform or
+    // with several confirmed shop pages, and no other identity was found. A
+    // federation or charity with a shop section links to one "shop" entry, not
+    // to the products themselves, so it stays an organisation with a sales channel.
+    const homepageLinkedRetailPages = auditedMultiPages.filter((item)=>item.status==="audited"
+      && (item.type==="product" || item.type==="category" || item.type==="listing")
+      && Boolean(item.commerceEvidence?.confirmedRetailPage || hasProductOffer(item.commerceEvidence))
+      && anchorContextByUrl.has(normalizeScanUrl(item.url))).length;
+    const confirmedShopPlatform = technologyProfile.technologies.some((item)=>item.role==="commerce_platform" && item.confidence>=80);
+    const sampleProvenStorefront = Boolean(finalCommerceDecision.confirmed && !primaryNonCommerceIdentity && !verifiedNonCommerceIndustry
+      && !masterIdentityOverride && sectorProfile.sector === "unknown" && homepageLinkedRetailPages >= 2
+      && (confirmedShopPlatform || confirmedRetailSamples.length >= 3));
+    const sampledAddToCart = auditedMultiPages.some((item)=>item.status==="audited" && item.type==="product" && Boolean(item.commerceEvidence?.strongCommerceAction) && hasProductOffer(item.commerceEvidence));
+    // QA commerce 72/72 (Travelbags, Sarenza, Fixami, Nike, IKEA): a confirmed shop
+    // with NO other identity anywhere (no own declaration, no page decision, no
+    // service identity) is the business itself. "Sector unknown" next to
+    // "Websitetype: webshop" contradicted itself. A federation or charity with a
+    // shop section has its own identity and keeps the shop as a sales channel.
+    const otherPageIdentity = Boolean(multilingualPageIdentity.decision && multilingualPageIdentity.decision.sector !== "ecommerce" && !marketSelectorPage);
+    const sampledRetailPages = auditedMultiPages.filter((item)=>item.status==="audited" && (item.commerceEvidence?.confirmedRetailPage
+      || ((item.type==="category" || item.type==="listing") && (item.commerceEvidence?.priceSignals||0) >= 3 && item.commerceEvidence?.repeatedProductLinks))).length;
+    const orphanStorefront = Boolean(finalCommerceDecision.confirmed && sectorProfile.sector === "unknown" && !otherPageIdentity
+      && !primaryNonCommerceIdentity && !verifiedNonCommerceIndustry && !masterIdentityOverride && !euPrimaryIdentity && sampledRetailPages >= 1);
     const motorCommerceModules = decideCommerceModules({
       primarySector: sectorProfile.sector,
-      primaryBusinessModel: retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
-      retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct),
+      primaryBusinessModel: verifiedNonCommerceIndustry ? "service" : (retailPrimaryIdentity || sampleProvenStorefront || orphanStorefront) ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
+      // A confirmed shop whose product grid with prices is on the scanned page (no
+      // product page sampled yet) still sells products (QA #204: OpenCart grid).
+      retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct || (finalCommerceDecision.confirmed && corroboratedProductAndPrice)),
       productPrice: Boolean(corroboratedProductAndPrice),
-      cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")),
-      checkout: Boolean(scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high"),
+      // An add-to-cart action on a sampled product page with an offer is a cart too
+      // (mini-carts are often injected by JavaScript on the entry page).
+      cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high") || (finalCommerceDecision.confirmed && sampledAddToCart)),
+      checkout: Boolean((scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
+        (verifiedRepresentativePurchase && auditedMultiPages.some(item => item.status === "audited" && item.type === "product" && item.commerceEvidence?.strongCommerceAction && item.commerceEvidence?.checkoutDestination && hasProductOffer(item.commerceEvidence)))),
       merchantFeed: false, // No merchant feed may be inferred from generic commerce signals.
       euMarket: Boolean(euMarketEligible),
       secondaryRetailDetail: verifiedRepresentativeProductDetail,
+      verifiedSecondaryStorefront: hardCommerceEvidence,
+      shopConfirmed: finalCommerceDecision.confirmed,
+      pricedServiceIdentity: isPricedServiceIdentity(String(sectorProfile.key || "")),
+    });
+    Object.assign(checkoutFunnelEvidence, {
+      sampledCheckoutDestinations: auditedMultiPages.filter(item => item.status === "audited" && item.type === "product" &&
+        item.commerceEvidence?.checkoutDestination && item.commerceEvidence?.strongCommerceAction && hasProductOffer(item.commerceEvidence))
+        .map(item => ({ url: item.url, evidenceSource: item.evidenceSource || "raw_html", interactiveFlowExecuted: false })),
     });
     const allowedCommerceModules = new Set(motorCommerceModules);
     // A transaction on a secondary page does not redefine the site's primary type.
     // Keep site type consistent with the central sector motor, for every service sector.
-    if (primaryNonCommerceIdentity && technologyProfile.siteType === "Webshop") {
+    if ((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && technologyProfile.siteType === "Webshop") {
       technologyProfile.siteType = "Website";
-      technologyProfile.isCommerce = false;
+      technologyProfile.isCommerce = finalCommerceDecision.confirmed;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
     }
     sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     if (finalCommerceDecision.confirmed) {
-      for (const module of commerceModules) {
-        if (!allowedCommerceModules.has(module)) continue;
-        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
-        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+      for (const activeModule of commerceModules) {
+        if (!allowedCommerceModules.has(activeModule)) continue;
+        if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
+        if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
       }
       if (allowedCommerceModules.has("eu_consumer")) {
         if (!sectorProfile.applicableModules.includes("eu_consumer")) sectorProfile.applicableModules.push("eu_consumer");
@@ -4766,16 +6682,16 @@ async function runScan(request: Request) {
       // A telecom/service identity does not erase independently proven Product
       // metadata; it only prevents claims about an unverified retail checkout.
       if (verifiedRepresentativeProductDetail) {
-        for (const module of motorCommerceModules.filter((value)=>value==="product" || value==="pricing_currency")) {
-          if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
-          if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+        for (const activeModule of motorCommerceModules.filter((value)=>value==="product" || value==="pricing_currency")) {
+          if (!sectorProfile.applicableModules.includes(activeModule)) sectorProfile.applicableModules.push(activeModule);
+          if (!masterEvidence.activeModules.includes(activeModule)) masterEvidence.activeModules.push(activeModule);
         }
       }
     }
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
     // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
-    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown") && /\b(?:hotel|accommodatie|overnachten|overnachting|kamers|lodging)\b/i.test(sectorIdentitySource)) {
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown") && /\b(?:hotel|accommodatie|overnachten|overnachting|kamers|lodging)\b/i.test(stripMarketMentions(sectorIdentitySource))) {
       sectorProfile.sector = "hospitality";
       sectorProfile.key = "hospitality";
       sectorProfile.label = "Hotels & hospitality";
@@ -4806,19 +6722,158 @@ async function runScan(request: Request) {
     // Commerce is a primary site identity. Once Scanbewijs confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity) {
+    // QA-144: commerce found only on sampled pages or via technology makes the
+    // shop the primary sector only when the site presents itself as one or its
+    // own entry page carries storefront evidence; otherwise it is a sales channel
+    // of an organisation whose sector is not (yet) proven.
+    const homepageStorefront = Boolean(storefrontIdentity || evidenceCommerceConfirmed || retailPrimaryIdentity);
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel && !homepageStorefront && !sampleProvenStorefront && !orphanStorefront) {
+      const channel = { sector: "ecommerce", label: "Online verkoop (verkoopkanaal op deelpagina's)", evidence: ["Product- of winkelwagenbewijs alleen op deelpagina's of via techniek; de website presenteert zich niet als webshop"] };
+      const pageDecision = multilingualPageIdentity.decision;
+      // Own pages that agree on another activity (accommodation, a federation...)
+      // then decide the sector, exactly as when no shop had been found.
+      if (sectorProfile.sector === "unknown" && pageDecision && pageDecision.sector !== "ecommerce" && !marketSelectorPage) {
+        Object.assign(sectorProfile, pageDecision, {
+          applicableModules: [...new Set([...sectorProfile.applicableModules, ...(sectorSignals.find((item) => item.sector === pageDecision.sector)?.modules || [])])],
+        });
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      }
+      Object.assign(sectorProfile, { secondaryActivities: [channel] });
+      commerceIsChannel = true;
+    }
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
       sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
+      const orphanOnly = orphanStorefront && !sampleProvenStorefront && !homepageStorefront;
+      sectorProfile.confidenceScore = orphanOnly ? Math.max(sectorProfile.confidenceScore, sampledRetailPages >= 2 ? 80 : 70)
+        : Math.max(sectorProfile.confidenceScore, sampleProvenStorefront && !homepageStorefront ? 84 : sitewideCommerceEvidence.confirmed ? 92 : 88);
+      if (orphanOnly) sectorProfile.confidence = sampledRetailPages >= 2 ? "high" : "medium";
+      sectorProfile.evidence = orphanOnly
+        ? [`Webshopfuncties bevestigd op ${sampledRetailPages} ${sampledRetailPages === 1 ? "eigen pagina" : "eigen pagina's"}; geen andere hoofdactiviteit gevonden in titel, omschrijving, koppen of de steekproef`]
+        : sampleProvenStorefront && !homepageStorefront
+        ? [`Webshop vastgesteld via ${homepageLinkedRetailPages} direct gelinkte product-/categoriepagina's met aanbod${confirmedShopPlatform ? ` op ${technologyProfile.commercePlatform}` : ""}; de homepage zelf toont geen winkelwagen of producten in de server-HTML`].slice(0,6)
+        : [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
     }
 
+    // QA #207/#209: comparison and quote platforms get their own type instead of
+    // "webshop" or "blog & publicaties". A stronger own identity (a bank, a
+    // government body, a declared trade) is never replaced.
+    if (platformIdentity && (["unknown","ecommerce"].includes(sectorProfile.sector) || (sectorProfile.sector === "news_media" && sectorProfile.key === "publisher_blog") || sectorProfile.sector === "service_marketplace")
+      && !primaryNonCommerceIdentity && !(masterIdentityOverride && masterIdentityOverride.sector !== "service_marketplace")) {
+      const ownDeclared = /titel\/omschrijving/.test(platformIdentity.evidence[0] || "");
+      Object.assign(sectorProfile, {
+        sector: "service_marketplace", key: "comparison_platform", label: "Vergelijkings- / offerteplatform",
+        confidence: ownDeclared ? "high" : "medium", confidenceScore: ownDeclared ? 84 : 74,
+        evidence: platformIdentity.evidence,
+      });
+      sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical","structured_data","links","service_marketplace","lead_conversion", ...sectorProfile.applicableModules.filter((m)=>!["news_media","ecommerce","checkout","merchant","eu_consumer"].includes(m))])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    // QA commerce 72/72 (Medpets "dé online shop", Intertoys "online speelgoedwinkel",
+    // Bruna "online boeken bestellen"): the site's OWN title/description/H1 says it
+    // is a shop, but products and cart are not in the server HTML. That is a retail
+    // identity with unconfirmed shop functions, never "sector unknown 0%".
+    const ownIdentityWords = [title, description, identityH1s.join(" ")].join(" · ");
+    // Both readings must agree: a shop-software vendor ("Webshop software ... start je
+    // eigen webshop") loses "software" when market mentions are stripped.
+    const ownRetailDeclaration = retailSelfDescription(ownIdentityWords) && retailSelfDescription(stripMarketMentions(ownIdentityWords));
+    if (sectorProfile.sector === "unknown" && ownRetailDeclaration && !finalCommerceDecision.confirmed && !otherPageIdentity
+      && !primaryNonCommerceIdentity && !verifiedNonCommerceIndustry && !masterIdentityOverride && !euPrimaryIdentity) {
+      Object.assign(sectorProfile, {
+        sector: "ecommerce", key: "ecommerce", label: "Webshop / retail (eigen omschrijving; webshopfuncties niet bevestigd)",
+        confidence: "medium", confidenceScore: 72,
+        evidence: ["Eigen titel of omschrijving noemt de website een (online) winkel of webshop", "Producten, prijzen of winkelwagen niet bevestigd in de opgehaalde HTML; webshopcontroles blijven 'niet te bevestigen'"],
+      });
+      for (const moduleKey of ["ecommerce","product"]) if (!sectorProfile.applicableModules.includes(moduleKey)) sectorProfile.applicableModules.push(moduleKey);
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    // AI sector verification (owner request 7 Nov): only when the rules did not
+    // confirm a sector; one call, hard timeout; AI proposals count only with quotes
+    // RankFix finds verbatim on >=2 own pages (lib/ai-sector-verifier.ts).
+    {
+      const aiOptions = [
+        ...declaredIndustryKeys(),
+        ...sectorSignals.map((item) => ({ sector: item.sector, key: item.sector, label: item.label, vocab: item.patterns })),
+        { sector: "transport_travel", key: "travel", label: "Reisbemiddeling (online reisbureau)", vocab: [/(?<![\p{L}])(?:reisbureau\p{L}*|reisorganisatie\p{L}*|online travel agency|travel agency|reisbemiddel\p{L}*|vluchten|vliegtickets?|flights?|pakketreizen|vakanties?|hotels?)(?![\p{L}])/iu] },
+        { sector: "service_marketplace", key: "comparison_platform", label: "Vergelijkings- / offerteplatform", vocab: [/(?<![\p{L}])(?:vergelijk\p{L}*|compare|comparison|offertes?|quotes?|platform)(?![\p{L}])/iu] },
+      ].filter((o, i, all) => all.findIndex((x) => x.key === o.key) === i);
+      phaseMark("beforeAiSector");
+      const aiResult = await verifySectorWithAi({
+        profile: sectorProfile,
+        options: aiOptions,
+        // Main content only (aiContentText): menus, header, footer and banners are
+        // never evidence of the activity.
+        pages: auditedRawPages.filter((item) => !isAudiencePagePath(item.url)).map((item) => ({ url: item.url, type: item.type, title: item.title, description: item.description, headings: item.identityHeadings, text: item.aiText || "" })),
+      });
+      phaseMark("aiSector");
+      const previousSector = sectorProfile.sector;
+      const ruleOutcome = { sector: sectorProfile.sector, key: sectorProfile.key, label: sectorProfile.label, confidenceScore: sectorProfile.confidenceScore };
+      const sectorModules = (sector: string) => sectorSignals.find((item) => item.sector === sector)?.modules || [];
+      if (aiResult.status === "confirmed" && !(mediationRole(aiResult.role) && LOCAL_TRADE_KEYS.has(aiResult.option.key))) {
+        Object.assign(sectorProfile, {
+          sector: aiResult.option.sector, key: aiResult.option.key, label: aiResult.option.label,
+          confidence: "medium", confidenceScore: previousSector === aiResult.option.sector ? Math.max(sectorProfile.confidenceScore, 82) : 80,
+          evidence: [...aiResult.quotes.map((q) => `AI-citaat, letterlijk teruggevonden op ${q.url}: "${q.quote}"`), `Rol: ${aiResult.role}`].slice(0, 6),
+        });
+        if (previousSector !== aiResult.option.sector) {
+          sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules.filter((m) => !sectorModules(previousSector).includes(m)), ...sectorModules(aiResult.option.sector)])];
+          masterEvidence.activeModules = sectorProfile.applicableModules;
+        }
+      } else if (aiResult.status === "conflict" && previousSector !== "unknown") {
+        Object.assign(sectorProfile, {
+          sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidence: "low", confidenceScore: 0,
+          evidence: [`Tegenstrijdig bewijs: regels wezen op ${sectorProfile.label} (niet bevestigd); AI vond met letterlijke citaten ${aiResult.option.label}`],
+        });
+        if (!finalCommerceDecision.confirmed) sectorProfile.applicableModules = sectorProfile.applicableModules.filter((m) => !sectorModules(previousSector).includes(m));
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      }
+      Object.assign(sectorProfile, { aiVerification: { ...aiResult, ruleOutcome } });
+    }
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    // Prefer corroborating organization evidence from first-party representative
+    // titles/descriptions/H1s; article body text may merely mention a landlord.
+    if (sectorProfile.sector === "real_estate") {
+      const updatedSubtype = detectRealEstateSubtype({
+        title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes,
+        sampledOwnIdentity:auditedMultiPages.filter(page=>["corporate","service","listing","homepage","contact"].includes(page.type)).map(page=>page.ownIdentityText||page.title||"").filter(Boolean)
+      });
+      if (updatedSubtype.confidenceScore > realEstateSubtypeDecision.confidenceScore) realEstateSubtypeDecision=updatedSubtype;
+      Object.assign(sectorProfile,{subtype:realEstateSubtypeDecision.subtype,subtypeLabel:realEstateSubtypeDecision.label,subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,subtypeEvidence:realEstateSubtypeDecision.evidence});
+      if (realEstateSubtypeDecision.subtype !== "unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...new Set([...sectorProfile.evidence,...realEstateSubtypeDecision.evidence])].slice(0,8);
+      }
+      const agent=realEstateSubtypeDecision.subtype==="real_estate_agent";
+      const rent=["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      if (!agent) {
+        const area=seoChecks.find(item=>item.key==="sector_real_estate_area");
+        if(area)Object.assign(area,check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Deze organisatie is niet bewezen een makelaar; lokaal makelaarswerkgebied is niet van toepassing.","Geen actie zonder bevestigd makelaarsbedrijf.",0,4));
+        const leads=seoChecks.find(item=>item.key==="sector_real_estate_leads");
+        if (leads && rent) Object.assign(leads,check("pass","sector_real_estate_leads","seo","Huurwoning- en huurdersproces","Deze website presenteert zich aantoonbaar als woningverhuurder en biedt huurwoningen of huurdersinformatie aan.","Houd inschrijven, bezichtigen en huurdersinformatie duidelijk bereikbaar.",4,4));
+        else if(leads)Object.assign(leads,check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","Het vastgoedsubtype is onvoldoende bevestigd. Geen makelaar- of verhuurderadvies zonder bewijs.","Bevestig eerst de organisatie-identiteit.",0,4));
+      }
+      if (rent) {
+        const structured=geoChecks.find(item=>item.key==="schema");
+        if (structured && /LocalBusiness/i.test(structured.fix)) structured.fix="Controleer Organization- en WebSite-schema op aantoonbare organisatiedata. LocalBusiness is niet vereist voor een landelijke woningverhuurder.";
+      }
+    }
+    // QA-144 (item 5): refine a generic subtype from the organisation's own homepage
+    // title/description (law firm, architecture studio, museum, veterinary clinic,
+    // charity). The main sector and its confidence stay as decided.
+    {
+      const refined = (isSiteHomepagePath(finalUrl.pathname) || isHomepage) ? refineSubtype({ sector: sectorProfile.sector, key: sectorProfile.key }, { title, description }) : null;
+      if (refined) {
+        sectorProfile.key = refined.key;
+        sectorProfile.label = refined.label;
+        sectorProfile.evidence = [...sectorProfile.evidence, `Subtype uit de eigen titel/omschrijving: ${refined.label}`].slice(0, 6);
+      }
+    }
+    Object.assign(sectorProfile, sectorConfidenceGuard(sectorProfile));
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
@@ -4836,20 +6891,28 @@ async function runScan(request: Request) {
     }
     // A retail identity whose shop is confirmed by hard evidence (for example a
     // representative product page) carries the same confidence as any confirmed shop.
-    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88) {
+    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88 && homepageStorefront) {
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 88;
-      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);
+      // bonprix (6 Nov): this line claimed a product page while none was sampled.
+      // It now names the evidence that actually confirmed the shop.
+      const productPageProof = auditedMultiPages.some((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
+      sectorProfile.evidence = [...sectorProfile.evidence, productPageProof ? "Representatieve productpagina bevestigt webshopfunctionaliteit" : "Webshopfunctionaliteit bevestigd op site-niveau (winkelwagen/afrekenen/productoverzicht); geen productpagina bevestigd"].slice(0,6);
       masterEvidence.primarySector.confidence = sectorProfile.confidence;
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";
     }
+    const bookingPrimaryIdentity = BOOKING_PRIMARY_KEYS.has(sectorProfile.key) && sectorProfile.key !== "ecommerce";
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         // Reserving or collecting in-store is a secondary retail capability, not a booking site.
-        : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+        // Booking is the website identity only when booking IS the primary activity
+        // (stay, table, appointment at a salon, rental). A hospital or university
+        // medical centre with an appointment form stays an organisation; the
+        // appointment function is a secondary capability (P5: Charité).
+        : bookingPrimaryIdentity && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
           ? "Boekings-/afsprakenwebsite"
           : technologyProfile.siteType === "Landingpage"
             ? "Website"
@@ -4886,19 +6949,15 @@ async function runScan(request: Request) {
       .filter((item)=>item.type==="product" && item.commerceEvidence?.product)
       .sort((a,b)=>(Number(Boolean(b.commerceEvidence?.confirmedRetailPage))-Number(Boolean(a.commerceEvidence?.confirmedRetailPage))) || (productFieldCount(b.commerceEvidence?.product)-productFieldCount(a.commerceEvidence?.product)))[0];
     const representativeProduct = productSamplePage?.commerceEvidence?.product;
-    if (finalCommerceDecision.confirmed && representativeProduct) {
+    // On a product page the entered product is evaluated from its own page only;
+    // a sibling product from the sample never overwrites its product checks.
+    if (finalCommerceDecision.confirmed && representativeProduct && !isProductPage) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
-      const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
-      if (productSchemaCheck && auditedMultiPages.some((item)=>item.type==="product" && item.commerceEvidence?.productSchema)) Object.assign(productSchemaCheck, check("pass","product_schema","seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",6,6));
       const optimizerCheck = seoChecks.find((item)=>item.key==="product_optimizer");
       if (optimizerCheck && productEvidenceCount>=3) Object.assign(optimizerCheck, check("pass","product_optimizer","seo","AI Product Copy & Metadata","Een representatieve productpagina levert voldoende productbewijs voor productoptimalisatie.","Gebruik alleen aantoonbare productgegevens voor optimalisaties.",5,5));
-      const availabilityCheck = seoChecks.find((item)=>item.key==="product_availability_consistency");
-      if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
-      const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
-      // Merchant Center needs an image: no merchant pass without a resolvable product image.
-      if (merchantCheck && productEvidenceCount>=4 && representativeProduct.image) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
       // Each promoted product check points at the product page that proved it.
-      for (const item of [productSchemaCheck, optimizerCheck, availabilityCheck, merchantCheck]) {
+      // Product schema, Merchant basis, prices and stock: see the webshop evidence chain below.
+      for (const item of [optimizerCheck]) {
         if (item && item.status === "pass" && productSamplePage) item.evidence = { url: productSamplePage.url, found: true, details: item.message };
       }
     }
@@ -4979,6 +7038,17 @@ async function runScan(request: Request) {
       }
     }
 
+    // Business details (address, phone, e-mail, registration) usually live on the contact
+    // or legal page. When the scanned page did not show them, a sampled page that does is
+    // site-level evidence; its URL becomes the evidence. Absence never becomes a failure.
+    const businessDetailsCheck = seoChecks.find((item)=>item.key==="business_placeholders");
+    if (businessDetailsCheck && businessDetailsCheck.status==="unable_to_confirm") {
+      const source = auditedMultiPages.find((item)=>(item.businessDetails||[]).length>=2) || auditedMultiPages.find((item)=>(item.businessDetails||[]).length===1);
+      if (source) {
+        Object.assign(businessDetailsCheck, check("pass","business_placeholders","seo","Bedrijfsgegevens",`Concrete bedrijfsgegevens bevestigd op een representatieve pagina (${shortUrl(source.url)}): ${(source.businessDetails||[]).join(", ")}.`,"Houd bedrijfs- en contactgegevens actueel en consistent.",6,6));
+        businessDetailsCheck.evidence = { url: source.url, found: true, details: businessDetailsCheck.message, source: "representative_sample" };
+      }
+    }
     // Privacy, cookie and contact information often lives on its own page. When the
     // homepage alone did not prove a signal, the representative sample may.
     const trustLegalCheck = seoChecks.find((item)=>item.key==="trust_legal_signals");
@@ -5026,6 +7096,89 @@ async function runScan(request: Request) {
       Object.assign(orgWebsiteCheck,replacement);
     }
 
+    // Primary sector vs secondary activities (3.5): independent, typed evidence from
+    // the sampled pages adds secondary activities without changing the primary
+    // sector: confirmed product pages (Product schema with an Offer, or a purchase
+    // action with a price) are online retail; FinancialProduct/BankAccount/… pages
+    // are financial products. A mixed business model is reported, never guessed.
+    {
+      const secondary: Array<{ sector: string; label: string; evidence: string[] }> = [...(((sectorProfile as typeof sectorProfile & { secondaryActivities?: Array<{ sector: string; label: string; evidence: string[] }> }).secondaryActivities) || [])];
+      const addSecondary = (sector: string, label: string, evidence: string) => {
+        if (sector === sectorProfile.sector || secondary.some((item) => item.sector === sector)) return;
+        secondary.push({ sector, label, evidence: [evidence] });
+      };
+      const retailProductPages = auditedMultiPages.filter((item) => item.type === "product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer);
+      // QA 144 (optician chain): category pages listing priced products in their own
+      // structured data (Product/ItemList with an Offer) are online sales too. A Store
+      // schema plus a few footer prices on a legal/contact page is not.
+      // All fetched pages: the template-deduplicated set keeps one category page.
+      const retailCategoryPages = reportedMultiPageAudits.filter((item) => item.status === "audited" && item.type === "category" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer
+        && (item.commerceEvidence?.productSchema || item.commerceEvidence?.itemListSchema) && (item.commerceEvidence?.priceSignals || 0) >= 3);
+      // Same rule as the commerce gate: a carrier's priced service pages are the
+      // service itself; online retail needs a sampled page with a purchase chain.
+      const transportCarrier = PASSENGER_CARRIER_KEYS.test(String(sectorProfile.key || ""));
+      const retailEvidenceHolds = transportCarrier
+        ? retailProductPages.filter((item) => hasTransportRetailChain(item.commerceEvidence)).length >= 1
+        : (retailProductPages.length > 0 || retailCategoryPages.length >= 2);
+      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && retailEvidenceHolds) {
+        const pages = [...retailProductPages, ...retailCategoryPages];
+        addSecondary("ecommerce", "Online verkoop van producten", retailProductPages.length > 0
+          ? `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`
+          : `${retailCategoryPages.length} categoriepagina's met geprijsde producten in eigen structured data: ${pages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
+      if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {
+        addSecondary("financial_services", "Financiële producten", `${financialPages.length} pagina('s) met financieel productschema (rekening, lening, kaart of verzekering): ${financialPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      // Other independent activities: two or more sampled offer pages (service,
+      // product, category, listing, other) whose OWN title/description name another
+      // sector with high certainty. Editorial, corporate, legal, contact and support
+      // pages describe topics or the organisation, not an activity.
+      if (sectorProfile.sector !== "unknown") {
+        const votes = new Map<string, { label: string; pages: string[] }>();
+        // All fetched pages (not the template-deduplicated set): two offer pages of
+        // the same template are exactly the repeated evidence this rule needs.
+        for (const item of reportedMultiPageAudits.filter((page)=>page.status==="audited")) {
+          if (!["service","product","category","listing","other"].includes(item.type) || normalizeScanUrl(item.url)===normalizeScanUrl(finalUrl.toString())) continue;
+          const id = detectEuPrimaryIdentity({ title: item.title || "", description: item.description || "", h1s: [], hostname: "", homepage: false });
+          if (!id || id.confidence !== "high" || id.sector === sectorProfile.sector) continue;
+          const entry = votes.get(id.sector) || { label: id.label, pages: [] };
+          entry.pages.push(item.url);
+          votes.set(id.sector, entry);
+        }
+        for (const [sector, entry] of votes) if (entry.pages.length >= 2) addSecondary(sector, entry.label, `${entry.pages.length} representatieve aanbodpagina's noemen deze activiteit in hun eigen titel of omschrijving: ${entry.pages.slice(0, 2).map((url) => shortUrl(url)).join(", ")}`);
+      }
+      Object.assign(sectorProfile, {
+        secondaryActivities: secondary,
+        businessModelMix: secondary.length ? "mixed" : "single",
+        // Honest status of the primary decision, on the same thresholds as
+        // masterEvidence.primarySector.displayPolicy: "confirmed" needs ≥ 80
+        // (e.g. homepage plus own pages, or two independent rules agreeing); a
+        // homepage-only declaration (76) is "probable".
+        decisionStatus: sectorProfile.sector === "unknown" || sectorProfile.confidenceScore < 60 ? "unconfirmed" : sectorProfile.confidenceScore >= 80 ? "confirmed" : "probable",
+      });
+      // How the primary activity reaches customers: physical shop, service on
+      // location, webshop, or both. Descriptive; never changes sector or score.
+      const onlineSalesConfirmed = Boolean(finalCommerceDecision.confirmed || secondary.some((item) => item.sector === "ecommerce"));
+      const publisherIdentity = sectorProfile.sector === "news_media" || sectorProfile.key === "publisher_blog";
+      const salesChannel = sectorProfile.sector === "unknown" ? null : decideSalesChannel({
+        sector: sectorProfile.sector, key: sectorProfile.key,
+        // Editorial links (articles, news, blog, client/sector pages) describe
+        // other organisations, not the site's own premises (P5: NU.nl).
+        navLabels: [...identityNavLabels, ...allUniqueInternalAnchors.filter((item) => !editorialLinkPath(item.url)).map((item) => item.context || "")].filter(Boolean).slice(0, 240),
+        internalPaths: [...allUniqueInternalAnchors.map((item) => item.url).filter((url) => !editorialLinkPath(url)), ...reportedMultiPageAudits.map((item) => item.url)].flatMap((url) => { try { return [new URL(url).pathname]; } catch { return []; } }).slice(0, 300),
+        // A publisher's H1 is a headline about someone else; only its own title
+        // and description describe the publisher.
+        identityText: (publisherIdentity ? [title, description] : [title, description, identityH1s.join(" ")]).join(" | "),
+        schemaTypes,
+        hasAddress: Boolean(scanEvidence.organization.address.value && scanEvidence.organization.address.confidence !== "low"),
+        hasOpeningHours: Boolean(scanEvidence.organization.openingHours.value && scanEvidence.organization.openingHours.confidence !== "low"),
+        onlineSalesConfirmed,
+        onlineSalesEvidence: secondary.find((item) => item.sector === "ecommerce")?.evidence,
+      });
+      Object.assign(sectorProfile, { salesChannel });
+    }
+
     // Evidence Engine final applicability gate.
     // All collection/classification decisions above are now complete. From this point
     // onwards, specialist checks must follow the final Scanbewijs decision rather
@@ -5066,9 +7219,13 @@ async function runScan(request: Request) {
       item.reasonCode = finalCommerceApplicability.state === "unconfirmed" ? UNCONFIRMED_COMMERCE_REASON_CODE[finalCommerceApplicability.reason] : "weak_evidence";
       item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
     };
+    // One shared product-evidence summary for every N.v.t. reason, so a check never
+    // says "no products" next to sampled product or financial-product pages.
+    const sampledFinancialProductPages = auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length + (financialOfferSchema ? 1 : 0);
+    const FINANCIAL_PRODUCTS_NOT_RETAIL = "De gevonden productpagina's beschrijven financiële producten (rekening, lening, kaart of verzekering), geen fysieke retailproducten; deze retailcontrole is daarom niet van toepassing.";
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       // A service provider (payments, SaaS, agency...) whose pages show no product
@@ -5078,12 +7235,12 @@ async function runScan(request: Request) {
       // "product" do not make retail product checks applicable there.
       const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
       const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity) && !finalCommerceDecision.confirmed &&
-        !isProductPage && !hasProductSchema &&
+        !isProductPage && !hasProductSchema && !verifiedRepresentativeProductDetail && !representativeCommercialProductIntent &&
         (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
         if (!finalCommerceOnlyKeys.has(item.key) || (item.key==="price_format" && serviceCommerceSignals.subscription)) continue;
         if (serviceWithoutProductEvidence) {
-          setFinalNotApplicable(item, intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
+          setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
             ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
             : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
         } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
@@ -5100,8 +7257,68 @@ async function runScan(request: Request) {
         if (finalEuCommerceKeys.has(item.key) && !euMarketEligible) {
           setFinalNotApplicable(item,"Commerce is bevestigd, maar EU-consumentenapplicability is voor deze storefront niet betrouwbaar bevestigd.");
         } else if (finalCommerceOnlyKeys.has(item.key) && item.status === "not_applicable" && /webshop|product(?:pagina)?[- ]signalen|EU-consumentenapplicability|niet aantoonbaar van toepassing op deze markt/i.test(item.message)) {
-          setFinalUnableToConfirm(item, "De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld.");
+          setFinalUnableToConfirm(item, primaryNonCommerceIdentity
+            ? "Naast de hoofdactiviteit is online productverkoop bevestigd op representatieve productpagina's, maar deze controle kon op de gescande pagina niet worden beoordeeld."
+            : "De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld.");
         }
+      }
+    }
+
+    // A priced-service identity (software, cybersecurity, hosting, finance) that sells
+    // plans online is not a retail webshop (CrowdStrike, 6 Nov): retail product and
+    // checkout checks do not apply, consistent with website type and modules.
+    const pricedServicePlans = finalCommerceApplicability.state === "confirmed" && isPricedServiceIdentity(String(sectorProfile.key || ""));
+    if (pricedServicePlans) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, "De primaire activiteit is een dienst (software, beveiliging, hosting of financiële dienst) met online abonnementen of plannen. Een plan met prijs is geen retailproduct; retail-, product- en checkoutcontroles zijn daarom niet van toepassing.");
+      }
+    }
+    // Shop information read from sampled same-site pages (support, terms, footer
+    // text), never from an order: shipping + payment methods confirm the static
+    // "Checkout informatie" check (0 points); the interactive checkout stays
+    // unconfirmed and only names where payment information was found.
+    if (finalCommerceApplicability.state === "confirmed" && !pricedServicePlans) {
+      const siteInfo = sitewideShopInfo([{ url: finalUrl.toString(), status: "audited", shopInfo: shopInfoSignals(text) }, ...auditedMultiPages]);
+      const info = seoChecks.find((item)=>item.key==="checkout_information_signal");
+      if (info && info.status === "unable_to_confirm" && siteInfo.shipping && siteInfo.payment) {
+        info.status = "pass"; info.issue_status = "PASS"; info.confidence = "high";
+        info.message = `Verzendinformatie (${siteInfo.shipping}) en betaalmethoden (${siteInfo.payment}) zijn op bemonsterde pagina's van de website gevonden. Er is geen bestelling geplaatst.`;
+        info.evidence = { url: siteInfo.payment, found: true, details: info.message };
+      }
+      const trust = seoChecks.find((item)=>item.key==="checkout_trust");
+      if (trust && trust.status === "unable_to_confirm" && siteInfo.payment && !/gevonden op/.test(trust.message || "")) {
+        trust.message = `${trust.message} Betaalinformatie gevonden op ${siteInfo.payment}; de interactieve checkout is bewust niet uitgevoerd.`;
+      }
+    }
+    // Webshop evidence chain (lib/sample-product-checks.ts): on a confirmed webshop,
+    // scanned from a non-product page, the five product checks are judged on the
+    // audited product pages of the sample with the product-page criteria. Each
+    // verdict names its page; no product page or no evidence stays unconfirmed.
+    if (finalCommerceApplicability.state === "confirmed" && !isProductPage && !pricedServicePlans) {
+      const sampleProductPages: SampleProductPage[] = auditedMultiPages
+        .filter((item)=>item.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer)
+        .slice(0, 8)
+        .map((item)=>({ url:item.url, evidenceSource:item.evidenceSource, productSchema:Boolean(item.commerceEvidence?.productSchema), product:item.commerceEvidence?.product || null, visibleOffer:item.commerceEvidence?.visibleOffer || null,
+          serverRendered:Boolean(item.commerceEvidence?.serverRendered), purchaseAction:Boolean(item.commerceEvidence?.strongCommerceAction), productMarkupAbsent:Boolean(item.commerceEvidence?.productMarkupAbsent) }));
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (!(SAMPLE_PRODUCT_CHECK_KEYS as readonly string[]).includes(item.key)) continue;
+        const verdict = settleSampleProductCheck(item.key as (typeof SAMPLE_PRODUCT_CHECK_KEYS)[number], sampleProductPages);
+        if (verdict.status === "unable_to_confirm" && item.status !== "pass") {
+          // Keep it unconfirmed, but say exactly why, per page (no product page / no evidence).
+          if (item.status === "unable_to_confirm") {
+            // No audited product page: say why (none found, blocked, not loaded, rejected).
+            const why = sampleProductPages.length ? "" : productHuntSentence(productHunt);
+            item.message = why ? `${verdict.message} ${why}` : verdict.message;
+            item.evidence = { url: verdict.url || finalUrl.toString(), found: null, details: item.message, pages: verdict.pages, ...(productHunt && !sampleProductPages.length ? { productHunt } : {}) } as Check["evidence"];
+          }
+          continue;
+        }
+        if (verdict.status === "unable_to_confirm") continue;
+        const points = Math.round(item.maxPoints * verdict.credit);
+        Object.assign(item, check(verdict.status, item.key, item.category==="geo"?"geo":"seo", item.title, verdict.message,
+          verdict.status === "pass" ? "Houd productdata, zichtbare prijs en voorraad op alle productpagina's consistent." : "Herstel de genoemde productpagina en controleer daarna dezelfde productsjabloon op andere producten.",
+          points, item.maxPoints));
+        item.evidence = { url: verdict.url || finalUrl.toString(), found: verdict.status === "pass", details: verdict.message, pages: verdict.pages } as Check["evidence"];
       }
     }
 
@@ -5140,7 +7357,14 @@ async function runScan(request: Request) {
     };
     // Same ranked choice as the product diagnostics: the best-evidenced real product page.
     const representativeProductPage = productSamplePage;
-    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product) {
+    // An audited product page in the sample is found even without Product data:
+    // missing structured data is a schema defect, not "no product page".
+    const auditedProductPages = auditedMultiPages.filter((item)=>item.type==="product");
+    if (finalCommerceDecision.confirmed && auditedProductPages.length && !isProductPage) {
+      checkoutFunnelEvidence.productPage = true;
+      if (auditedProductPages.some((item)=>item.commerceEvidence?.strongCommerceAction)) checkoutFunnelEvidence.addToCart = true;
+    }
+    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product && !isProductPage) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
       // Diagnostics are consumers of Scanbewijs too. A representative product
@@ -5156,17 +7380,8 @@ async function runScan(request: Request) {
       }
 
       for (const item of [...seoChecks,...geoChecks]) {
-        if (item.key==="product_schema" && representativeProductPage.commerceEvidence.productSchema) {
-          Object.assign(item, check("pass","product_schema",item.category==="geo"?"geo":"seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",item.maxPoints,item.maxPoints));
-        }
         if ((item.key==="product_optimizer" || item.key==="product_copy_optimizer") && sourceCount>=3) {
           Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","AI Product Copy & Metadata",`Een representatieve productpagina levert ${sourceCount} controleerbare productvelden voor veilige optimalisatie.`,"Gebruik alleen aantoonbare productgegevens voor optimalisaties.",item.maxPoints,item.maxPoints));
-        }
-        if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
-          Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
-        }
-        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4 && product.image) {
-          Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
         }
         // Promoted from the representative product page: that page is the evidence.
         if (item.status==="pass" && ["product_schema","product_optimizer","product_copy_optimizer","product_availability","product_availability_consistency","merchant_product_readiness"].includes(item.key) && (item.evidence?.found===null || item.evidence?.found===undefined)) {
@@ -5175,11 +7390,48 @@ async function runScan(request: Request) {
       }
     }
 
+    // QA #203: a same-site page that the scanned page links to and that answered
+    // 404/410 when it was sampled is a broken link, also when it lay beyond the
+    // first links that were probed. "Broken links: pass" next to a 404 in the
+    // per-page list contradicted itself. Template expressions never get here
+    // (lib/template-links.ts), so only real hrefs on the scanned page count.
+    {
+      const linkCheck = seoChecks.find((c) => c.key === "broken_links");
+      const probed = new Set(linkAuditResults.map((l) => normalizeScanUrl(l.url)));
+      const anchorByUrl = new Map(allUniqueInternalAnchors.map((a) => [normalizeScanUrl(a.url), a] as const));
+      const sampledMissing = multiPageAudits.filter((p) => (p.httpStatus === 404 || p.httpStatus === 410)
+        && anchorByUrl.has(normalizeScanUrl(p.url)) && !probed.has(normalizeScanUrl(p.url)));
+      // PDF P4: a link probe without answer whose page WAS fetched with HTTP 200 by
+      // the page sample is not an error (Croatia Airlines: "geen antwoord" vs 200).
+      const fetchedOk = new Map(multiPageAudits.filter((p) => p && p.httpStatus === 200 && p.status === "audited").map((p) => [normalizeScanUrl(p.url), p] as const));
+      let reconciledFromSample = 0;
+      for (const l of linkAuditResults) {
+        if (linkOutcome(l) === "unconfirmed" && fetchedOk.has(normalizeScanUrl(l.url))) { l.status = 200; l.error = false; l.challenged = false; reconciledFromSample++; }
+      }
+      if (linkCheck && (reconciledFromSample > 0 || (linkCheck.status !== "unable_to_confirm" && sampledMissing.length))) {
+        for (const p of sampledMissing) {
+          const a = anchorByUrl.get(normalizeScanUrl(p.url))!;
+          linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url) });
+        }
+        const summary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
+        const copy = scanLanguage === "nl" ? { message: summary.message, fix: summary.fix } : localizedBrokenLinkCopy(linkAuditResults, finalUrl.toString(), scanLanguage);
+        const rebuilt = check(summary.status, "broken_links", "seo", linkCheck.title, copy.message, copy.fix, summary.points, 5);
+        Object.assign(linkCheck, rebuilt, {
+          evidence: { url: finalUrl.toString(), found: summary.missing + summary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: copy.message },
+          links: linkAuditResults.map((item) => ({ url: item.url, referringPage: finalUrl.toString(), sourceHref: item.sourceHref, httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) })).filter((item) => item.outcome !== "ok" && item.outcome !== "skipped"),
+          linkRecords: brokenLinkRecords(linkAuditResults, finalUrl.toString()),
+        });
+      }
+    }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     // Evidence gate (3.5): a check only carries points or a deduction when it has
     // demonstrable evidence (a source URL and a recorded finding). Without both it
     // becomes "niet te bevestigen" and leaves the score.
     requireEvidenceForScoredChecks([...seoChecks,...geoChecks], finalUrl.toString());
+    // Provenance per check: raw HTML, rendered DOM, HTTP response, robots.txt,
+    // sitemap, link probes or a sampled page (bookkeeping only, never a status).
+    annotateEvidenceSources([...seoChecks,...geoChecks,...securityChecks,...accessibilityChecks], finalUrl.toString(), javascriptExecuted ? "rendered_html" : "raw_html");
+    alignRenderedWording([...seoChecks,...geoChecks], javascriptExecuted);
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
@@ -5203,7 +7455,15 @@ async function runScan(request: Request) {
     scoreModel.range = { ...finalRanges.overall, ...evidenceRange(selectedOverallScore, finalRanges.overall, [...selectedSeoChecks,...selectedGeoChecks]) };
     scoreModel.seoRange = { ...finalRanges.seoR, ...evidenceRange(selectedSeoScore, finalRanges.seoR, selectedSeoChecks) };
     scoreModel.geoRange = { ...finalRanges.geoR, ...evidenceRange(selectedGeoScore, finalRanges.geoR, selectedGeoChecks) };
+    // Evidence behind each dimension's own number (SEO and GEO separately), so a
+    // GEO score built on a few confirmed checks is not carried by a well evidenced SEO.
+    const seoDimensionEvidence = mode === "geo" ? null : dimensionEvidence(selectedSeoChecks, "seo");
+    const geoDimensionEvidence = mode === "seo" ? null : dimensionEvidence(selectedGeoChecks, "geo");
     const scoreEvidence = evidenceLevel({
+      dimensions: [
+        ...(seoDimensionEvidence ? [{ name: "SEO" as const, coveragePercent: seoDimensionEvidence.coveragePercent }] : []),
+        ...(geoDimensionEvidence ? [{ name: "GEO" as const, coveragePercent: geoDimensionEvidence.coveragePercent }] : []),
+      ],
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
       renderDegraded: Boolean(rejectedBrowserSnapshot),
@@ -5215,11 +7475,16 @@ async function runScan(request: Request) {
       importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
       sectorUnknown: sectorProfile.sector === "unknown",
+      // Same page counts as multiPage.coverageDimensions (noindex exclusions count as fetched).
+      pageSample: { selected: multiPageAudits.length, fetched: auditedRawPages.length + multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length },
+      // Actual page coverage of the representative sample (the scanned page itself always counts as fetched).
+      samplePages: { selected: uniqueMultiPagePages.length, fetched: multiPageAudits.filter(item=>item?.httpStatus!=null && item.httpStatus<400).length, assessed: multiPageAudits.filter((item) => item?.status === "audited").length },
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {
       evidenceLevel: scoreEvidence.level,
       evidenceReasons: scoreEvidence.reasons,
+      dimensionEvidence: { seo: seoDimensionEvidence, geo: geoDimensionEvidence },
       perfectScoreRule: "100/100 alleen bij volledig bevestigd bewijs; bij onbevestigde controles maximaal 99.",
     });
     scoreModel.coverageAdjustment = 0;
@@ -5234,7 +7499,18 @@ async function runScan(request: Request) {
       range: scoreModel.range,
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
+      evidenceLevel: scoreEvidence.level,
+      sampledProductPages: auditedMultiPages.filter((item)=>item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer).length,
+      sampledFinancialProductPages: auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length,
+      scannedPageSampleStatus: reportedMultiPageAudits.find((item)=>item.status==="audited" && normalizeScanUrl(item.url)===normalizeScanUrl(finalUrl.toString()))?.httpStatus ?? null,
+      scannerBlocked: scannerAccessBlocked,
+      limitedChecks: [...securityChecks, ...accessibilityChecks],
     });
+    if (consistency.evidenceLevel && consistency.evidenceLevel !== scoreEvidence.level) {
+      scoreEvidence.level = consistency.evidenceLevel;
+      scoreModel.provisional = true;
+      Object.assign(scoreModel, { evidenceLevel: consistency.evidenceLevel });
+    }
     selectedSeoScore = consistency.scores.seo;
     selectedGeoScore = consistency.scores.geo;
     selectedOverallScore = consistency.scores.overall;
@@ -5242,16 +7518,63 @@ async function runScan(request: Request) {
     scoreModel.range = { ...scoreModel.range, low: Math.min(scoreModel.range.low, selectedOverallScore) };
     Object.assign(scoreModel, { headline: headlineScore(selectedOverallScore, scoreModel.range, overallCoverage.coveragePercent, scoreEvidence.level) });
     const selfCheck = consistency.selfCheck;
+    // QA #203/#204: website type, shop platform and branch are three separate
+    // dimensions with their own evidence (lib/website-profile.ts).
+    const websiteProfile = buildWebsiteProfile({
+      bookingPrimary: bookingPrimaryIdentity && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings"),
+      // A priced-service identity (software, cybersecurity, hosting, finance) with an
+      // online plan purchase is a service provider, not a webshop (CrowdStrike, 6 Nov).
+      primaryServiceIdentity: (localTradeIdentity && ["home_services", "construction"].includes(sectorProfile.sector)) || isPricedServiceIdentity(String(sectorProfile.key || "")),
+      commerceState: commerceApplicabilityReport.state,
+      commerceReason: (commerceApplicabilityReport as { reason?: string }).reason || null,
+      platformKind: platformIdentity && sectorProfile.key === "comparison_platform" ? "comparison_platform" : null,
+      commerceEvidence: [
+        commerceApplicabilityReport.state === "confirmed" ? commerceApplicabilityReport.message : "",
+        sitewideCommerceEvidence.confirmed ? `Webshopfuncties bevestigd op ${sitewideCommerceEvidence.sampleCount} steekproefpagina('s)` : "",
+        ...sitewideCommerceEvidence.urls,
+      ].filter(Boolean),
+      sector: sectorProfile.sector,
+      sectorLabel: sectorProfile.label,
+      sectorConfidence: sectorProfile.confidenceScore,
+      technologies: technologyProfile.technologies,
+      commercePlatform: technologyProfile.commercePlatform,
+      cms: technologyProfile.cms,
+      framework: technologyProfile.framework,
+      catalog: [
+        { url: finalUrl.toString(), kind: "homepage" as const, text: [title, description, identityH1s.join(" ")].join(" · ") },
+        ...auditedMultiPages.filter((item)=>item.status==="audited" && (((item.type==="product" || item.type==="category" || item.type==="listing") && (hasProductOffer(item.commerceEvidence) || (item.commerceEvidence?.priceSignals||0) > 0)) || Boolean(item.commerceEvidence?.confirmedRetailPage)))
+          .map((item)=>({ url: item.url, kind: item.type==="product" ? "product" as const : "category" as const, text: [item.ownIdentityText || "", item.commerceEvidence?.product?.name || ""].join(" · ") })),
+      ],
+    });
+    // One website type for every consumer (QA #207: header "Webshop" next to
+    // "Websitetype niet vastgesteld"). The technology profile follows the
+    // evidence-gated website profile, never the other way round.
+    if (websiteProfile.websiteType.value === "ecommerce_store" && websiteProfile.websiteType.status === "confirmed") { technologyProfile.siteType = "Webshop"; technologyProfile.isCommerce = true; }
+    else if (technologyProfile.siteType === "Webshop") { technologyProfile.siteType = "Website"; technologyProfile.isCommerce = false; }
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
     scoreModel.breakdown = scoreBreakdown(checks);
+    // Give customers the actual scored core subset and the bridge from its
+    // row totals to final SEO/GEO scores; otherwise a score like Bosch's GEO 74
+    // cannot be reproduced from a table also containing non-scoring modules.
+    Object.assign(scoreModel,{reconciliation:{
+      seo:explainCoreScore(selectedSeoChecks,"seo",selectedSeoScore),
+      geo:explainCoreScore(selectedGeoChecks,"geo",selectedGeoScore),
+    }});
+    // Keep summary, check list, coverage and score based on the exact same final
+    // evidence statuses. Previously this stayed frozen before the commerce gate.
     // Keep summary, check list, coverage and score based on the exact same final
     // evidence statuses. Previously this stayed frozen before the commerce gate.
     scanSummary = summarizeAuditChecks(checks);
 
+    // One source of truth for "Webshop": the evidence-gated website profile. The
+    // early websiteType was decided before that profile and could still say
+    // "Webshop" for a payment provider the profile classified as a service
+    // (classification vs websiteProfile disagreed in the same report).
+    const shopConfirmed = websiteProfile.websiteType.value === "ecommerce_store" && websiteProfile.websiteType.status === "confirmed";
     const classification = {
-      websiteType,
+      websiteType: shopConfirmed ? "Webshop" : websiteType === "Webshop" ? "Website" : websiteType,
       sector: {
         key: sectorProfile.key,
         label: sectorProfile.label,
@@ -5311,12 +7634,41 @@ async function runScan(request: Request) {
     const unscoredMetadataPages = auditedRawPages.length - scoredSamplePages.length;
     const partialHeadPages = auditedRawPages.filter((item)=>item.partialHead).length;
     const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
-    const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
+    // Every selected page gets one real outcome (fetched-but-thin and duplicates are
+    // not "not fetched"); see lib/scan-feedback.ts sampleOutcomeCounts.
+    const sampleOutcomes = sampleOutcomeCounts(reportedMultiPageAudits, multiPageAudits.length - reportedMultiPageAudits.length);
+    const unableToFetchPages = sampleOutcomes.notRetrieved;
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
+    // Homepage outcome and page coverage, separately from the start page (QA 144:
+    // blocked homepage with an accessible subpage gives a partial report).
+    const siteAccess = summarizeSiteAccess({
+      startUrl: finalUrl.toString(),
+      startIsHomepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
+      homepageUrl: representativeHomeUrl,
+      pages: reportedMultiPageAudits,
+      // Same denominator as multiPage.counts.selected (QA: "26/28" next to "26/29").
+      duplicates: multiPageAudits.length - reportedMultiPageAudits.length,
+    });
+    // Which relevant parts of the site were examined, not accessible, missing or not found.
+    const sectionCoverageReport = sectionCoverage({
+      pages: reportedMultiPageAudits.map((p) => ({ url: p.url, type: p.type, status: p.status, httpStatus: p.httpStatus, nonContent: p.nonContent, fetchFailure: p.fetchFailure, excludedUtility: p.excludedUtility })),
+      isShop: classification.websiteType === "Webshop" || websiteProfile.websiteType.value === "ecommerce_store",
+      homepageUrl: siteAccess.homepage.url || finalUrl.toString(),
+      homepageAccess: siteAccess.homepage.access,
+      homepageHttpStatus: siteAccess.homepage.httpStatus,
+      contactOnHomepage: [businessContactDetails.phone && "telefoon", businessContactDetails.email && "e-mail", businessContactDetails.address && "adres"].filter(Boolean) as string[],
+      offerNavigation: identityNavLabels.filter((label) => /^(?:diensten|services?|producten|products?|oplossingen|solutions?|applications?|toepassingen|brands?|merken|aanbod|assortiment|behandelingen|treatments?|leistungen|produkte|lösungen|prestations|produits)$/i.test(label.trim())),
+    });
     const multiPage = {
+      sectionCoverage: sectionCoverageReport,
+      sectionGapFill,
+      siteAccess,
       accounting:sampleAccounting,
+      sampleRetryPass,
+      sampleRateLimit,
+      coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, productCardNominations, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, productHunt, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
@@ -5328,6 +7680,7 @@ async function runScan(request: Request) {
         scored: scoredSamplePages.length,
         excludedNoindex: excludedNoindexPages,
         fetchFailed: unableToFetchPages,
+        outcomes: sampleOutcomes,
         unableToConfirm: multiPageAudits.length-auditedRawPages.length,
         coveragePercent: multiPageAudits.length ? Math.round((scoredSamplePages.length/multiPageAudits.length)*100) : 0,
         provisional: multiPageAudits.length > 0 && scoredSamplePages.length < multiPageAudits.length,
@@ -5365,34 +7718,79 @@ async function runScan(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, ...Object.fromEntries((["contact","article","homepage","category","product","form","legal","service","listing","support","location","other"] as const).map((type)=>[type, reportedMultiPageAudits.filter((x)=>x.type===type).length])), audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
+    // QA 144: every proven problem on another assessed page reaches the advice
+    // list (URL, check, severity, evidence, fix), separately from the page score.
+    const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
+    Object.assign(multiPage, { sitewideIssues });
+    Object.assign(scanSummary, { sitewideIssues: sitewideIssues.filter((i) => i.certainty === "confirmed").length, sitewideIssuesToConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length });
+    // What the headline number covers, next to coverage and status (never changes it).
+    Object.assign(scoreModel, { scope: buildScoreScope({
+      overallScore: selectedOverallScore,
+      startUrl: finalUrl.toString(),
+      startIsHomepage: siteAccess.startIsHomepage,
+      evidenceCoveragePercent: overallCoverage.coveragePercent,
+      unconfirmedChecks: overallCoverage.unableToConfirm,
+      evidenceLevel: scoreEvidence.level,
+      range: scoreModel.range,
+      pages: { selected: siteAccess.pages.selected, assessed: siteAccess.pages.assessed },
+      siteCoverage: siteAccess.scanCoverage,
+      homepageAccess: siteAccess.homepage.access,
+      sampleScore: multiPage.sitewideSummary.sampleScore,
+      sitewideIssues: { confirmed: sitewideIssues.filter((i) => i.certainty === "confirmed").length, toConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length },
+      sectorStatus: (sectorProfile as { decisionStatus?: "confirmed" | "probable" | "unconfirmed" }).decisionStatus || (sectorProfile.sector === "unknown" ? "unconfirmed" : "probable"),
+      sectorLabel: sectorProfile.label,
+      recoveryWithoutNavigation: access.recoveryWithoutNavigation,
+    }) });
 
-    // One integrated read-only speed check for the same scan; never modifies the site.
-    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString()) : null;
+    // Read-only mobile and desktop PageSpeed for the same customer scan.
+    // Speed is independent evidence and never changes SEO/GEO scores.
+    // Not measured when the page itself was refused or only recovered through the
+    // browser; the report then says why mobile and desktop are missing.
+    phaseMark("beforePageSpeed");
+    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : speedNotMeasured(finalUrl.toString(), response.status);
+    phaseMark("pageSpeed");
 
+    // The client already received SCAN_TIMEOUT: never store a report or count usage
+    // for a scan the customer was told did not complete.
+    if (clock.expired) return NextResponse.json({ error: "SCAN_TIMEOUT", code: "SCAN_TIMEOUT" }, { status: 503 });
     let user = null;
     let savedScanId: string | null = null;
+    // Which persistence step was running when a save failed (reported, not secret).
+    let saveStage = "start";
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await getCurrentUser(); } catch {}
-    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
+    trace.phase = "save";
+    // The session was already verified before the crawl. Re-read it once; a
+    // transient database failure here must not throw away a finished scan as
+    // "session expired": fall back to the verified user from the start.
+    const saveLookup = localQa || localNoDatabase ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
+    user = saveLookup.user ?? (saveLookup.lookupFailed ? usageUser : null);
+    if (dashboardScan && !localQa && !user) return NextResponse.json(saveLookup.lookupFailed
+      ? { error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }
+      : { error: scanError.session, code: "SESSION_EXPIRED" }, { status: saveLookup.lookupFailed ? 503 : 401 });
     if (user) {
       try {
+        saveStage = "schema";
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
-        const pending = await getDb().query(
-          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
+        saveStage = "pending_fixes";
+        // Reads are idempotent: a broken pooled connection or an aborted
+        // statement is retried instead of failing a completed scan.
+        const pending = await withDbRetry(() => getDb().query<{issue_id:string;status:string}>(
+          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
-        );
-        pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
+        ));
+        pendingFixes = new Map(pending.rows.map((row: {issue_id:string;status:string}) => [String(row.issue_id), { status: String(row.status) }]));
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
-        const rememberedFixes = await getDb().query(
+        saveStage = "fix_memory";
+        const rememberedFixes = await withDbRetry(() => getDb().query(
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
-        );
-        const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
+        ));
+        const rememberedByRule = new Map(rememberedFixes.rows.map((row: {rule_id:string;file_path:string|null;repository:string|null;pr_number:number|null;fix_summary:string|null;evidence:unknown;last_confirmed_at:string|Date;recurrence_count:number;recurrence_open:boolean;last_recurred_at:string|null})=>[String(row.rule_id),row]));
 
         for (const item of checks) {
           const issueId = String(item.issue_id || item.rule_id || item.key);
@@ -5439,12 +7837,20 @@ async function runScan(request: Request) {
             };
           }
         }
-        const previousScan = await getDb().query(
+        saveStage = "previous_scan";
+        // The previous report only feeds the informative comparison and health
+        // events; failing to read it must never block storing the new report.
+        const previousScan = await withDbRetry(() => getDb().query(
           "SELECT id,result FROM scans WHERE user_id=$1 AND (final_url=$2 OR scanned_url=$3) AND result->>'mode'=$4 ORDER BY created_at DESC LIMIT 1",
           [user.id, finalUrl.toString(), target.toString(), mode]
-        );
+        )).catch((readError: unknown) => {
+          console.error("RankFix previous-scan read skipped", { cause: databaseFailureCode(readError), detail: databaseFailureDetail(readError) });
+          return { rows: [] as never[] };
+        });
         const priorReport = previousScan.rows[0]?.result;
-        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
+        // Comparing with the previous report is informative only: a malformed or
+        // older report shape must never stop the new report from being stored.
+        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) try {
           const previousBreakdown = Array.isArray(priorReport.scoreModel?.breakdown) ? priorReport.scoreModel.breakdown : [];
           const previousByCheck = new Map<string,string>(previousBreakdown.map((item:{key:string;category:string;status:string}) =>
             [(item.category||"seo")+":"+(item.key||""),item.status||""]));
@@ -5465,25 +7871,30 @@ async function runScan(request: Request) {
               changedChecks,
             },
           );
+        } catch (comparisonError) {
+          console.error("RankFix previous-scan comparison skipped", { message: comparisonError instanceof Error ? comparisonError.message.slice(0, 200) : "unknown" });
         }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
-        const insertedScan = await getDb().query(
-          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
-          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
+        saveStage = "insert_scan";
+        // The row id is chosen here, so the insert is idempotent: after a broken
+        // connection or an aborted statement it is sent again, and ON CONFLICT
+        // guarantees one stored report even if the first attempt did arrive.
+        const newScanId = randomUUID();
+        const scanRow = [newScanId, user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
-            scanDurationMs: Date.now() - started,
+            scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
-            metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
+            metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: [...title].length, description, descriptionLength: [...description].length, descriptionState, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
@@ -5511,9 +7922,17 @@ async function runScan(request: Request) {
               checkoutFunnel: checkoutFunnelEvidence,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
-          }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
-        );
-        savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
+          }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION];
+        savedScanId = await withDbRetry(async () => {
+          const inserted = await getDb().query(
+            "INSERT INTO scans (id, user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO NOTHING RETURNING id",
+            scanRow,
+          );
+          if (inserted.rows[0]?.id) return String(inserted.rows[0].id);
+          // No row returned: an earlier attempt of this same insert was stored.
+          const existing = await getDb().query("SELECT id FROM scans WHERE id=$1 AND user_id=$2", [newScanId, user.id]);
+          return existing.rows[0]?.id ? String(existing.rows[0].id) : null;
+        });
         console.info("RankFix scan phase", { phase: "history_write_done", page: finalUrl.toString(), savedScanId: Boolean(savedScanId) });
 
         // Dedicated live verification: a prepared fix is confirmed only when the
@@ -5522,7 +7941,7 @@ async function runScan(request: Request) {
         if (dashboardScan && savedScanId && pendingFixes.size > 0) {
           const verificationCandidates = new Set(
             [...pendingFixes.entries()]
-              .filter(([, pending]) => pending.status === "AWAITING_VERIFICATION" || pending.status === "STILL_PRESENT")
+              .filter(([, pending]) => pending.status === "AWAITING_VERIFICATION" || pending.status === "STILL_PRESENT" || pending.status === "AWAITING_DEPLOYMENT")
               .map(([issueId]) => issueId)
           );
           const seenVerificationRules = new Set<string>();
@@ -5535,24 +7954,27 @@ async function runScan(request: Request) {
             const liveEvidence = item.evidence;
             const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
             const pendingFix=pendingFixes.get(issueId);
-            if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT")) continue;
+            if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT" && pendingFix.status!=="AWAITING_DEPLOYMENT")) continue;
             // A merged PR is not proof that production changed. Verification must
             // come from a fresh live scan with positive evidence for the exact rule.
             // Medium confidence may be useful for diagnosis, but is not strong
             // enough to permanently mark an automated code fix as resolved.
             const verified=liveStatus==="PASS" && liveConfidence==="high" && hasLiveEvidence;
-            const nextStatus=verified?"VERIFIED_RESOLVED":"STILL_PRESENT";
+            // Only a definite FAIL/WARNING means "still present". A blocked, unconfirmed or
+            // N/A result keeps the fix waiting, and a deployment still in progress stays there.
+            const definiteIssue=liveStatus==="FAIL"||liveStatus==="WARNING";
+            const nextStatus=verified?"VERIFIED_RESOLVED":(definiteIssue&&pendingFix.status!=="AWAITING_DEPLOYMENT"?"STILL_PRESENT":pendingFix.status);
             const confirmed = await getDb().query(
-              "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW() RETURNING id",
+              "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_attempts=verification_attempts+CASE WHEN status IN ('AWAITING_VERIFICATION','STILL_PRESENT') THEN 1 ELSE 0 END, phase_started_at=CASE WHEN status<>$4 THEN NOW() ELSE phase_started_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT','AWAITING_DEPLOYMENT') AND expires_at>NOW() RETURNING id",
               [user.id, normalizedScanUrl, issueId, nextStatus, savedScanId]
             );
             if (!confirmed.rowCount) continue;
 
-            item.fix_status = verified ? "DONE" : "STILL_PRESENT";
+            item.fix_status = verified ? "DONE" : nextStatus === "STILL_PRESENT" ? "STILL_PRESENT" : "WAITING";
             if(!verified) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
-              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
+              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, jsonbStringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
             );
             const verifiedFix = await getDb().query(
               "SELECT repository,file_path,pr_number FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 ORDER BY updated_at DESC LIMIT 1",
@@ -5577,7 +7999,7 @@ async function runScan(request: Request) {
                  recurrence_count=fix_memory.recurrence_count,
                  recurrence_open=FALSE,
                  updated_at=NOW()`,
-              [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),JSON.stringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
+              [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),jsonbStringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
             );
           }
           // If the exact rule is absent from the fresh scan, absence is not proof.
@@ -5586,7 +8008,7 @@ async function runScan(request: Request) {
           for (const issueId of verificationCandidates) {
             if (seenVerificationRules.has(issueId)) continue;
             await getDb().query(
-              "UPDATE pending_fixes SET status='AWAITING_VERIFICATION', verification_scan_id=$4, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW()",
+              "UPDATE pending_fixes SET verification_scan_id=$4, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT','AWAITING_DEPLOYMENT') AND expires_at>NOW()",
               [user.id, normalizedScanUrl, issueId, savedScanId]
             );
           }
@@ -5598,7 +8020,7 @@ async function runScan(request: Request) {
         if (dashboardScan && savedScanId) {
           await getDb().query(
             "UPDATE scans SET result=jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true) WHERE id=$3 AND user_id=$4",
-            [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), savedScanId, user.id]
+            [jsonbStringify(selectedSeoChecks), jsonbStringify(selectedGeoChecks), savedScanId, user.id]
           );
         }
 
@@ -5612,7 +8034,7 @@ async function runScan(request: Request) {
           const scanId = savedScanId;
           await getDb().query(
             "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
-            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
+            [user.id,websiteHost,finalUrl.toString(),scanId,jsonbStringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
           );
           const previousChecks = [
             ...(previousScan.rows[0]?.result?.seo?.checks || []),
@@ -5624,7 +8046,7 @@ async function runScan(request: Request) {
             return null;
           };
           const statusRank:Record<string,number>={FAIL:0,WARNING:1,PASS:2};
-          const previousByRule = new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),normalizeHealthStatus(x.issue_status||x.status)]));
+          const previousByRule = new Map(previousChecks.map((x: {issue_id?:string;rule_id?:string;key?:string;issue_status?:string;status?:string})=>[String(x.issue_id||x.rule_id||x.key),normalizeHealthStatus(x.issue_status||x.status)]));
           for (const item of checks) {
             const ruleId=String(item.issue_id||item.rule_id||item.key);
             const before=previousByRule.get(ruleId);
@@ -5637,7 +8059,7 @@ async function runScan(request: Request) {
             if(!improved&&!regressed) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-              [user.id,websiteHost,finalUrl.toString(),scanId,improved?"IMPROVEMENT":"REGRESSION",ruleId,before,now,item.severity||null,JSON.stringify({title:item.title,message:item.message})]
+              [user.id,websiteHost,finalUrl.toString(),scanId,improved?"IMPROVEMENT":"REGRESSION",ruleId,before,now,item.severity||null,jsonbStringify({title:item.title,message:item.message})]
             );
           }
         } catch (monitorError) {
@@ -5651,12 +8073,15 @@ async function runScan(request: Request) {
           page: finalUrl.toString(),
           dashboardScan,
           savedScanId: Boolean(savedScanId),
+          stage: saveStage,
+          cause: databaseFailureCode(saveError),
+          detail: databaseFailureDetail(saveError),
         });
         // If the primary scan row was already inserted, the audit report is
         // usable even when a later monitoring/verification write fails.
         // Do not turn a completed scan into a false "scan failed" response.
         if (dashboardScan && !savedScanId) {
-          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", retryable: true, charged: false }, { status: 500 });
+          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", saveFailure: { stage: saveStage, cause: databaseFailureCode(saveError), detail: databaseFailureDetail(saveError) }, retryable: true, charged: false }, { status: 500 });
         }
       }
     }
@@ -5668,6 +8093,7 @@ async function runScan(request: Request) {
       javascriptExecuted,
       internalLinks: {
         anchorsFound: anchorTags.length,
+        hiddenAnchorsSkipped: hiddenAnchorCount,
         uniqueInternal: allUniqueInternalAnchors.length,
         checked: linkAuditResults.length,
         limit: 24,
@@ -5682,16 +8108,17 @@ async function runScan(request: Request) {
     console.info("RankFix scan phase", { phase: "response_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, savedScanId: Boolean(savedScanId) });
     return NextResponse.json({
       success: true,
+      runtime:scanRuntime(),
       scanId: savedScanId,
       mode,
       scannedUrl: target.toString(),
       finalUrl: finalUrl.toString(),
       scannedAt: new Date().toISOString(),
       responseTime,
-      scanDurationMs: Date.now() - started,
+      scanDurationMs: Date.now() - started, phaseMs,
       httpStatus: response.status,
       overallScore: selectedOverallScore,
-      grade: grade(selectedOverallScore),
+      grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)),
       coverage: overallCoverage,
       scoreModel,
       selfCheck,
@@ -5699,17 +8126,30 @@ async function runScan(request: Request) {
       websiteSpeed,
       rendering,
       recovery,
+      access,
+      hostFallback,
       scope: scanScope,
       multiPage,
       classification,
+      // P5: each structured-data evidence form separately, plus the absence verdict.
+      structuredDataEvidence: {
+        jsonLd: { blocks: validJsonLd, fromBrowser: browserJsonLdBlocks, fromServerHtml: Math.max(0, validJsonLd - browserJsonLdBlocks) },
+        microdata: { items: microdataSchemaTypes.length, types: [...new Set(microdataSchemaTypes)].slice(0, 12) },
+        rdfa: { items: rdfaSchemaTypes.length, types: [...new Set(rdfaSchemaTypes)].slice(0, 12) },
+        browserObservation: { attempted: structuredDataProbe.attempted, complete: structuredDataProbe.ok, networkQuiet: structuredDataProbe.networkQuiet ?? null, window: structuredDataProbe.window, limitation: structuredDataProbe.limitation },
+        absence: { observation: schemaAbsence.observation, basis: schemaAbsence.basis, proven: schemaAbsence.proven },
+        injectors: jsonLdInjectors,
+      },
       pageTypeEvidence,
       pageTypeInvariant,
       technologyProfile,
+      websiteProfile,
       sectorProfile,
       commerceApplicability: commerceApplicabilityReport,
       evidenceLayer,
       security: securityEngine,
       accessibility: accessibilityEngine,
+      securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }),
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -5719,12 +8159,14 @@ async function runScan(request: Request) {
         sector: classification.sector,
         pageTypeClassification: classification.pageType,
         title,
-        titleLength: title.length,
+        titleLength: [...title].length,
         description,
-        descriptionLength: description.length,
+        descriptionLength: [...description].length,
         descriptionState,
         h1Count: h1s.length,
         h1s,
+        // Header/nav anchor labels the identity detectors used (QA evidence only; not scored).
+        navigationLabels: identityNavLabels.slice(0, 80),
         imageCount,
         imageElementCount,
         imagesMissingAlt,
@@ -5738,7 +8180,7 @@ async function runScan(request: Request) {
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
@@ -5773,9 +8215,31 @@ async function runScan(request: Request) {
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch (error) {
-    const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
+    const infrastructure = classifyScanInfrastructureFailure(error);
+    if (infrastructure) {
+      console.error("RankFix scan infrastructure unavailable", { code: infrastructure.code, message: error instanceof Error ? error.message.slice(0,200) : "unknown" });
+      return NextResponse.json({
+        error: infrastructure.message[fallbackLanguage as keyof typeof infrastructure.message] || infrastructure.message.nl,
+        code: infrastructure.code,
+        retryable: infrastructure.retryable,
+        charged: infrastructure.charged,
+      }, { status: infrastructure.httpStatus });
+    }
+    // Website time-out, database time-out and RankFix's own limit are separate outcomes.
+    const technicalCode = uncaughtScanErrorCode(error);
     console.error("RankFix scan failed:", { code: technicalCode, message: error instanceof Error ? error.message : "unknown error", name: error instanceof Error ? error.name : "unknown", stack: error instanceof Error ? error.stack : undefined });
     const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
-    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: 500 });
+    if (technicalCode === "FETCH_TIMEOUT") {
+      const siteTimeout: Record<string,string> = {
+        nl:"De onderzochte website antwoordde niet op tijd tijdens het ophalen of weergeven van een pagina. Dit is geen storing van RankFix en geen bewezen fout van de website; er is niets in rekening gebracht. Probeer het later opnieuw.",
+        en:"The website did not answer in time while a page was fetched or rendered. This is not a RankFix outage and not a proven website error; you were not charged. Try again later.",
+        de:"Die untersuchte Website hat beim Abrufen oder Darstellen einer Seite nicht rechtzeitig geantwortet. Das ist keine RankFix-Störung und kein bewiesener Website-Fehler; es wurde nichts berechnet.",
+        fr:"Le site analysé n'a pas répondu à temps lors du chargement ou de l'affichage d'une page. Ce n'est pas une panne de RankFix ni une erreur prouvée du site ; aucun frais.",
+        it:"Il sito non ha risposto in tempo durante il caricamento o la visualizzazione di una pagina. Non è un guasto di RankFix né un errore provato del sito; nessun addebito.",
+        es:"El sitio no respondió a tiempo al cargar o mostrar una página. No es una avería de RankFix ni un error probado del sitio; sin cargos.",
+      };
+      return NextResponse.json({ error: siteTimeout[fallbackLanguage] || siteTimeout.en, code: technicalCode, retryable: true, charged: false }, { status: 502 });
+    }
+    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: technicalCode === "DATABASE_TIMEOUT" ? 503 : 500 });
   }
 }

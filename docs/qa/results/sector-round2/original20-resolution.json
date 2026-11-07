@@ -1,0 +1,380 @@
+[
+  {
+    "host": "holdout-002.test",
+    "url": "https://holdout-002.test/",
+    "catalogKey": "marketplace",
+    "expectedSector": "service_marketplace",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "Catalog recognises marketplace; declared-identity table only recognises mediated tradespeople, not independent-seller marketplaces.",
+    "afterSector": "service_marketplace",
+    "afterKey": "marketplace",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-002.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-002.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-010.test",
+    "url": "https://holdout-010.test/",
+    "catalogKey": "travel",
+    "expectedSector": "transport_travel",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No declared-identity travel-agency rule; isolated booking capability cannot anchor the existing legacy sector.",
+    "afterSector": "transport_travel",
+    "afterKey": "travel",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-010.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-010.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-011.test",
+    "url": "https://holdout-011.test/",
+    "catalogKey": "beauty_salon",
+    "expectedSector": "beauty",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "French salon de beauté missing from declared beauty nouns; catalogue keyword score cannot anchor own identity.",
+    "afterSector": "beauty",
+    "afterKey": "beauty_salon",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-011.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-011.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-014.test",
+    "url": "https://holdout-014.test/",
+    "catalogKey": "saas_b2b",
+    "expectedSector": "saas_b2b",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "Only web hosting has a declared software rule; general SaaS/workflow self-description is unsupported.",
+    "afterSector": "saas_b2b",
+    "afterKey": "saas_b2b",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-014.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-014.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-028.test",
+    "url": "https://holdout-028.test/",
+    "catalogKey": "events",
+    "expectedSector": "events_culture",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No declaration rule for conference/event organisers; generic events vocabulary alone is not an identity anchor.",
+    "afterSector": "events_culture",
+    "afterKey": "events",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-028.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-028.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-033.test",
+    "url": "https://holdout-033.test/",
+    "catalogKey": "wholesale",
+    "expectedSector": "general_business",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "Catalogue has wholesale, but declaration table lacks wholesale identity; audience installers correctly does not prove a trade.",
+    "afterSector": "general_business",
+    "afterKey": "wholesale",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-033.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-033.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-035.test",
+    "url": "https://holdout-035.test/",
+    "catalogKey": "food_delivery",
+    "expectedSector": "hospitality",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No declaration for meal-delivery operator; menu/order signals alone correctly do not prove a retail shop.",
+    "afterSector": "hospitality",
+    "afterKey": "food_delivery",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-035.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-035.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-038.test",
+    "url": "https://holdout-038.test/",
+    "catalogKey": "software_app",
+    "expectedSector": "saas_b2b",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No general software-application declaration; download/subscription evidence not linked to own identity.",
+    "afterSector": "saas_b2b",
+    "afterKey": "software_app",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-038.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-038.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-040.test",
+    "url": "https://holdout-040.test/",
+    "catalogKey": "photography",
+    "expectedSector": "professional_services",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No photographer declaration despite title and own portfolio/quotation description.",
+    "afterSector": "professional_services",
+    "afterKey": "photography",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-040.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-040.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-041.test",
+    "url": "https://holdout-041.test/",
+    "catalogKey": "medical_clinic",
+    "expectedSector": "health_wellness",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "French clinique médicale missing; generic medical metadata does not pass existing identity vocabulary.",
+    "afterSector": "health_wellness",
+    "afterKey": "health_wellness",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-041.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-041.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-044.test",
+    "url": "https://holdout-044.test/",
+    "catalogKey": "childcare",
+    "expectedSector": "education",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No childcare declaration despite own day-care, child groups and pedagogical policy.",
+    "afterSector": "education",
+    "afterKey": "childcare",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-044.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-044.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-045.test",
+    "url": "https://holdout-045.test/",
+    "catalogKey": "senior_care",
+    "expectedSector": "health_wellness",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No elderly/nursing-home declaration; healthcare identity vocabulary limited to hospitals/practices.",
+    "afterSector": "health_wellness",
+    "afterKey": "senior_care",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-045.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-045.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-048.test",
+    "url": "https://holdout-048.test/",
+    "catalogKey": "parking",
+    "expectedSector": "transport_travel",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No parking-operator declaration despite managed parking and reservation evidence.",
+    "afterSector": "transport_travel",
+    "afterKey": "parking",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-048.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-048.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-051.test",
+    "url": "https://holdout-051.test/",
+    "catalogKey": "holiday_rental",
+    "expectedSector": "hospitality",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No holiday-rental declaration in declared table; French locations de vacances not anchored by legacy lodging.",
+    "afterSector": "hospitality",
+    "afterKey": "holiday_rental",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-051.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-051.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-053.test",
+    "url": "https://holdout-053.test/",
+    "catalogKey": "camping",
+    "expectedSector": "hospitality",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No campsite declaration in declared table; German Campingplatz not anchored by legacy lodging.",
+    "afterSector": "hospitality",
+    "afterKey": "camping",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-053.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-053.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-054.test",
+    "url": "https://holdout-054.test/",
+    "catalogKey": "coworking",
+    "expectedSector": "professional_services",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No coworking declaration despite own desks/meeting rooms/memberships.",
+    "afterSector": "professional_services",
+    "afterKey": "coworking",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-054.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-054.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-061.test",
+    "url": "https://holdout-061.test/",
+    "catalogKey": "maritime_ports",
+    "expectedSector": "maritime_ports",
+    "beforeSector": "government",
+    "beforeConfidence": 84,
+    "causeCategory": "specific_identity_veto",
+    "cause": "Declared maritime identity already corroborated by homepage and /about; acceptance veto prevents refinement of EU generic government authority.",
+    "afterSector": "maritime_ports",
+    "afterKey": "maritime_ports",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-061.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-061.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-063.test",
+    "url": "https://holdout-063.test/",
+    "catalogKey": "agriculture_horticulture",
+    "expectedSector": "agriculture_horticulture",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "Whole-word tuinbouw does not match compound tuinbouwbedrijf.",
+    "afterSector": "agriculture_horticulture",
+    "afterKey": "agriculture_horticulture",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-063.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-063.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-064.test",
+    "url": "https://holdout-064.test/",
+    "catalogKey": "architecture_design",
+    "expectedSector": "professional_services",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "German architekturbüro missing (architektenbüro present); German planning/design context also missing.",
+    "afterSector": "professional_services",
+    "afterKey": "architecture_design",
+    "afterConfidence": 88,
+    "afterEvidence": [
+      "https://holdout-064.test/: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "https://holdout-064.test/about: Eigen organisatieactiviteit ondersteund door meerdere onafhankelijke metadata-velden",
+      "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"
+    ],
+    "correct": true
+  },
+  {
+    "host": "holdout-068.test",
+    "url": "https://holdout-068.test/",
+    "catalogKey": "manufacturer",
+    "expectedSector": "manufacturing_industrial",
+    "beforeSector": "unknown",
+    "beforeConfidence": 0,
+    "causeCategory": "missing_identity_or_language_rule",
+    "cause": "No general manufacturer declaration; existing rules cover semiconductor and infrastructure specialisms, not generic equipment producers.",
+    "afterSector": "manufacturing_industrial",
+    "afterKey": "manufacturer",
+    "afterConfidence": 76,
+    "afterEvidence": [
+      "Eigen bedrijfsomschrijving op de homepage: Industrie & productie"
+    ],
+    "correct": true
+  }
+]

@@ -1,0 +1,339 @@
+{
+  "id": "sector-acceptance-20261021",
+  "created": "2026-10-21",
+  "status": "PROPOSED_NOT_APPROVED",
+  "instruction": "Bron: gebruikersvoorstel. Dit is geen vastgestelde ground truth. Onzekerheden (multi-activity groups, type site versus sector) moeten per site onafhankelijk worden bevestigd vóór de benchmark-gate mag gelden.",
+  "approvalPolicy": "Per site onafhankelijke inhoudelijke reviewer; citeer primaire bron en controleer URL/regio, uiteindelijke hoofdsector, subtype en secundaire activiteiten. Review door dezelfde persoon die enginewijzigingen bouwt telt niet als onafhankelijk bewijs.",
+  "thresholds": {
+    "minimumMainAccuracy": 0.95,
+    "minimumSubtypeAccuracy": 0.9,
+    "minimumRepeatConsistency": 1,
+    "confidenceUnknownBelow": 75
+  },
+  "sites": [
+    {
+      "host": "stripe.com",
+      "url": "https://stripe.com/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Betaaldienst",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "payments"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "mollie.com",
+      "url": "https://mollie.com/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Betaaldienst",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "payments"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "paypal.com",
+      "url": "https://paypal.com/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Betaaldienst / digitale wallet",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "payments"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "adyen.com",
+      "url": "https://adyen.com/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Betaaldienst",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "payments"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "ing.nl",
+      "url": "https://ing.nl/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Bank",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "bank"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "asr.nl",
+      "url": "https://asr.nl/",
+      "proposed": {
+        "mainLabel": "Financiële diensten",
+        "subtypeLabel": "Verzekeraar",
+        "expectedMain": "financial_services",
+        "expectedSubtype": "insurer"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "vesteda.com",
+      "url": "https://vesteda.com/",
+      "proposed": {
+        "mainLabel": "Vastgoed",
+        "subtypeLabel": "Verhuurder / woningbelegger",
+        "expectedMain": "real_estate",
+        "expectedSubtype": "institutional_property_rental"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": "Geen makelaar: institutionele verhuurder en woningbelegger"
+    },
+    {
+      "host": "funda.nl",
+      "url": "https://funda.nl/",
+      "proposed": {
+        "mainLabel": "Vastgoed",
+        "subtypeLabel": "Platform / makelaarsportaal",
+        "expectedMain": "real_estate",
+        "expectedSubtype": "property_portal"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "bosch.de",
+      "url": "https://bosch.de/",
+      "proposed": {
+        "mainLabel": "Industrie & technologie",
+        "subtypeLabel": "Industrieel technologieconcern (corporate website)",
+        "expectedMain": "manufacturing_industrial",
+        "expectedSubtype": "industrial_technology_group"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": "Corporate = paginatype; hoofdsector = industrie/technologie; nevenactiviteiten kunnen retail/energie/mobility omvatten"
+    },
+    {
+      "host": "bol.com",
+      "url": "https://bol.com/",
+      "proposed": {
+        "mainLabel": "Retail",
+        "subtypeLabel": "Marktplaats",
+        "expectedMain": "ecommerce",
+        "expectedSubtype": "marketplace"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "coolblue.nl",
+      "url": "https://coolblue.nl/",
+      "proposed": {
+        "mainLabel": "Retail",
+        "subtypeLabel": "Elektronicawinkel (energie secundair)",
+        "expectedMain": "ecommerce",
+        "expectedSubtype": "electronics_retail"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": "Energiedienst is een aparte nevenactiviteit; hoofddomein is retail"
+    },
+    {
+      "host": "ah.nl",
+      "url": "https://ah.nl/",
+      "proposed": {
+        "mainLabel": "Retail",
+        "subtypeLabel": "Supermarkt",
+        "expectedMain": "ecommerce",
+        "expectedSubtype": "supermarket"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "booking.com",
+      "url": "https://booking.com/",
+      "proposed": {
+        "mainLabel": "Reizen & toerisme",
+        "subtypeLabel": "Accommodatieboekingsplatform",
+        "expectedMain": "tourism_recreation",
+        "expectedSubtype": "accommodation_booking_platform"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": "Platform dat accommodaties boekt, geen hotel"
+    },
+    {
+      "host": "umcutrecht.nl",
+      "url": "https://umcutrecht.nl/",
+      "proposed": {
+        "mainLabel": "Zorg",
+        "subtypeLabel": "Academisch ziekenhuis (onderwijs secundair)",
+        "expectedMain": "health_wellness",
+        "expectedSubtype": "academic_hospital"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": "Zorg primair, opleiding/onderzoek secundair"
+    },
+    {
+      "host": "tudelft.nl",
+      "url": "https://tudelft.nl/",
+      "proposed": {
+        "mainLabel": "Onderwijs",
+        "subtypeLabel": "Universiteit",
+        "expectedMain": "education",
+        "expectedSubtype": "university"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "rijksoverheid.nl",
+      "url": "https://rijksoverheid.nl/",
+      "proposed": {
+        "mainLabel": "Overheid",
+        "subtypeLabel": "Landelijke overheid",
+        "expectedMain": "government",
+        "expectedSubtype": "national_government"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "nu.nl",
+      "url": "https://nu.nl/",
+      "proposed": {
+        "mainLabel": "Media & nieuws",
+        "subtypeLabel": "Nieuwssite",
+        "expectedMain": "news_media",
+        "expectedSubtype": "news_site"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    },
+    {
+      "host": "slack.com",
+      "url": "https://slack.com/",
+      "proposed": {
+        "mainLabel": "SaaS / B2B",
+        "subtypeLabel": "Samenwerkingssoftware",
+        "expectedMain": "saas_b2b",
+        "expectedSubtype": "collaboration_software"
+      },
+      "review": {
+        "status": "pending_independent_review",
+        "approvedBy": null,
+        "approvedAt": null,
+        "sourceUrls": [],
+        "notes": ""
+      },
+      "notes": null
+    }
+  ]
+}

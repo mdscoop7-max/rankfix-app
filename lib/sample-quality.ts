@@ -1,4 +1,5 @@
-import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeStorePage } from "./product-links.ts";
+import { schemaTypesOf } from "./schema-type.ts";
+import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeLocationPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
 /**
@@ -10,7 +11,7 @@ export const FINANCIAL_OFFER_SCHEMA_TYPES: ReadonlySet<string> = new Set(["finan
 export function isFinancialOfferSchema(types: string[]): boolean {
   return types.some((type) => FINANCIAL_OFFER_SCHEMA_TYPES.has(String(type).toLowerCase()));
 }
-export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other";
+export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other";
 
 export function refineSamplePageType(input: {
   proposed: SamplePageType;
@@ -31,16 +32,54 @@ export function refineSamplePageType(input: {
   productSchemaCount?: number;
   /** The page describes a financial offer (account, loan, card, insurance) in its structured data. */
   financialOffer?: boolean;
+  /**
+   * The page's own identity (title, description, H1) or typed schema describes a
+   * service the visitor can use (send, apply, open, book, rates...), in any EU language.
+   */
+  serviceEvidence?: boolean;
+  /** The page carries its own publication date (datePublished, article:published_time, <time> in an <article>). */
+  datedArticle?: boolean;
+  /** Platform single-product markup (WooCommerce single-product / main add-to-cart, Magento product-info-main). */
+  singleProductMarkup?: boolean;
+  /**
+   * Type from the page's own heading/title/schema (lib/page-identity.ts). Content
+   * decides over the URL: a privacy or accessibility statement is legal, an FAQ is
+   * support, a branch overview a location, a price list a service page.
+   */
+  identity?: { type: "legal" | "support" | "contact" | "location" | "pricing"; reason: string } | null;
+  /**
+   * Content proof of ONE product, independent of the URL: one H1, one or two
+   * prices (regular/sale) next to it before any related-products block, and an
+   * enabled purchase button.
+   */
+  singleProductZone?: boolean;
+  /**
+   * Content proof of ONE offer without Product schema (Fresh144 6 Nov, custom shops
+   * without JSON-LD): one or two prices in explicit price markup (itemprop=price,
+   * a price-classed element), a real cart action (cart form/hook, not "buy now").
+   */
+  singleMarkedOffer?: boolean;
+  /**
+   * The offer is priced per period (per maand/month/jaar…) and the page shows no
+   * stock state: a subscription or plan (software, telecom, membership), not
+   * merchandise. Financing lines ("€12 per maand") on an in-stock product do not count.
+   */
+  subscriptionOffer?: boolean;
 }): SamplePageType {
   const { proposed } = input;
-  if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
+  // Legal, FAQ and contact headings decide at once; a price or branch heading only
+  // after the article check (a dated news item "New rates" stays an article).
+  const identity = proposed !== "homepage" ? input.identity : null;
+  if (identity && (identity.type === "legal" || identity.type === "support" || identity.type === "contact")) return identity.type;
+  if (["homepage", "legal", "support", "form", "contact", "location"].includes(proposed)) return proposed;
   const path = input.path || "";
   if (/\/(?:contact|contact-us|contacteer|kontakt)\/?$/i.test(path)) return "contact";
   // Press releases, news and blog posts are articles, whatever links or a shop
   // elsewhere on the site suggest; a purchase action on the page itself is needed
   // before an editorial URL can be a product.
   const editorial = looksLikeEditorialPath(path) || /\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path);
-  if (input.articleSchema || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
+  if (input.articleSchema || input.datedArticle || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
+  if (identity) return identity.type === "pricing" ? "service" : identity.type;
   if (input.eventSchema || (looksLikeEventPath(path) && !input.purchaseAction)) return "event";
   if (looksLikeCorporatePath(path) && !input.productSchema && !input.purchaseAction) return "corporate";
   // An account, loan, card or insurance page is a service page, even below /produkty/ or
@@ -50,13 +89,36 @@ export function refineSamplePageType(input: {
   // unless there is also confirmed product detail evidence.
   // A category archive, store finder or a page listing several Products is a
   // collection even when it carries Product schema and add-to-cart buttons.
-  if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" ? "other" : proposed;
+  // A store finder / branch page is a location page, never a product range.
+  if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" || proposed === "other" ? (looksLikeLocationPath(path) ? "location" : "other") : proposed;
   // An ItemList of articles or topics is not a product range: a collection also
   // shows prices, a purchase action or Product objects.
   const commerceOnPage = input.visiblePrices > 0 || input.purchaseAction || (input.productSchemaCount || 0) > 0;
-  const collection = looksLikeCategoryPath(path) || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
+  // A catalogue-like URL is only a weak hint: a hub that lists services or offers
+  // without products, prices or purchase actions is not a product category
+  // (field reports 16-10: postal service pages typed "category").
+  const pathCollection = looksLikeCategoryPath(path) && (commerceOnPage || input.repeatedProductLinks || input.itemListSchema);
+  // Several independent Product objects make a collection. Related or accessory
+  // products nested inside the page's own Product are not counted (see
+  // countIndependentProducts), so a product detail page stays a product page.
+  // One product on the page itself beats a category-like URL and a related grid.
+  if (input.singleProductZone && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return input.subscriptionOffer && !input.productSchema ? "service" : "product";
+  // One marked price + a cart action + one heading is one product, whatever the URL
+  // or a related-products grid suggests; the same template therefore gets the same
+  // type on every product of the shop. A priced plan without stock is a service.
+  if (input.singleMarkedOffer && input.purchaseAction && input.uniqueH1 && (input.productSchemaCount || 0) <= 1 && !input.itemListSchema) return input.subscriptionOffer && !input.productSchema ? "service" : "product";
+  const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
+  // A product detail page with a "related products" grid (QA #207).
+  if (input.singleProductMarkup && (input.purchaseAction || input.productOffer || input.visiblePrices > 0)) return "product";
+  // A grid of three or more linked products with prices, without the page's own
+  // single Product and without a model/article number, lists products: it is a
+  // collection, even below /producten/ or /products/ (QA #203).
+  const ownSingleProduct = input.productSchema && (input.productSchemaCount || 1) === 1;
+  if (input.repeatedProductLinks && input.visiblePrices >= 3 && !ownSingleProduct && !input.detailIdentity) return "category";
   if (input.productSchema) return "product";
+  // The page's own content describes a service and it sells nothing itself.
+  if (input.serviceEvidence && !input.purchaseAction && !input.productSchema && ["other", "category", "product"].includes(proposed)) return "service";
   // A deeply nested product/variant route with a concrete model number and
   // a single detail heading is stronger than its generic parent /shop category.
   // This is page typing only, never proof of checkout or an Offer.
@@ -72,11 +134,90 @@ export function refineSamplePageType(input: {
     return "category";
   // Standalone topic/category hubs and commerce/shop indexes are collections,
   // not miscellaneous pages. Preserve "other" for genuinely unclassified pages.
-  if (proposed === "other" && /\/(?:[^/]+-)?(?:shop|store|catalogus|catalog|assortiment|collectie|collection|categorieen|categories|smarthome|smart-home|gaming)\/?$/i.test(path)) return "category";
+  if ((proposed === "other" || proposed === "category") && /\/(?:[^/]+-)?(?:shop|store|catalogus|catalog|assortiment|collectie|collection|categorieen|categories|smarthome|smart-home|gaming)\/?$/i.test(path)) return "category";
+  // A category proposed from URL shape alone, without any collection evidence on
+  // the page, is not a proven product category, unless the path itself sits in an
+  // explicit shop section (listings there are often rendered client-side).
+  if (proposed === "category" && !commerceOnPage && !input.repeatedProductLinks && !input.itemListSchema && !/\/(?:shop|store|webshop|winkel|boutique|negozio|tienda|sklep|loja|kauppa|butik|e-?shop)(?:\/|$)/i.test(path)) return "other";
   if (proposed === "other" && /\/(?:tv|televisie|streaming|internet|bellen|mobiel-abonnement)\/?$/i.test(path)) return "service";
   if (proposed === "other" && (input.serviceOffer || /\/(?:diensten?|services?|solutions?|oplossingen?|behandelingen?)\//i.test(path))) return "service";
   return proposed;
 }
+
+/**
+ * Service intent in a page's OWN identity (title, meta description, H1), in EU
+ * languages: actions a visitor takes with a service provider (send a parcel, open
+ * an account, apply, book, request) and rate/plan vocabulary. Used only together
+ * with "no purchase action and no Product schema", so a shop page never becomes a
+ * service page. No brand, domain or sector vocabulary.
+ */
+export const SERVICE_INTENT = /(?<![\p{L}])(?:\p{L}*lessen|lessons?|(?:personal |group |small group |groeps)?trainings?|trainingen|workshops?|cursus(?:sen)?|courses?|kurse?|cours|corsi|clases|coaching|behandeling(?:en)?|treatments?|massages?|diensten|dienstverlening|aanvragen|afsluiten|versturen|verzenden|aangetekend|tarieven|abonnement(?:en)?|service[s]?|solutions?|apply|request|open an account|send(?:ing)? a (?:parcel|letter|package)|ship(?:ping)? (?:a )?(?:parcel|package)|track(?:ing)? (?:a |your )?(?:parcel|shipment)|rates|plans|envoyer|exp[ée]dier|exp[ée]dition|envoi|souscrire|ouvrir un compte|demander|suivre (?:un|votre) (?:envoi|colis)|tarifs|offres?|solutions? d|versenden|verschicken|beantragen|abschlie(?:ß|ss)en|er[öo]ffnen|tarife|leistungen|l[öo]sungen|spedire|spedizion[ei]|richied[ei]re|richiedi|aprire (?:un|il) conto|attivare|tariffe|servizi[o]?|soluzioni|enviar|env[ií]o|solicitar|contratar|abrir una cuenta|tarifas|servicios?|soluciones|wy[śs]lij|wysy[łl]k[aią]|za[łl][óo][żz]|otw[óo]rz|wniosek|z[łl][óo][żz] wniosek|us[łl]ug[aiy]?|cennik|oferta|rozwi[ąa]zania|leasing|konto (?:osobiste|firmowe)|abrir conta|servi[çc]os|solicitar|customer support|support portal|supplier portal|customer portal|portal|klantenservice|kundenservice|kundendienst|service client|assistenza clienti|atenci[óo]n al cliente|obs[łl]uga klienta)(?![\p{L}])/iu;
+
+/**
+ * Number of schema.org Product objects in a page's JSON-LD that are not nested
+ * inside another Product (isRelatedTo, isSimilarTo, isAccessoryOrSparePartFor,
+ * hasVariant...). Products inside an ItemList still count: that is a grid.
+ */
+export function countIndependentProducts(html: string): number {
+  let count = 0;
+  // A ProductGroup (hasVariant) is ONE product: its variants are sizes/colours of
+  // the same article, not a grid (QA10: variant pages typed "category").
+  const isProduct = (value: Record<string, unknown>) => {
+    const types = schemaTypesOf(value);
+    return types.some((type) => /^(?:product|productgroup)$/.test(String(type || "").toLowerCase()));
+  };
+  // Shopify/WooCommerce themes and review apps often emit the SAME product twice
+  // (theme JSON-LD + app JSON-LD, or one with a placeholder name "Product").
+  // Stored allbirds/gymshark product pages were typed "category" for that reason
+  // (6 Nov). Product objects are counted by identity (@id, url, sku, gtin, name);
+  // nameless or placeholder objects merge with the page's identified product.
+  const identities = new Set<string>();
+  let anonymous = 0;
+  let groups = 0;
+  const identityOf = (node: Record<string, unknown>): string | null => {
+    for (const field of ["@id", "url", "sku", "productID", "gtin13", "gtin", "mpn"]) {
+      const v = node[field];
+      if (typeof v === "string" && v.trim()) return `${field === "url" || field === "@id" ? "u" : "s"}:${v.trim().toLowerCase().replace(/[#?].*$/, "").replace(/\/$/, "")}`;
+    }
+    const name = typeof node.name === "string" ? node.name.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    return name && !/^(?:product|products?|item|artikel|produkt|produit)$/.test(name) ? `n:${name}` : null;
+  };
+  const walk = (value: unknown, insideProduct: boolean, depth: number) => {
+    if (!value || typeof value !== "object" || depth > 12) return;
+    if (Array.isArray(value)) { for (const item of value) walk(item, insideProduct, depth + 1); return; }
+    const node = value as Record<string, unknown>;
+    const product = isProduct(node);
+    if (product && !insideProduct) {
+      count++;
+      if (schemaTypesOf(node).some((t) => String(t || "").toLowerCase() === "productgroup")) groups++;
+      const id = identityOf(node);
+      if (id) identities.add(id); else anonymous++;
+    }
+    for (const nested of Object.values(node)) walk(nested, insideProduct || product, depth + 1);
+  };
+  for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { walk(JSON.parse(match[1]), false, 0); } catch { /* invalid JSON-LD is reported elsewhere */ }
+  }
+  if (count <= 1) return count;
+  // One ProductGroup is one article; separate Product objects next to it are its
+  // variants (Shopify/WooCommerce variant markup), not a product grid.
+  if (groups === 1) return 1;
+  // Same product under a url-key and a name/sku-key: one URL identity + others
+  // without a URL is still one product only when exactly one URL identity exists
+  // and at most one name identity. A real grid has several distinct names/URLs.
+  const urlIds = [...identities].filter((id) => id.startsWith("u:"));
+  // Variant names extend the article name ("Runner NZ" / "Runner NZ - Size 8",
+  // "SoftSense Shorts" / "SoftSense Shorts - Red - XS"): one article.
+  const names = [...identities].filter((id) => id.startsWith("n:")).map((id) => id.slice(2)).sort((a, b) => a.length - b.length);
+  const articleNames = names.filter((n, i) => !names.slice(0, i).some((base) => base.length >= 6 && n.startsWith(base)));
+  const otherIds = [...[...identities].filter((id) => id.startsWith("s:")), ...articleNames.map((n) => `n:${n}`)];
+  if (urlIds.length <= 1 && otherIds.length <= 1) return 1;
+  const distinct = urlIds.length + otherIds.length;
+  return Math.max(distinct, 1) + (distinct ? 0 : anonymous > 0 ? 1 : 0);
+}
+
+/** schema.org types that describe a service offer rather than merchandise. */
+export const SERVICE_SCHEMA_TYPES: ReadonlySet<string> = new Set(["service", "professionalservice", "governmentservice", "financialservice", "broadcastservice", "cableorsatelliteservice", "foodservice", "taxi", "taxiservice", "webapi"]);
 
 // Avoid calling an under-observed JS shell a 100/100 page. HTTP availability
 // alone is not a title/description/H1/canonical assessment.
@@ -97,4 +238,16 @@ export function missingJsHeadEvidenceUnverified(input: {
   clientShell: boolean;
 }): boolean {
   return !input.rendered && (input.frameworkSignal || input.clientShell);
+}
+
+/**
+ * A price quoted per period ("€ 9,99 per maand", "$12/mo", "79 €/Jahr", "€5 p/m"),
+ * in EU languages. Only meaningful together with "no stock state" (see
+ * refineSamplePageType.subscriptionOffer).
+ */
+export function subscriptionPriced(text: string): boolean {
+  const period = String.raw`(?:maand|mnd|md|month|mo|year|yr|jaar|jr|mois|an|monat|jahr|mese|anno|mes|año|miesi[ąa]c|rok)`;
+  const price = String.raw`(?:(?:€|£|\$|EUR|USD|GBP)\s?\d{1,5}(?:[.,]\d{2}|,-)?|\d{1,5}(?:[.,]\d{2}|,-)?\s?(?:€|EUR|zł))`;
+  return new RegExp(String.raw`${price}\s*(?:(?:per|pro|par|\/)\s*(?:user|gebruiker|device|apparaat|seat|licen[sc]e|licentie|nutzer|utilisateur|utente|usuario|endpoint)\s*)?(?:\/\s*|per\s+|p\/|pro\s+|par\s+|al\s+|a(?:l)?\s+|por\s+|\s)${period}(?![\p{L}])`, "iu").test(String(text || ""))
+    || /\bp\/m\b/i.test(String(text || "").match(/(?:€|EUR)\s?\d{1,5}[^\n]{0,6}p\/m/i)?.[0] || "");
 }

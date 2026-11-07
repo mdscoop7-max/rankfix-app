@@ -3,12 +3,22 @@
  * Performance scores never become SEO/GEO points and never authorize a code fix.
  * Configure PAGESPEED_API_KEY server-side to enable measured results.
  */
+export type SpeedFailureCode = "not_configured" | "quota_limited" | "key_rejected" | "api_disabled" | "timeout" | "provider_unavailable" | "invalid_response" | "invalid_url" | "measurement_failed" | "scan_budget_exhausted" | "site_refused_scanner" | "site_not_reached";
+export type SpeedAdvice = { kind: "images" | "scripts" | "layout"; auditId: string; target: string | null };
+export type SpeedField = { inpMs: number | null; lcpMs?: number | null; cls?: number | null; scope?: "url" | "origin" | null };
 export type SpeedDevice = {
   status: "measured" | "unavailable";
   score: number | null;
-  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null; speedIndexMs: number | null };
-  field: { inpMs: number | null };
+  // speedIndexMs is optional: reports saved before it was parsed do not carry it.
+  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null; speedIndexMs?: number | null };
+  field: SpeedField;
+  advice?: SpeedAdvice[];
   reason: string | null;
+  reasonCode?: SpeedFailureCode | null;
+  httpStatus?: number;
+  attempts?: number;
+  measuredAt?: string | null;
+  lighthouseVersion?: string | null;
 };
 export type WebsiteSpeed = {
   source: "Google PageSpeed Insights";
@@ -21,15 +31,16 @@ export type WebsiteSpeed = {
 };
 const finite = (n: unknown): number | null =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
-const emptyDevice = (reason: string): SpeedDevice => ({
+const emptyDevice = (reason: string, reasonCode: SpeedFailureCode = "invalid_response"): SpeedDevice => ({
   status: "unavailable", score: null,
   lab: { fcpMs: null, lcpMs: null, cls: null, tbtMs: null, speedIndexMs: null },
-  field: { inpMs: null }, reason,
+  field: { inpMs: null }, reason, reasonCode,
 });
 export function parsePageSpeed(input: unknown): SpeedDevice {
   if (!input || typeof input !== "object") return emptyDevice("Ongeldig meetresultaat");
   const record = input as Record<string, unknown>;
   const lighthouse = record.lighthouseResult as Record<string, unknown> | undefined;
+  if (lighthouse?.runtimeError) return emptyDevice("De meetdienst kon de pagina niet betrouwbaar meten.", "measurement_failed");
   const categories = lighthouse?.categories as Record<string, unknown> | undefined;
   const performance = categories?.performance as Record<string, unknown> | undefined;
   const fraction = finite(performance?.score);
@@ -38,8 +49,19 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
   const auditMetric = (key: string) =>
     finite((audits?.[key] as Record<string, unknown> | undefined)?.numericValue);
   const crux = record.loadingExperience as Record<string, unknown> | undefined;
-  const metrics = crux?.metrics as Record<string, unknown> | undefined;
+  const pageMetrics = crux?.metrics as Record<string, unknown> | undefined;
+  const origin = record.originLoadingExperience as Record<string, unknown> | undefined;
+  const originMetrics = origin?.metrics as Record<string, unknown> | undefined;
+  // Page-level CrUX is preferred. Only fall back to origin data when the URL has no metrics.
+  const usingOrigin = !pageMetrics || Object.keys(pageMetrics).length === 0;
+  const metrics = usingOrigin ? originMetrics : pageMetrics;
   const inp = metrics?.INTERACTION_TO_NEXT_PAINT as Record<string, unknown> | undefined;
+  const lcp = metrics?.LARGEST_CONTENTFUL_PAINT_MS as Record<string, unknown> | undefined;
+  const cls = metrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE as Record<string, unknown> | undefined;
+  // CrUX CLS percentile is represented as an integer scaled by 100: 8 means 0.08.
+  const rawCls = finite(cls?.percentile);
+  const hasField = [finite(inp?.percentile), finite(lcp?.percentile), rawCls].some(v => v !== null);
+  const scope = hasField ? usingOrigin || crux?.origin_fallback === true ? "origin" : "url" : null;
   return {
     status: "measured",
     score: Math.round(fraction * 100),
@@ -50,67 +72,154 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
       tbtMs: auditMetric("total-blocking-time"),
       speedIndexMs: auditMetric("speed-index"),
     },
-    field: { inpMs: finite(inp?.percentile) },
-    reason: null,
+    field: { inpMs: finite(inp?.percentile), lcpMs: finite(lcp?.percentile), cls: rawCls === null ? null : rawCls / 100, scope },
+    advice: extractSpeedAdvice(audits),
+    reason: null, reasonCode: null,
+    measuredAt: typeof lighthouse?.fetchTime === "string" && Number.isFinite(Date.parse(lighthouse.fetchTime)) ? lighthouse.fetchTime : null,
+    lighthouseVersion: typeof lighthouse?.lighthouseVersion === "string" ? lighthouse.lighthouseVersion : null,
   };
 }
+
+/** Include a suggestion only when a named Lighthouse audit failed. */
+function extractSpeedAdvice(audits: Record<string, unknown> | undefined): SpeedAdvice[] {
+  if (!audits) return [];
+  const groups: Array<{kind: SpeedAdvice["kind"]; ids: string[]}> = [
+    {kind:"images",ids:["image-delivery-insight","uses-optimized-images","modern-image-formats","uses-responsive-images","offscreen-images"]},
+    {kind:"scripts",ids:["render-blocking-insight","render-blocking-resources","unused-javascript","bootup-time","legacy-javascript-insight"]},
+    {kind:"layout",ids:["cls-culprits-insight","layout-shift-elements"]},
+  ];
+  // We never store query strings, fragments, credentials or unbounded DOM text.
+  const safeTarget = (v: unknown): string | null => {
+    if (typeof v !== "string" || !v || v.length > 2048) return null;
+    try {
+      const url = new URL(v);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+      return (url.hostname + url.pathname).slice(0,160);
+    } catch { return /^[#.\w\-\s>:[\]="']{1,120}$/.test(v) ? v : null; }
+  };
+  const out: SpeedAdvice[] = [];
+  for (const group of groups) for (const id of group.ids) {
+    const audit = audits[id] as Record<string, unknown> | undefined;
+    if (!audit || typeof audit !== "object") continue;
+    const score = finite(audit.score);
+    if (score === null || score >= 0.9) continue;
+    const details = audit.details as Record<string, unknown> | undefined;
+    const items = Array.isArray(details?.items) ? details.items as Record<string,unknown>[] : [];
+    let target: string | null = null;
+    for (const item of items.slice(0,12)) {
+      if (!item || typeof item !== "object") continue;
+      const node = item.node as Record<string,unknown> | undefined;
+      target = safeTarget(item.url) ?? safeTarget(node?.selector) ?? safeTarget(item.selector);
+      if (target) break;
+    }
+    out.push({kind:group.kind,auditId:id,target});
+    break;
+  }
+  return out;
+}
+
+// The diagnostic codes are stored; provider error text and keys are never exposed.
+function providerFailure(status: number, body: unknown, configured: boolean): SpeedDevice {
+  const error = body && typeof body === "object" ? (body as {error?: {errors?: Array<{reason?: string}>;details?: Array<{reason?: string}>}}).error : undefined;
+  const items = [...(Array.isArray(error?.errors) ? error.errors : []), ...(Array.isArray(error?.details) ? error.details : [])];
+  const reasons = items.map(item => item && typeof item === "object" && typeof item.reason === "string" ? item.reason : "").join(" ");
+  if (/accessNotConfigured|SERVICE_DISABLED|API_DISABLED/i.test(reasons)) return emptyDevice("De snelheidsmeetdienst is nog niet geactiveerd.", "api_disabled");
+  if (/keyInvalid|API_KEY_INVALID|API_KEY_SERVICE_BLOCKED|API_KEY_HTTP_REFERRER_BLOCKED|API_KEY_IP_ADDRESS_BLOCKED/i.test(reasons) || status === 401 || status === 403 && !/quota|limit|exceed/i.test(reasons)) return emptyDevice("De verbinding met de snelheidsmeetdienst moet worden gecontroleerd.", "key_rejected");
+  if (status === 429 || /quota|rateLimit|dailyLimit|RESOURCE_EXHAUSTED/i.test(reasons)) return emptyDevice(configured ? "De snelheidsmeetdienst heeft tijdelijk haar limiet bereikt." : "De snelheidsmeting is nog niet beschikbaar.", "quota_limited");
+  return emptyDevice("De snelheidsmeetdienst is tijdelijk niet beschikbaar.", "provider_unavailable");
+}
+
+/**
+ * Report for a scan whose own page request did not return HTTP 200 (refused by
+ * the site, or recovered through the browser after a time-out). No speed request
+ * is made, and both devices say why: a measurement of a refused or recovered page
+ * would not describe what visitors get.
+ */
+export function speedNotMeasured(url: string, httpStatus: number): WebsiteSpeed {
+  const refused = [401, 403, 405, 429].includes(httpStatus);
+  const reason = refused
+    ? `Niet gemeten: de website weigerde het verzoek van RankFix (HTTP ${httpStatus}). Mobiel en desktop worden alleen gemeten als de pagina zelf bereikbaar is.`
+    : "Niet gemeten: de pagina antwoordde niet normaal op het verzoek van RankFix. Mobiel en desktop worden alleen gemeten als de pagina zelf bereikbaar is.";
+  const code: SpeedFailureCode = refused ? "site_refused_scanner" : "site_not_reached";
+  return {
+    source: "Google PageSpeed Insights", status: "unavailable", measuredAt: new Date().toISOString(), url,
+    mobile: emptyDevice(reason, code), desktop: emptyDevice(reason, code),
+    note: "Geen snelheidsmeting voor deze scan; er zijn geen mobiele of desktopwaarden geschat.",
+  };
+}
+
 export async function measureWebsiteSpeed(
   url: string,
-  options: { apiKey?: string; fetcher?: typeof fetch; timeoutMs?: number } = {},
+  options: { apiKey?: string; fetcher?: typeof fetch; timeoutMs?: number; allowAnonymous?: boolean; now?: () => number; wait?: (ms: number) => Promise<void> } = {},
 ): Promise<WebsiteSpeed> {
   const report: WebsiteSpeed = {
-    source: "Google PageSpeed Insights",
-    status: "unavailable",
-    measuredAt: new Date().toISOString(),
-    url,
-    mobile: emptyDevice("Nog niet gemeten"),
-    desktop: emptyDevice("Nog niet gemeten"),
-    note: "Losse snelheidsmeting; niet meegewogen in SEO- of GEO-score. Geen automatische snelheidsfix.",
+    source: "Google PageSpeed Insights", status: "unavailable", measuredAt: new Date().toISOString(), url,
+    mobile: emptyDevice("Nog niet gemeten"), desktop: emptyDevice("Nog niet gemeten"),
+    note: "Snelheidsmeting binnen deze audit; niet meegewogen in SEO- of GEO-score. Geen automatische snelheidsfix.",
   };
-  const key = options.apiKey ?? process.env.PAGESPEED_API_KEY;
-  if (!key) {
-    report.mobile = emptyDevice("PageSpeed API nog niet geconfigureerd");
-    report.desktop = emptyDevice("PageSpeed API nog niet geconfigureerd");
-    return report;
+  const bothUnavailable = (reason: string, code: SpeedFailureCode) => {
+    report.mobile = emptyDevice(reason, code); report.desktop = emptyDevice(reason, code); return report;
+  };
+  // A missing credential is an environment issue, not a target website defect.
+  // Anonymous use is explicit so batch scans do not hammer a shared public quota.
+  // QA default: no external PageSpeed requests until explicitly enabled.
+  // Injected fetchers are test doubles; production scan calls never inject one.
+  if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true" && !options.fetcher) {
+    report.note = "Speed Test tijdelijk uitgeschakeld; geen externe PageSpeed-aanvragen.";
+    return bothUnavailable("Speed Test tijdelijk uitgeschakeld; later beschikbaar", "not_configured");
   }
-  // The scan route already validates the final public HTTP(S) URL. Do not
-  // submit credentials, URL fragments or unsupported protocols to the provider.
+  const key = (options.apiKey ?? process.env.PAGESPEED_API_KEY ?? "").trim();
+  const anonymous = options.allowAnonymous ?? process.env.PAGESPEED_ALLOW_ANONYMOUS === "1";
+  if (!key && !anonymous) return bothUnavailable("De snelheidsmeting is nog niet ingesteld voor deze omgeving.", "not_configured");
   let safeUrl: URL;
   try {
     safeUrl = new URL(url);
-    if (!["https:", "http:"].includes(safeUrl.protocol) || safeUrl.username || safeUrl.password)
-      throw new Error("unsupported_url");
+    if (!["https:", "http:"].includes(safeUrl.protocol) || safeUrl.username || safeUrl.password) throw new Error("unsupported_url");
     safeUrl.hash = "";
-  } catch {
-    report.mobile = emptyDevice("Ongeldige publieke URL");
-    report.desktop = emptyDevice("Ongeldige publieke URL");
-    return report;
-  }
+  } catch { return bothUnavailable("Ongeldige publieke URL", "invalid_url"); }
+  const rawBudget = options.timeoutMs ?? 45000;
+  if (!Number.isFinite(rawBudget) || rawBudget < 1000) return bothUnavailable("Binnen deze scan was onvoldoende tijd over voor een snelheidsmeting.", "scan_budget_exhausted");
+  const budget = Math.min(rawBudget, 60000);
+  const now = options.now ?? Date.now;
+  const deadline = now() + budget;
   const fetcher = options.fetcher ?? fetch;
-  const deadline = Math.max(1000, Math.min(options.timeoutMs ?? 20000, 25000));
+  const wait = options.wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   const getDevice = async (strategy: "mobile" | "desktop"): Promise<SpeedDevice> => {
     const api = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
-    api.searchParams.set("url", safeUrl.toString());
-    api.searchParams.set("strategy", strategy);
-    api.searchParams.set("category", "PERFORMANCE");
-    api.searchParams.set("key", key);
-    try {
-      const response = await fetcher(api.toString(), { signal: AbortSignal.timeout(deadline) });
-      if (!response.ok) {
-        const reason = response.status === 429 ? "PageSpeed-quota of snelheidslimiet bereikt (429)"
-          : response.status === 401 || response.status === 403 ? "PageSpeed API-sleutel of toegangsrechten controleren"
-          : response.status >= 500 ? "Google PageSpeed tijdelijk niet beschikbaar"
-          : `PageSpeed-meting mislukt (HTTP ${response.status})`;
-        return emptyDevice(reason);
+    api.searchParams.set("url", safeUrl.toString()); api.searchParams.set("strategy", strategy);
+    api.searchParams.set("category", "performance");
+    if (key) api.searchParams.set("key", key);
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const remaining = Math.floor(deadline - now());
+      if (remaining < 1) return {...emptyDevice("De snelheidsmeting duurde te lang.", "timeout"), attempts: attempt - 1};
+      try {
+        const response = await fetcher(api.toString(), { signal: AbortSignal.timeout(remaining), redirect: "error" });
+        let json: unknown = null;
+        try { json = await response.json(); } catch {
+          if (response.ok) return {...emptyDevice("De meetdienst gaf geen bruikbaar resultaat terug.", "invalid_response"), attempts: attempt, httpStatus: response.status};
+        }
+        if (response.ok) return {...parsePageSpeed(json), attempts: attempt, httpStatus: response.status};
+        const failure = providerFailure(response.status, json, Boolean(key));
+        const retryAfter = response.headers.get("retry-after");
+        const retryMs = retryAfter === null ? null : /^\d+$/.test(retryAfter) ? Number(retryAfter)*1000 : Date.parse(retryAfter)-now();
+        // Retry a transient service error once. Quota responses require Google's
+        // explicit short Retry-After and our own configured key. Never retry a
+        // rejected/disabled key, daily quota, or anonymous quota restriction.
+        const delay = response.status === 429 ? retryMs : 500;
+        const retryable = failure.reasonCode === "provider_unavailable" && [500,502,503,504].includes(response.status)
+          || response.status === 429 && Boolean(key) && retryMs !== null && retryMs >= 0 && retryMs <= 2000 && !/dailyLimit/i.test(JSON.stringify(json));
+        if (attempt === 1 && retryable && delay !== null && delay >= 0 && deadline-now() > delay+1000) { await wait(delay); continue; }
+        return {...failure, attempts: attempt, httpStatus: response.status};
+      } catch (error) {
+        const timedOut = now() >= deadline || error instanceof Error && /TimeoutError|AbortError/.test(error.name);
+        return {...emptyDevice(timedOut ? "De snelheidsmeting duurde te lang." : "De snelheidsmeetdienst kon niet worden bereikt.", timedOut ? "timeout" : "provider_unavailable"), attempts: attempt};
       }
-      const json = await response.json();
-      return parsePageSpeed(json);
-    } catch {
-      return emptyDevice("Snelheidsmeting niet te bevestigen (timeout of meetfout)");
     }
+    return emptyDevice("De snelheidsmeting kon niet worden bevestigd.", "provider_unavailable");
   };
   [report.mobile, report.desktop] = await Promise.all([getDevice("mobile"), getDevice("desktop")]);
   const n = Number(report.mobile.status === "measured") + Number(report.desktop.status === "measured");
   report.status = n === 2 ? "measured" : n === 1 ? "partial" : "unavailable";
+  report.measuredAt = new Date().toISOString();
   return report;
 }

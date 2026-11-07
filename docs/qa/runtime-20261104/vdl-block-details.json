@@ -1,0 +1,27 @@
+{
+  "detail": {
+    "pattern": "<meta[^>]+content\\s*=\\s*[\"']([\\s\\S]*?)[\"'][^>]+(?:name|property)\\s*=\\s*[\"']description[\"'][^>]*>",
+    "flags": "i",
+    "length": 836532
+  },
+  "frames": [
+    {
+      "fn": "firstMatch",
+      "url": "",
+      "location": {
+        "scriptId": "903",
+        "lineNumber": 317,
+        "columnNumber": 23
+      }
+    },
+    {
+      "fn": "runScan",
+      "url": "",
+      "location": {
+        "scriptId": "903",
+        "lineNumber": 2116,
+        "columnNumber": 156
+      }
+    }
+  ]
+}

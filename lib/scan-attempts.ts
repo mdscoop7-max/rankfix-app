@@ -12,11 +12,15 @@ export type ScanAttemptCategory =
   | "network"          // timeout, DNS, TLS, connection, redirect loop
   | "engine_error"     // RankFix failed while analysing
   | "save_failed"      // analysed, but storing the report failed
+  | "infrastructure"   // RankFix database/session lookup unavailable (never the website)
+  | "time_limit"       // RankFix stopped the scan itself before the platform limit
   | "function_timeout"; // the attempt never finished (platform killed the function)
 
 /** Network failure → stable code. Never contains raw runtime text. */
 export function fetchFailureCode(error: unknown): string {
+  if (error instanceof Error && error.message === "SCAN_INFRASTRUCTURE_EGRESS") return "SCAN_INFRASTRUCTURE_EGRESS";
   const text = `${error instanceof Error ? `${error.name} ${error.message}` : String(error)} ${(error as { cause?: { code?: string; message?: string } })?.cause?.code || ""} ${(error as { cause?: { message?: string } })?.cause?.message || ""}`;
+  if (/REDIRECT_LOOP/.test(text)) return "REDIRECT_LOOP";
   if (/REDIRECT_LIMIT/.test(text)) return "REDIRECT_LIMIT";
   if (/BODY_TIMEOUT/.test(text)) return "BODY_TIMEOUT";
   if (/RESPONSE_TOO_LARGE/.test(text)) return "RESPONSE_TOO_LARGE";
@@ -27,17 +31,57 @@ export function fetchFailureCode(error: unknown): string {
   return "FETCH_FAILED";
 }
 
+/**
+ * MKB-48 (6 Nov, akd.eu / cateringgroepnederland.nl FETCH_TLS): which part of
+ * TLS failed. Certificate faults (expired, wrong host name, self-signed,
+ * incomplete chain) are provable problems of the website itself; a handshake or
+ * protocol failure may also be the network, so it stays a network outcome.
+ */
+export type TlsFailureReason = "certificate_expired" | "hostname_mismatch" | "self_signed" | "incomplete_chain" | "certificate_not_yet_valid" | "handshake";
+export function tlsFailureReason(error: unknown): TlsFailureReason {
+  const cause = (error as { cause?: { code?: string; message?: string } })?.cause;
+  const text = `${error instanceof Error ? error.message : String(error)} ${cause?.code || ""} ${cause?.message || ""}`;
+  if (/CERT_HAS_EXPIRED|certificate has expired/i.test(text)) return "certificate_expired";
+  if (/CERT_NOT_YET_VALID/i.test(text)) return "certificate_not_yet_valid";
+  if (/ERR_TLS_CERT_ALTNAME_INVALID|Hostname\/IP does not match|altnames/i.test(text)) return "hostname_mismatch";
+  if (/DEPTH_ZERO_SELF_SIGNED_CERT|SELF_SIGNED_CERT_IN_CHAIN|self.signed/i.test(text)) return "self_signed";
+  if (/UNABLE_TO_VERIFY_LEAF_SIGNATURE|UNABLE_TO_GET_ISSUER_CERT|unable to verify the first certificate/i.test(text)) return "incomplete_chain";
+  return "handshake";
+}
+export const TLS_REASON_NL: Record<TlsFailureReason, string> = {
+  certificate_expired: "het HTTPS-certificaat van de website is verlopen",
+  certificate_not_yet_valid: "het HTTPS-certificaat van de website is nog niet geldig",
+  hostname_mismatch: "het HTTPS-certificaat hoort niet bij deze domeinnaam",
+  self_signed: "de website gebruikt een zelfondertekend HTTPS-certificaat",
+  incomplete_chain: "de certificaatketen van de website is onvolledig (tussencertificaat ontbreekt); sommige browsers vullen dat aan, zoekmachines en andere clients vaak niet",
+  handshake: "de beveiligde verbinding kon niet worden opgezet (TLS-handshake); niet bewezen of dit aan de website of aan het netwerk ligt",
+};
+
+/**
+ * MKB-48 (6 Nov, 3× FETCH_DNS): ENOTFOUND means the resolver answered that the
+ * name has no address (domain does not exist or has no website record): a fact
+ * about the domain. EAI_AGAIN / SERVFAIL is a temporary resolver failure.
+ */
+export function dnsDomainMissing(error: unknown): boolean {
+  const cause = (error as { cause?: { code?: string; message?: string } })?.cause;
+  const text = `${error instanceof Error ? error.message : String(error)} ${cause?.code || ""} ${cause?.message || ""}`;
+  return /ENOTFOUND|ENODATA|NXDOMAIN/.test(text) && !/EAI_AGAIN|SERVFAIL|ETIMEOUT|PRIVATE_DNS|NON_PUBLIC/.test(text);
+}
+
 /** HTTP status + response code → category. */
 export function classifyScanOutcome(httpStatus: number, code: string | null | undefined): ScanAttemptCategory {
   const c = String(code || "");
   if (httpStatus === 200) return "success";
   if (/SITE_RATE_LIMITED/.test(c)) return "site_blocked";
+  if (/AUTH_LOOKUP_UNAVAILABLE|DATABASE_QUOTA|SCAN_DATABASE|SCAN_INFRASTRUCTURE_EGRESS/.test(c)) return "infrastructure";
   if (/WEBSITE_LIMIT|SCAN_LIMIT|RATE_LIMIT/.test(c)) return "quota";
   if (/INVALID_URL|UNSAFE_URL|SESSION|SHARE_LINK/.test(c)) return "input";
-  if (/HTTP_BLOCKED|CHALLENGE|SITE_RATE_LIMITED/.test(c)) return "site_blocked";
-  if (/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML/.test(c)) return "site_unavailable";
-  if (/^FETCH_|REDIRECT_LIMIT|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
+  if (/HTTP_BLOCKED|HTTP_AUTH_REQUIRED|CHALLENGE|SITE_RATE_LIMITED|UNVERIFIED_NOT_FOUND/.test(c)) return "site_blocked";
+  if (/SITE_TLS_INVALID|SITE_DOMAIN_NOT_FOUND/.test(c)) return "site_unavailable";
+  if (/HTTP_NOT_FOUND|HTTP_PAYMENT_REQUIRED|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN|SITE_ERROR_PAGE/.test(c)) return "site_unavailable";
+  if (/^FETCH_|REDIRECT_LIMIT|REDIRECT_LOOP|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
   if (/HISTORY_SAVE/.test(c)) return "save_failed";
+  if (/^SCAN_TIMEOUT$/.test(c)) return "time_limit";
   if (httpStatus === 401 || httpStatus === 400) return "input";
   if (httpStatus === 429) return "quota";
   return "engine_error";

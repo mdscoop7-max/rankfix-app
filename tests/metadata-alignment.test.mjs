@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {metadataTopicMismatch as mismatch} from '../lib/metadata-alignment.ts';
+const concepts=[{type:'MedicalClinic',pattern:/\bclinic\b/i},{type:'Plumber',pattern:/\bplumber\b/i}];
+test('metadata disagreement needs corroboration in both metadata and content fields',()=>{assert.equal(mismatch('Dental implants','Our dental clinic',['Plumbing repairs'],['Our plumbing services'],concepts),true);assert.equal(mismatch('Dental implants','Our dental clinic',['Dental implants'],['Our clinic services'],concepts),false);assert.equal(mismatch('Dental implants','Our dental clinic',['Welcome'],['Our plumbing services'],concepts),false);});

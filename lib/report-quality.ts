@@ -14,6 +14,10 @@ export type RenderFailureCode =
   | "RENDER_DEGRADED"
   | "RENDER_NOT_SUBSTANTIVE"
   | "RENDER_LIMIT_REACHED"
+  | "BROWSER_CRASHED"
+  | "RENDER_DNS"
+  | "RENDER_TLS"
+  | "RENDER_NETWORK"
   | "RENDER_FAILED";
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
@@ -21,10 +25,16 @@ export function renderFailureCode(error: unknown): RenderFailureCode {
   if (/BROWSER_UNAVAILABLE|RENDER_CHROME_NOT_INSTALLED|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
   if (/RENDER_BUSY/.test(message)) return "RENDER_BUSY";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
-  if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
+  if (/\bDNS\b|ENOTFOUND|EAI_AGAIN|ERR_NAME_NOT_RESOLVED/i.test(message)) return "RENDER_DNS";
+  if (/ERR_CERT_|ERR_SSL_|CERT_HAS_EXPIRED|CERTIFICATE_VERIFY_FAILED|UNABLE_TO_VERIFY_LEAF_SIGNATURE/i.test(message)) return "RENDER_TLS";
+  if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
   if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
+  // QA-144: 18 of 93 renders ended as an unexplained RENDER_FAILED. Name the two
+  // common classes so a TestLab run shows why the browser did not finish.
+  if (/Target closed|Session closed|Protocol error|browser has disconnected|Navigating frame was detached|Execution context was destroyed|Connection closed|crash/i.test(message)) return "BROWSER_CRASHED";
+  if (/net::ERR_|ERR_(?:CONNECTION|NAME_NOT_RESOLVED|CERT|SSL|HTTP2|ABORTED|EMPTY_RESPONSE|TOO_MANY_REDIRECTS)/i.test(message)) return "RENDER_NETWORK";
   return "RENDER_FAILED";
 }
 
@@ -36,8 +46,22 @@ const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
   RENDER_LIMIT_REACHED: "het maximum aantal browserpogingen of de scandeadline is bereikt",
+  BROWSER_CRASHED: "de browser in de scanomgeving stopte tijdens het laden van de pagina",
+  RENDER_DNS: "de browser kon de domeinnaam niet via DNS opzoeken",
+  RENDER_TLS: "de browser kon geen geldige TLS-/certificaatverbinding vaststellen",
+  RENDER_NETWORK: "de browser kreeg geen bruikbare netwerkverbinding met (een deel van) de website",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };
+
+/**
+ * Short, non-secret class of a render error for diagnostics (no URLs, no paths,
+ * no stack): what a TestLab run needs to see why rendering failed.
+ */
+export function renderFailureDetail(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const cleaned = message.replace(/https?:\/\/\S+/gi, "[url]").replace(/(?:\/[\w.-]+){2,}/g, "[path]").replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 100) : null;
+}
 
 // Older reports stored the raw (truncated) runtime message; map it as well.
 export function renderFailureText(stored: unknown): string {
@@ -50,7 +74,10 @@ export function renderFailureText(stored: unknown): string {
 // Page sampling: which URLs may represent a website.
 // ---------------------------------------------------------------------------
 
-const TRACKING_PARAM = /^(?:utm_[a-z]+|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
+// Marketing and analytics parameters of the common EU/US tools (Google, Meta,
+// Microsoft, AT Internet/Piano, Matomo, Webtrends, Adobe, HubSpot, Mailchimp,
+// Marketo, affiliate networks). They never identify a different page.
+const TRACKING_PARAM = /^(?:utm_[a-z_]+|xtor|at_[a-z_]+|srsltid|pk_[a-z_]+|mtm_[a-z_]+|matomo_[a-z_]+|piwik_[a-z_]+|wt_mc|wt\.mc_id|wt\.[a-z_]+|ito|ns_[a-z_]+|spm|scid|igshid|mkt_tok|hsctatracking|oly_[a-z_]+|vero_[a-z_]+|rb_clickid|epik|s_cid|sscid|irclickid|awc|zanpid|tduid|ranmid|ransiteid|ranEAID|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
 
 export function stripTrackingParams(value: string): string {
   try {
@@ -72,13 +99,43 @@ const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|f
 // watch lists) in EU languages: per-user pages, never representative content.
 const PERSONAL_SEGMENT = /^(?:recupero-credenziali|recupero-password|recuperar-(?:contrasena|contraseña|clave)|mot-de-passe-oublie|passwort-vergessen|wachtwoord-vergeten|forgot-password|reset|preferences|preferencje(?:-tresci)?|preferenze|preferencias|preferenties|voorkeuren|einstellungen|settings|instellingen|kontynuuj-odtwarzanie|continue-watching|verder-kijken|weiterschauen|watchlist|mijn-lijst|moja-lista|my-list|historia-ogladania|watch-history)$/i;
 
+// 31 Oct (PDF P7): carts/checkout and bot traps are never representative pages.
+const UTILITY_SEGMENT = /^(?:shoppingcart|shopping-cart|cart|basket|checkout|afrekenen|kassa|warenkorb|panier|carrito|carrello|secret-?link|honeypot|bot-?trap|spider-?trap)$/i;
+// 1 Nov (P7, five-site QA + P5 measurement): account/login/registration pages in
+// DE/FR/IT/ES/PT and compound names ("customerAccountOverview", "recupero_pwd").
+// Exact segments only, so "accounting-services" or "login-tips-blog" stay content.
+const ACCOUNT_SEGMENT_INTL = /^(?:anmelden|abmelden|registrieren|mein-?konto|konto|kundenkonto|kundenlogin|merkzettel|connexion|deconnexion|déconnexion|se-connecter|mon-compte|mon-espace|espace-client|inscription|identification|accedi|accesso-utente|area-?clienti|area-?riservata|il-mio-account|mio-account|registrazione|recupero[_-]?(?:pwd|password|credenziali)|mi-?cuenta|mi-?perfil|iniciar-sesion|iniciar-sesión|registro-usuario|area-?cliente|minha-?conta|entrar)$/i;
+// Compound account pages: (customer|my|user|member)(Account|Login|Profile|Orders|Wishlist)…
+const ACCOUNT_COMPOUND = /^(?:customer|my|user|member|klant|kunden|client)[-_]?(?:account|login|profile|profiel|orders?|wishlist|konto|compte|cuenta|area)[a-z0-9_-]*$/i;
+const LOCALE_SEGMENT = /^(?:[a-z]{2})(?:[-_][a-z]{2})?$/i;
+const VARIANT_QUERY = /^(?:color|colour|kleur|farbe|couleur|size|maat|grootte|groesse|taille|variant|variation|sku|v|option|swatch)$/i;
+/**
+ * One identity per page for the sample (PDF P7: five language versions of one page,
+ * three colour variants of one product). The locale prefix (/en/, /nl-be/) and
+ * variant parameters (?color=, ?maat=) do not make a different page.
+ */
+export function sampleIdentityKey(value: string): string {
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length && LOCALE_SEGMENT.test(parts[0])) parts.shift();
+    for (const key of [...url.searchParams.keys()]) if (VARIANT_QUERY.test(key)) url.searchParams.delete(key);
+    url.hash = "";
+    const search = url.searchParams.toString();
+    // Still a valid URL: callers treat the key as a URL.
+    return `${url.protocol}//${url.hostname.replace(/^www\./, "").toLowerCase()}/${parts.join("/").toLowerCase().replace(/\/+$/, "")}${search ? `?${search}` : ""}`;
+  } catch { return value; }
+}
+
 export function isNonContentUrl(value: string): boolean {
   let url: URL;
   try { url = new URL(value); } catch { return true; }
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
-  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment) || PERSONAL_SEGMENT.test(segment))) return true;
+  // Page extensions (.xhtml, .aspx, .php, .html) do not change what a segment is.
+  const bare = (segment: string) => segment.replace(/\.(?:x?html?|aspx?|php|jsp|do|cfm)$/i, "");
+  if (segments.some((segment) => { const b = bare(segment); return ACCOUNT_SEGMENT.test(b) || PERSONAL_SEGMENT.test(b) || UTILITY_SEGMENT.test(b) || ACCOUNT_SEGMENT_INTL.test(b) || ACCOUNT_COMPOUND.test(b); })) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
   for (const key of url.searchParams.keys()) if (NON_CONTENT_QUERY.test(key)) return true;
@@ -148,6 +205,22 @@ const PLACEHOLDER_TITLES = new Set([
 export function hasDanglingTitleSeparator(title: string): boolean {
   return /^\s*[|–—:·•]/.test(title) || /[|–—:·•-]\s*$/.test(title) || /[|–—]\s*[|–—]/.test(title);
 }
+/**
+ * 31 Oct (PDF P9: "Home | BrainWash Kappers" scored 10/10): a placeholder word
+ * plus only the brand name describes no page topic either.
+ */
+export function isGenericBrandTitle(title: string, host: string): boolean {
+  const segments = titleSegments(title).map(normalizeSegment).filter(Boolean);
+  if (segments.length < 2) return false;
+  const tokens = new Set(brandTokens(host).map(normalizeSegment));
+  const placeholder = segments.filter((segment) => PLACEHOLDER_TITLES.has(segment));
+  const brand = segments.filter((segment) => tokens.has(segment) || tokens.has(segment.replace(/\s+/g, "")));
+  return placeholder.length >= 1 && placeholder.length + brand.length === segments.length && brand.length >= 1;
+}
+/** Soft hyphens (U+00AD) and other invisible characters in a title show up as odd characters in results. */
+export function invisibleTitleCharacters(title: string): number {
+  return (title.match(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g) || []).length;
+}
 export function isPlaceholderTitle(title: string): boolean {
   return PLACEHOLDER_TITLES.has(title.trim().toLowerCase().replace(/\s+/g, " "));
 }
@@ -167,7 +240,7 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "dangling_separator" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "dangling_separator" | "brand_only" | "duplicate_segment" | "outdated_year" | "soft_hyphen" | "generic_prefix" };
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -178,9 +251,36 @@ export function outdatedTitleYear(title: string, now: Date = new Date()): number
   return old.length && !years.some((year) => year >= current - 1) ? Math.max(...old) : null;
 }
 
-export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null): MetaAssessment {
+/**
+ * A CMS template that prints a field label into the title: "… | Careers Description",
+ * "Product | ASML Title", "Page title", "undefined", "{{ title }}", "%title%". Only the
+ * last segment is read, and a trailing label word ("Description", "Title") counts only
+ * when the rest of that segment is the site's brand or a section of the page's own URL,
+ * so real titles such as "Software engineer job description" are untouched.
+ */
+const FIELD_LABEL = /\b(?:description|beschrijving|omschrijving|beschreibung|descripción|descrizione|title|titel|titre|titolo|título|meta[- ]?title|seo[- ]?title)$/i;
+export function templateFieldLeak(title: string, host = "", path = ""): string | null {
+  const value = title.trim();
+  if (/\{\{[^}]*\}\}|%[a-z_]+%|\$\{[^}]*\}|^(?:undefined|null|nan|page title|seo title|meta title)$|\b(?:undefined|null)\s*$/i.test(value)) return value;
+  const segments = value.split(/\s+[|–—-]\s+|\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
+  if (segments.length < 2) return null;
+  const last = segments[segments.length - 1];
+  const label = last.match(FIELD_LABEL)?.[0];
+  if (!label) return null;
+  const rest = last.slice(0, last.length - label.length).trim().toLowerCase();
+  if (!rest || rest.split(/\s+/).length > 2) return null;
+  const brand = host.toLowerCase().replace(/^www\./, "").split(".")[0] || "";
+  const sections = path.toLowerCase().split("/").filter(Boolean);
+  return rest === brand || sections.includes(rest) || sections.includes(rest.replace(/\s+/g, "-")) ? last : null;
+}
+
+const GENERIC_TITLE_SEGMENT = /^(?:home|homepage|home\s*page|welkom|welcome|startseite|start|accueil|inicio|startpagina|hauptseite|pagina\s+principale|index)$/i;
+
+export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null, path = ""): MetaAssessment {
   const value = title.trim();
   if (!value) return { status: "WARNING", credit: 0.25, details: "Geen title gevonden in raw HTML.", flag: "missing" };
+  const leak = templateFieldLeak(value, host, path);
+  if (leak) return { status: "WARNING", credit: 0.7, details: `Title bevat een sjabloonveld ("${leak}"); het CMS print waarschijnlijk een veldnaam in plaats van een waarde.`, flag: "placeholder" };
   if (isPlaceholderTitle(value)) {
     return { status: "WARNING", credit: 0.3, details: `Title is een algemene standaardtitel ("${value}") zonder onderwerp.`, flag: "placeholder" };
   }
@@ -198,6 +298,17 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   if (duplicate) {
     return { status: "WARNING", credit: 0.8, details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
+  // Soft hyphens (U+00AD / &shy;) in a title are copied into search results and break words.
+  if (/[\u00AD]|&shy;|&#173;/i.test(value)) {
+    return { status: "WARNING", credit: 0.85, details: `${lengthText} De title bevat zachte koppeltekens (U+00AD) die in zoekresultaten en deelvoorbeelden storen; gebruik ze alleen in zichtbare tekst.`, flag: "soft_hyphen" };
+  }
+  // "Home | Brand": a generic first segment tells searchers nothing about the page.
+  if (GENERIC_TITLE_SEGMENT.test(value.split(/\s[|\-–—·:]\s/)[0]?.trim() || "") && /\s[|\-–—·:]\s/.test(value)) {
+    return { status: "WARNING", credit: 0.85, details: `${lengthText} De title begint met een generiek onderdeel ("${value.split(/\s[|\-–—·:]\s/)[0].trim()}"); noem het onderwerp of de belangrijkste dienst van de pagina.`, flag: "generic_prefix" };
+  }
+  if (length > 70) {
+    return { status: "PASS", credit: 1, details: `${lengthText} Aandachtspunt: met ${length} tekens is de title langer dan 70 tekens en wordt waarschijnlijk afgekapt; zet het belangrijkste woord vooraan (advies, geen aftrek).` };
+  }
   const oldYear = outdatedTitleYear(value, now);
   if (oldYear) {
     return { status: "WARNING", credit: 0.85, details: `${lengthText} De title noemt het jaar ${oldYear}; dat oogt verouderd in zoekresultaten.`, flag: "outdated_year" };
@@ -211,16 +322,17 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   return { status: "PASS", credit: 1, details: lengthText };
 }
 
-export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
+export function assessPageDescription(description: string, tagPresent: boolean, source: "raw" | "rendered" = "raw"): MetaAssessment {
   const value = description.trim();
   if (!value) return tagPresent
     ? { status: "WARNING", credit: 0.25, details: "Meta description-tag aanwezig maar content is leeg.", flag: "empty" }
-    : { status: "WARNING", credit: 0.25, details: "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
+    : { status: "WARNING", credit: 0.25, details: source === "rendered" ? "Geen meta description-tag gevonden, ook niet na JavaScript-rendering." : "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
   const length = value.length;
   if (length >= 70 && length <= 160) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); bruikbare lengte.` };
   // Like titles: Google truncates long descriptions in the snippet; length alone
   // is advice, not a demonstrated defect, so it costs no points.
   if (length > 160 && length <= 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in (advies, geen aftrek).` };
+  if (length > 250) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang (aandachtspunt): boven 250 tekens wordt de tekst in zoekresultaten vrijwel zeker ingekort. Zet de kern in de eerste 155 tekens (advies, geen aftrek).` };
   if (length > 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang, wordt in zoekresultaten ingekort (advies, geen aftrek).` };
   if (length >= 50) return { status: "WARNING", credit: 0.85, details: `Meta description gevonden (${length} tekens); kort.` };
   return { status: "WARNING", credit: 0.65, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort.` };
@@ -244,11 +356,29 @@ export function botManagerCookies(cookieNames: string[]): string[] {
   return [...new Set(cookieNames.filter((name) => BOT_MANAGER_COOKIE.test(name)))];
 }
 
+// Bot managers also announce themselves in response headers without setting a
+// cookie (DataDome, Cloudflare challenge, Imperva, Sucuri, PerimeterX, Kasada).
+// Plain CDN headers (Akamai, Cloudflare) are not bot-manager evidence on their own.
+const BOT_MANAGER_HEADER = /^(?:x-datadome(?:-cid)?|cf-mitigated|x-iinfo|x-sucuri-id|x-sucuri-block|x-px-[\w-]+|x-kpsdk-[\w-]+)$/i;
+export function botManagerHeaders(headers: Headers | Array<[string, string]>): string[] {
+  const names: string[] = [];
+  const entries = Array.isArray(headers) ? headers : [...headers.entries()];
+  for (const [name, value] of entries) {
+    if (BOT_MANAGER_HEADER.test(name)) names.push(name.toLowerCase());
+    if (/^server$/i.test(name) && /datadome|imperva|incapsula|sucuri/i.test(value)) names.push(`server: ${value}`);
+  }
+  return [...new Set(names)];
+}
+
 // A bot manager on its own is common and harmless (IKEA, Coolblue). Only when the
-// response also lacks the head metadata a real storefront ships do we treat it as
-// a reduced bot response whose absences prove nothing.
-export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number }): boolean {
-  return input.botCookies.length > 0 && input.jsonLdBlocks === 0 && input.ogTags === 0 && input.h1Count === 0;
+// response also lacks the head metadata a real page ships do we treat it as a
+// reduced bot response whose absences prove nothing. The H1 rule is relaxed to
+// "no H1 or a short page" so a stripped page with a stray heading still counts.
+export function isReducedBotResponse(input: { botCookies: string[]; botHeaders?: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number; visibleWords?: number; descriptionPresent?: boolean }): boolean {
+  const botManager = input.botCookies.length > 0 || (input.botHeaders || []).length > 0;
+  if (!botManager || input.jsonLdBlocks > 0 || input.ogTags > 0) return false;
+  if (input.h1Count === 0) return true;
+  return input.descriptionPresent === false && typeof input.visibleWords === "number" && input.visibleWords < 150;
 }
 
 // Checks whose negative result depends on the page body or head metadata that a
@@ -256,7 +386,11 @@ export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks
 export const BOT_SENSITIVE_CHECKS = new Set([
   "schema", "organization_website", "entity", "social", "twitter_card", "h1", "headings",
   "trust_legal_signals", "faq", "answer", "breadcrumbs", "alt", "content", "identity", "trust",
+  "author", "business_placeholders",
 ]);
+// Head elements that a stripped response may omit: only their ABSENCE is unproven
+// (a present but too long description is still evidence about the real page).
+export const BOT_SENSITIVE_WHEN_ABSENT = new Set(["description", "geo_description", "canonical", "lang", "hreflang"]);
 
 // ---------------------------------------------------------------------------
 // Sitewide aggregation: real counts and template patterns.
@@ -310,4 +444,13 @@ const NON_ENTITY_TYPES = /^(?:\w*action|listitem|itemlist|breadcrumblist|imageob
 
 export function entityTypesForDisplay(types: string[]): string[] {
   return [...new Set(types.filter((type) => !NON_ENTITY_TYPES.test(type.trim())))];
+}
+
+// A registrar's placeholder for a reserved, parked or for-sale domain is not a website:
+// there is no organisation, content or SEO to audit. Read from the title, or from the
+// body of a short page only (hosting providers mention "domain names" on real sites).
+const PARKED_PHRASES = /(?<![\p{L}])(?:domeinnaam (?:is )?gereserveerd|domein (?:is )?gereserveerd|deze domeinnaam is (?:geregistreerd|te koop|gereserveerd)|deze domeinnaam is geregistreerd door|this domain (?:is|has been|may be) (?:for sale|parked|registered|reserved)|this domain name is (?:for sale|parked|reserved)|domain (?:name )?(?:is )?(?:parked|reserved)|parked (?:domain|free)|buy this domain|the domain [\p{L}\p{N}.-]+ is for sale|diese domain (?:ist|wurde) (?:registriert|reserviert|geparkt|zu verkaufen)|domain (?:ist )?reserviert|ce (?:nom de )?domaine (?:est|a été) (?:à vendre|réservé|enregistré|parqué)|domaine réservé|questo dominio è (?:in vendita|stato registrato|riservato)|dominio (?:riservato|in vendita|parcheggiato)|este dominio (?:está a la venta|ha sido registrado|está reservado)|dominio reservado|ta domena (?:je naprodaj|je rezervirana)|ta domena jest na sprzedaż|domena (?:zarezerwowana|na sprzedaż)|doména je (?:na prodej|rezervována)|denne domæne er (?:til salg|reserveret)|denna domän är (?:till salu|reserverad)|sedoparking|parkingcrew|bodis\.com)(?![\p{L}])/iu;
+export function isParkedDomainPage(input: { title: string; text: string; words: number }): boolean {
+  if (PARKED_PHRASES.test(String(input.title || ""))) return true;
+  return input.words < 300 && PARKED_PHRASES.test(String(input.text || "").slice(0, 4000));
 }

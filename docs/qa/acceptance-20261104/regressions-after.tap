@@ -1,0 +1,80 @@
+TAP version 13
+# Subtest: evidence analysis: counts, before/after with regressions, failures and sample H1
+ok 1 - evidence analysis: counts, before/after with regressions, failures and sample H1
+  ---
+  duration_ms: 1.931067
+  type: 'test'
+  ...
+# Subtest: 1 Nov (security 4): a missing baseline, run or audit is listed and never counts as passed
+ok 2 - 1 Nov (security 4): a missing baseline, run or audit is listed and never counts as passed
+  ---
+  duration_ms: 0.448905
+  type: 'test'
+  ...
+# Subtest: fresh144 resume settles a repeated SCAN_TIMEOUT and continues, retaining database errors as pending
+ok 3 - fresh144 resume settles a repeated SCAN_TIMEOUT and continues, retaining database errors as pending
+  ---
+  duration_ms: 93.42446
+  type: 'test'
+  ...
+# Subtest: analysis CLI executes from a real path with spaces, Unicode, \# and %
+ok 4 - analysis CLI executes from a real path with spaces, Unicode, \# and %
+  ---
+  duration_ms: 35.690819
+  type: 'test'
+  ...
+# Subtest: analysis selects the active run, never the lexicographically largest SHA
+ok 5 - analysis selects the active run, never the lexicographically largest SHA
+  ---
+  duration_ms: 34.571584
+  type: 'test'
+  ...
+# Subtest: analysis fails explicitly when the current run has no export or selection is ambiguous
+ok 6 - analysis fails explicitly when the current run has no export or selection is ambiguous
+  ---
+  duration_ms: 65.263359
+  type: 'test'
+  ...
+# Subtest: no full audits cannot be reported as a clean claim audit
+ok 7 - no full audits cannot be reported as a clean claim audit
+  ---
+  duration_ms: 33.415544
+  type: 'test'
+  ...
+# (node:6681) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/scan-runtime-errors.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a target website that does not answer in time is a website/network outcome, not a RankFix outage
+ok 8 - a target website that does not answer in time is a website/network outcome, not a RankFix outage
+  ---
+  duration_ms: 1.71013
+  type: 'test'
+  ...
+# Subtest: database time-outs are RankFix infrastructure; other time-outs keep SCAN_TIMEOUT
+ok 9 - database time-outs are RankFix infrastructure; other time-outs keep SCAN_TIMEOUT
+  ---
+  duration_ms: 0.207758
+  type: 'test'
+  ...
+# Subtest: RankFix's time limit is retried once for the same website, then becomes a final timeout
+ok 10 - RankFix's time limit is retried once for the same website, then becomes a final timeout
+  ---
+  duration_ms: 1.099687
+  type: 'test'
+  ...
+# Subtest: the scan route and the TestLab use these rules
+ok 11 - the scan route and the TestLab use these rules
+  ---
+  duration_ms: 2.411608
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 502.611232

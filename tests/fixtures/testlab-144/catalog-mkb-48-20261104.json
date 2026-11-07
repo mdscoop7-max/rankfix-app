@@ -1,0 +1,535 @@
+{
+  "id": "mkb48",
+  "description": "48 candidate websites in 12 sectors, 4 each; provisional labels and hosts, not independently verified. Scan only after manual Start.",
+  "reviewStatus": "proposed_not_independently_verified",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Tandartspraktijk Zaandam Oost",
+      "hosts": [
+        "tandartszaandamoost.nl"
+      ],
+      "group": "dentist",
+      "expected": "dentist",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Dental Clinics",
+      "hosts": [
+        "dentalclinics.nl"
+      ],
+      "group": "dentist",
+      "expected": "dentist",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Tandartspraktijk de Nieuwegracht",
+      "hosts": [
+        "tandartspraktijkdenieuwegracht.nl"
+      ],
+      "group": "dentist",
+      "expected": "dentist",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fresh Tandartsen",
+      "hosts": [
+        "freshtandartsen.nl"
+      ],
+      "group": "dentist",
+      "expected": "dentist",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Feenstra",
+      "hosts": [
+        "feenstra.com"
+      ],
+      "group": "plumber",
+      "expected": "plumber",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "RRS",
+      "hosts": [
+        "rrs.nl"
+      ],
+      "group": "plumber",
+      "expected": "plumber",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "AJ Loodgieters",
+      "hosts": [
+        "ajloodgieters.nl"
+      ],
+      "group": "plumber",
+      "expected": "plumber",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Loodgieter.nl",
+      "hosts": [
+        "loodgieter.nl"
+      ],
+      "group": "plumber",
+      "expected": "plumber",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "KwikFit",
+      "hosts": [
+        "kwik-fit.nl"
+      ],
+      "group": "garage",
+      "expected": "garage",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Profile",
+      "hosts": [
+        "profile.nl"
+      ],
+      "group": "garage",
+      "expected": "garage",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vakgarage",
+      "hosts": [
+        "vakgarage.nl"
+      ],
+      "group": "garage",
+      "expected": "garage",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bosch Car Service",
+      "hosts": [
+        "boschcarservice.com"
+      ],
+      "group": "garage",
+      "expected": "garage",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "De Beren",
+      "hosts": [
+        "beren.nl"
+      ],
+      "group": "restaurant",
+      "expected": "restaurant",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Loetje",
+      "hosts": [
+        "loetje.nl"
+      ],
+      "group": "restaurant",
+      "expected": "restaurant",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Happy Italy",
+      "hosts": [
+        "happyitaly.nl"
+      ],
+      "group": "restaurant",
+      "expected": "restaurant",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Restaurant De Kas",
+      "hosts": [
+        "restaurantdekas.com"
+      ],
+      "group": "restaurant",
+      "expected": "restaurant",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Klaassen Makelaars",
+      "hosts": [
+        "klaassenbv.nl"
+      ],
+      "group": "realtor",
+      "expected": "realtor",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Van der Linden Makelaardij",
+      "hosts": [
+        "vanderlinden.nl"
+      ],
+      "group": "realtor",
+      "expected": "realtor",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Brockhoff Makelaars",
+      "hosts": [
+        "brockhoff.nl"
+      ],
+      "group": "realtor",
+      "expected": "realtor",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Makelaarsland",
+      "hosts": [
+        "makelaarsland.nl"
+      ],
+      "group": "realtor",
+      "expected": "realtor",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Treatwell",
+      "hosts": [
+        "treatwell.nl"
+      ],
+      "group": "beauty",
+      "expected": "beauty",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "SOAP Treatment Store",
+      "hosts": [
+        "soaptreatmentstore.com"
+      ],
+      "group": "beauty",
+      "expected": "beauty",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "The Waxing Company",
+      "hosts": [
+        "thewaxingcompany.nl"
+      ],
+      "group": "beauty",
+      "expected": "beauty",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "City Spa",
+      "hosts": [
+        "cityspa.nl"
+      ],
+      "group": "beauty",
+      "expected": "beauty",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "De Brauw",
+      "hosts": [
+        "debrauw.com"
+      ],
+      "group": "law",
+      "expected": "law",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Dirkzwager",
+      "hosts": [
+        "dirkzwager.nl"
+      ],
+      "group": "law",
+      "expected": "law",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "AKD",
+      "hosts": [
+        "akd.eu"
+      ],
+      "group": "law",
+      "expected": "law",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Ploum",
+      "hosts": [
+        "ploum.nl"
+      ],
+      "group": "law",
+      "expected": "law",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Basic-Fit",
+      "hosts": [
+        "basic-fit.com"
+      ],
+      "group": "gym",
+      "expected": "gym",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "SportCity",
+      "hosts": [
+        "sportcity.nl"
+      ],
+      "group": "gym",
+      "expected": "gym",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "TrainMore",
+      "hosts": [
+        "trainmore.nl"
+      ],
+      "group": "gym",
+      "expected": "gym",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Anytime Fitness",
+      "hosts": [
+        "anytimefitness.nl"
+      ],
+      "group": "gym",
+      "expected": "gym",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Van der Valk",
+      "hosts": [
+        "valk.com"
+      ],
+      "group": "hotel",
+      "expected": "hotel",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Stayokay",
+      "hosts": [
+        "stayokay.com"
+      ],
+      "group": "hotel",
+      "expected": "hotel",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hotel New York",
+      "hosts": [
+        "hotelnewyork.nl"
+      ],
+      "group": "hotel",
+      "expected": "hotel",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "B&B De Hofnar",
+      "hosts": [
+        "bbenbdehofnar.nl"
+      ],
+      "group": "hotel",
+      "expected": "hotel",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hutten",
+      "hosts": [
+        "hutten.eu"
+      ],
+      "group": "catering",
+      "expected": "catering",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vermaat",
+      "hosts": [
+        "vermaatgroep.nl"
+      ],
+      "group": "catering",
+      "expected": "catering",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Catering Groep Nederland",
+      "hosts": [
+        "cateringgroepnederland.nl"
+      ],
+      "group": "catering",
+      "expected": "catering",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hapjes aan Huis",
+      "hosts": [
+        "hapjesaanhuis.nl"
+      ],
+      "group": "catering",
+      "expected": "catering",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Klein Hoveniers",
+      "hosts": [
+        "kleinhoveniers.com"
+      ],
+      "group": "gardener",
+      "expected": "gardener",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Green to Grow",
+      "hosts": [
+        "greentogrow.nl"
+      ],
+      "group": "gardener",
+      "expected": "gardener",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Donker Groep",
+      "hosts": [
+        "donkergroep.com"
+      ],
+      "group": "gardener",
+      "expected": "gardener",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hoek Hoveniers",
+      "hosts": [
+        "hoekhoveniers.nl"
+      ],
+      "group": "gardener",
+      "expected": "gardener",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NCOI",
+      "hosts": [
+        "ncoi.nl"
+      ],
+      "group": "training",
+      "expected": "training",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "LOI",
+      "hosts": [
+        "loi.nl"
+      ],
+      "group": "training",
+      "expected": "training",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NTI",
+      "hosts": [
+        "nti.nl"
+      ],
+      "group": "training",
+      "expected": "training",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "VHG Brancheopleiding",
+      "hosts": [
+        "vhgbrancheopleiding.nl"
+      ],
+      "group": "training",
+      "expected": "training",
+      "round": "mkb48-20261104",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

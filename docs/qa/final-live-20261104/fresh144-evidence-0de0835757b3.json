@@ -1,0 +1,6699 @@
+{
+ "exportVersion": "fresh144-evidence-1",
+ "source": "terminal-runner",
+ "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+ "generatedAt": "2026-11-04T13:45:18.824Z",
+ "labels": "proposed_not_independently_verified",
+ "rows": [
+  {
+   "host": "nxp.com",
+   "name": "NXP Semiconductors",
+   "expected": "manufacturing",
+   "run": {
+    "status": "success",
+    "apiStatus": 200,
+    "reason": null,
+    "elapsedMs": 28390,
+    "at": "2026-11-04T13:41:08.588Z"
+   },
+   "verdict": "equivalent",
+   "evidenceState": "available",
+   "failure": null,
+   "evidence": {
+    "request": {
+     "scannedUrl": "https://nxp.com/",
+     "finalUrl": "https://www.nxp.com/",
+     "finalHost": "nxp.com",
+     "httpStatus": 200,
+     "scannedAt": "2026-11-04T13:41:08.571Z",
+     "scanDurationMs": 28205,
+     "runtime": {
+      "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+      "environment": "local",
+      "vercelEnv": null,
+      "sectorEngine": "3.5.2-page-evidence-186",
+      "crawler": "2.6.0",
+      "rules": "1.4.0",
+      "scoreModel": "3.5-evidence-gated"
+     }
+    },
+    "access": {
+     "rankfixBlocked": false,
+     "recoveredOwnLinks": null,
+     "recoveryWithoutNavigation": false,
+     "originalStatus": null,
+     "attribution": null,
+     "note": null
+    },
+    "hostFallback": null,
+    "rendering": {
+     "mode": "raw_html",
+     "completeness": "complete",
+     "evidenceSource": "raw_html",
+     "javascriptExecuted": false,
+     "fallbackReason": null,
+     "fallbackDetail": null,
+     "partialNavigation": false
+    },
+    "page": {
+     "title": "Automotive, IoT & Industrial Solutions | NXP Semiconductors",
+     "description": "NXP is a global semiconductor company creating solutions that enable secure connections for a smarter world.",
+     "h1s": [
+      "Automotive, IoT & Industrial Solutions",
+      "The Nervous System of Robotics",
+      "NXP at electronica 2026",
+      "Driving Item Intelligence",
+      "Consolidate with Confidence"
+     ],
+     "lang": null,
+     "canonical": null,
+     "ogTitle": "Automotive, IoT & Industrial Solutions",
+     "ogDescription": "NXP is a global semiconductor company creating solutions that enable secure connections for a smarter world.",
+     "wordCount": 758,
+     "internalLinks": 109,
+     "navigationLabels": [
+      "Products",
+      "Applications",
+      "Design Center",
+      "Support",
+      "Company",
+      "Store",
+      "Language",
+      "Orders",
+      "Sign In",
+      "Facebook",
+      "Twitter",
+      "LinkedIn",
+      "Printer"
+     ],
+     "schemaTypes": [],
+     "jsonLd": [],
+     "pricingCurrency": {
+      "visibleCurrencies": [],
+      "selectorCurrencies": [],
+      "structuredCurrencies": [],
+      "visiblePriceCount": 0,
+      "visiblePriceEvidenceStrength": "none",
+      "structuredPriceCount": 0,
+      "currencyConflict": false,
+      "mixedVisibleCurrencies": false
+     },
+     "checkoutFunnel": {
+      "productPage": false,
+      "addToCart": false,
+      "cartLink": false,
+      "checkoutLink": false,
+      "shippingInformation": false,
+      "shippingInformationVisible": false,
+      "shippingInformationStructured": false,
+      "returnsInformationVisible": true,
+      "returnsInformationStructured": false,
+      "shippingCostVisible": false,
+      "paymentMethodsVisible": false,
+      "staticHtmlOnly": true,
+      "javascriptRendered": false,
+      "interactiveFlowExecuted": false,
+      "sampledCheckoutDestinations": []
+     }
+    },
+    "classification": {
+     "websiteType": "Website",
+     "sector": {
+      "key": "semiconductors_electronics",
+      "label": "Industrie · halfgeleiders & elektronica",
+      "confidence": "high",
+      "confidenceScore": 88,
+      "displayPolicy": "confirmed"
+     },
+     "pageType": {
+      "type": "homepage",
+      "confidence": "high",
+      "commercialLandingPage": false
+     },
+     "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+    },
+    "pageTypeEvidence": {
+     "type": "homepage",
+     "confidence": "high",
+     "evidence": [
+      "localized/root path: /",
+      "commercial navigation + shop/support links"
+     ]
+    },
+    "sectorProfile": {
+     "sector": "manufacturing_industrial",
+     "key": "semiconductors_electronics",
+     "label": "Industrie · halfgeleiders & elektronica",
+     "confidence": "high",
+     "confidenceScore": 88,
+     "evidence": [
+      "Primaire identiteit: Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 2 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten"
+     ],
+     "applicableModules": [
+      "core_seo",
+      "geo",
+      "technical",
+      "manufacturing_industrial",
+      "business_identity"
+     ],
+     "businessModel": {
+      "model": "B2B",
+      "basis": "sector_default",
+      "evidence": [
+       "Gebruikelijk model voor deze sector (niet apart bewezen)"
+      ]
+     },
+     "extendedIndustryEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+     },
+     "pageEvidence": {
+      "decision": {
+       "sector": "manufacturing_industrial",
+       "key": "semiconductors_electronics",
+       "label": "Industrie · halfgeleiders & elektronica",
+       "confidence": "medium",
+       "confidenceScore": 78,
+       "evidence": [
+        "https://www.nxp.com/: Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 2 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten",
+        "https://www.nxp.com/products/product-finders:PRODUCT-FINDERS: Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 1 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten",
+        "https://www.nxp.com/company/about-nxp/investor-relations:INVESTOR-RELATIONS: Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 1 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten"
+       ]
+      },
+      "reason": "corroborated_pages",
+      "independentPages": 3,
+      "supportingPages": 3,
+      "candidates": [
+       {
+        "sector": "manufacturing_industrial",
+        "pages": [
+         {
+          "sector": "manufacturing_industrial",
+          "key": "semiconductors_electronics",
+          "label": "Industrie · halfgeleiders & elektronica",
+          "url": "https://www.nxp.com/",
+          "evidence": [
+           "Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 2 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten"
+          ],
+          "score": 88,
+          "fromTitle": false
+         },
+         {
+          "sector": "manufacturing_industrial",
+          "key": "semiconductors_electronics",
+          "label": "Industrie · halfgeleiders & elektronica",
+          "url": "https://www.nxp.com/products/product-finders:PRODUCT-FINDERS",
+          "evidence": [
+           "Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 1 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten"
+          ],
+          "score": 76,
+          "fromTitle": false
+         },
+         {
+          "sector": "manufacturing_industrial",
+          "key": "semiconductors_electronics",
+          "label": "Industrie · halfgeleiders & elektronica",
+          "url": "https://www.nxp.com/company/about-nxp/investor-relations:INVESTOR-RELATIONS",
+          "evidence": [
+           "Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in 1 bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten"
+          ],
+          "score": 76,
+          "fromTitle": false
+         }
+        ]
+       }
+      ]
+     },
+     "secondaryActivities": [],
+     "businessModelMix": "single",
+     "decisionStatus": "confirmed",
+     "salesChannel": {
+      "channel": "unknown",
+      "label": "Verkoopkanaal niet vastgesteld",
+      "labelEn": "Sales channel not determined",
+      "physicalPresence": {
+       "value": false,
+       "evidence": []
+      },
+      "onlineSales": {
+       "value": false,
+       "evidence": []
+      }
+     }
+    },
+    "websiteProfile": {
+     "websiteType": {
+      "value": "services",
+      "label": "Dienstverlener / organisatie",
+      "status": "confirmed",
+      "confidence": 88,
+      "evidence": [
+       "Hoofdactiviteit: Industrie · halfgeleiders & elektronica; geen bevestigde webshop"
+      ]
+     },
+     "commercePlatform": {
+      "value": null,
+      "label": "Geen webshopplatform",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": []
+     },
+     "cms": {
+      "value": null,
+      "label": "Niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": []
+     },
+     "frontendFramework": {
+      "value": null,
+      "label": "Niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": []
+     },
+     "industryVertical": {
+      "value": null,
+      "label": "Zie hoofdactiviteit",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": [
+       "Branche wordt alleen apart bepaald voor een bevestigde webshop"
+      ]
+     },
+     "summary": "Dienstverlener / organisatie"
+    },
+    "technologyProfile": {
+     "technologies": [],
+     "siteType": "Website",
+     "cms": null,
+     "commercePlatform": null,
+     "framework": null,
+     "isCommerce": false,
+     "confidence": 55,
+     "confidenceLabel": "low",
+     "evidence": [
+      "Losse commerce-aanwijzingen gevonden (zoals een shoplink of categoriepagina's), maar geen webshop vastgesteld: geen product-, winkelwagen- of afrekenketen bevestigd."
+     ]
+    },
+    "commerceApplicability": {
+     "state": "absent",
+     "reason": "service_identity",
+     "marketSelector": false,
+     "representativePagesAudited": 2,
+     "serviceCommerce": {
+      "subscription": false,
+      "booking": false,
+      "lead": false,
+      "price": false,
+      "hasCommercialActivity": false
+     },
+     "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+    },
+    "evidenceLayer": {
+     "evidence": {
+      "version": "1.2",
+      "page": {
+       "url": "https://www.nxp.com/",
+       "rendered": false,
+       "language": null,
+       "title": "Automotive, IoT & Industrial Solutions | NXP Semiconductors"
+      },
+      "commerce": {
+       "cart": {
+        "value": true,
+        "confidence": "high",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Cart/winkelwagen-signaal gevonden",
+         "Raw HTML beoordeeld; client-side signalen kunnen ontbreken"
+        ]
+       },
+       "addToCart": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "checkout": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "prices": {
+        "value": {
+         "count": 0,
+         "currencies": []
+        },
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "products": {
+        "value": true,
+        "confidence": "medium",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "13 productachtige interne link(s) gevonden"
+        ]
+       },
+       "productPage": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "productLinks": {
+        "value": 13,
+        "confidence": "medium",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "13 productachtige interne link(s)"
+        ]
+       }
+      },
+      "appointments": {
+       "appointment": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "reservation": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "booking": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "quoteRequest": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "inventory": {
+       "vehicles": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "properties": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "jobs": {
+        "value": true,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+        ]
+       },
+       "rooms": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "menu": {
+        "value": true,
+        "confidence": "medium",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Restaurant/menu-tekstsignaal gevonden"
+        ]
+       }
+      },
+      "organization": {
+       "contact": {
+        "value": true,
+        "confidence": "medium",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Contacttekstsignaal gevonden"
+        ]
+       },
+       "address": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "openingHours": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "reviews": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "sectorDetails": {
+       "realEstate": {
+        "listing": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "sale": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "rental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "automotive": {
+        "service": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "dealer": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "media": {
+        "article": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Artikel-/nieuwstekstsignaal gevonden"
+         ]
+        },
+        "author": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Auteurssignaal gevonden"
+         ]
+        },
+        "publishedDate": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "sports": {
+        "event": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "teamOrPlayer": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Team-/spelertekstsignaal gevonden"
+         ]
+        },
+        "resultsOrStandings": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "lodging": {
+        "shortStay": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "bedBreakfast": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "holidayRental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "holidayPark": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "camping": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "stayDates": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "guests": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       }
+      },
+      "schema": {
+       "types": [],
+       "organization": false,
+       "website": false,
+       "product": false,
+       "localBusiness": false,
+       "vehicle": false,
+       "realEstate": false,
+       "jobPosting": false,
+       "restaurant": false,
+       "hotel": false
+      }
+     },
+     "sectorCandidates": [
+      {
+       "key": "ecommerce",
+       "label": "Webshop / e-commerce",
+       "score": 2,
+       "evidence": [
+        "Evidence: commerce.cart"
+       ],
+       "expectedCapabilities": [
+        "products",
+        "pricing",
+        "cart",
+        "checkout",
+        "merchant",
+        "consumer_rights"
+       ],
+       "optionalCapabilities": [
+        "appointments"
+       ],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "marketplace",
+       "label": "Marketplace",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "listings",
+        "pricing",
+        "seller_identity",
+        "consumer_rights"
+       ],
+       "optionalCapabilities": [
+        "cart",
+        "checkout"
+       ],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "healthcare",
+       "label": "Zorg / healthcare",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "services",
+        "contact",
+        "trust",
+        "accessibility"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "sports_club",
+       "label": "Sport / club / competitie",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "activities",
+        "schedule",
+        "results",
+        "teams_or_players",
+        "membership",
+        "contact"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "saas_b2b",
+       "label": "SaaS / B2B software",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "features",
+        "pricing_or_demo",
+        "signup",
+        "target_audience",
+        "support"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": [
+        "physical_stock",
+        "shipping"
+       ]
+      },
+      {
+       "key": "software_app",
+       "label": "Software / app",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "features",
+        "download_or_signup",
+        "support"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "publisher_blog",
+       "label": "Blog / publisher",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "articles",
+        "authors",
+        "dates",
+        "publisher"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "events",
+       "label": "Events / tickets",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "events",
+        "dates",
+        "venue",
+        "tickets_or_registration"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      }
+     ],
+     "master": {
+      "version": "1.0",
+      "primarySector": {
+       "key": "semiconductors_electronics",
+       "label": "Industrie · halfgeleiders & elektronica",
+       "confidence": "high",
+       "confidenceScore": 88,
+       "displayPolicy": "confirmed"
+      },
+      "partners": [
+       {
+        "partner": "core",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "title"
+        ],
+        "sources": [
+         "url",
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       {
+        "partner": "commerce",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "cart",
+         "products"
+        ],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Cart/winkelwagen-signaal gevonden",
+         "Raw HTML beoordeeld; client-side signalen kunnen ontbreken",
+         "13 productachtige interne link(s) gevonden"
+        ]
+       },
+       {
+        "partner": "business",
+        "status": "unconfirmed",
+        "confidence": "low",
+        "capabilities": [],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is",
+         "Restaurant/menu-tekstsignaal gevonden"
+        ]
+       },
+       {
+        "partner": "local_booking",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "contact"
+        ],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Contacttekstsignaal gevonden"
+        ]
+       }
+      ],
+      "partnerSummary": {
+       "total": 4,
+       "confirmed": 0,
+       "partial": 3,
+       "unconfirmed": 1
+      },
+      "capabilities": [
+       "cart",
+       "menu",
+       "contact",
+       "title",
+       "products"
+      ],
+      "activeModules": [
+       "core_seo",
+       "geo",
+       "technical",
+       "manufacturing_industrial",
+       "business_identity"
+      ],
+      "businessModels": [
+       "hospitality_food"
+      ],
+      "secondarySectorCandidates": [],
+      "commerce": {
+       "confirmed": false,
+       "strength": 2
+      },
+      "coverage": {
+       "confirmedCapabilities": 5,
+       "evidenceSources": [
+        "url",
+        "raw_html",
+        "multi_page"
+       ],
+       "partnerCoverage": 38
+      },
+      "conflicts": [
+       "Technologieprofiel ziet webshop-signalen, maar Commerce Evidence heeft nog onvoldoende onafhankelijke bevestiging."
+      ],
+      "policy": "Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
+      "capabilityStates": [
+       {
+        "id": "sells_products_online",
+        "state": "likely",
+        "confidence": 0.7,
+        "proof": [
+         "Product-/catalogussignaal gevonden zonder bevestigde retailketen"
+        ],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "lists_inventory",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "offers_bookable_services",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "collects_leads",
+        "state": "likely",
+        "confidence": 0.7,
+        "proof": [
+         "Contact-/offertesignaal gevonden zonder representatief leadformulier"
+        ],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "serves_local_customers",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "weak_evidence"
+       }
+      ],
+      "finalDecisions": {
+       "commerce": {
+        "confirmed": false,
+        "currentPageEvidence": false,
+        "technologyProfile": true,
+        "technologyOnly": true,
+        "secondaryCommerceOnly": true,
+        "multiPageEvidence": false
+       }
+      },
+      "classification": {
+       "websiteType": "Website",
+       "sector": {
+        "key": "semiconductors_electronics",
+        "label": "Industrie · halfgeleiders & elektronica",
+        "confidence": "high",
+        "confidenceScore": 88,
+        "displayPolicy": "confirmed"
+       },
+       "pageType": {
+        "type": "homepage",
+        "confidence": "high",
+        "commercialLandingPage": false
+       },
+       "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+      }
+     }
+    },
+    "sample": {
+     "sectionCoverage": {
+      "items": [
+       {
+        "section": "homepage",
+        "label": "Homepage",
+        "status": "checked",
+        "urls": [
+         "https://www.nxp.com/"
+        ],
+        "note": "1 pagina('s) inhoudelijk beoordeeld."
+       },
+       {
+        "section": "offer",
+        "label": "Diensten / aanbod",
+        "status": "checked",
+        "urls": [
+         "https://www.nxp.com/company/about-nxp/investor-relations:INVESTOR-RELATIONS"
+        ],
+        "note": "1 pagina('s) inhoudelijk beoordeeld; 6 niet te beoordelen."
+       },
+       {
+        "section": "contact",
+        "label": "Contact",
+        "status": "not_found",
+        "urls": [],
+        "note": "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."
+       },
+       {
+        "section": "support",
+        "label": "Klantenservice / veelgestelde vragen",
+        "status": "not_examined",
+        "urls": [
+         "https://www.nxp.com/support/support/nxp-engineering-services:SW-SUPPORT",
+         "https://www.nxp.com/support/support/secure-access-rights:SEC-ACCESS",
+         "https://www.nxp.com/support/support/my-nxp-account-benefits:NXP-ACCOUNT-BENEFITS"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS, SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "legal",
+        "label": "Juridisch (privacy, voorwaarden, cookies)",
+        "status": "not_found",
+        "urls": [],
+        "note": "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."
+       },
+       {
+        "section": "content",
+        "label": "Artikelen / nieuws",
+        "status": "not_found",
+        "urls": [],
+        "note": "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."
+       }
+      ],
+      "summary": "Gecontroleerd: Homepage, Diensten / aanbod. Niet toegankelijk of niet opgehaald (niet gecontroleerd): Klantenservice / veelgestelde vragen. Niet gevonden in de steekproef: Contact, Juridisch (privacy, voorwaarden, cookies), Artikelen / nieuws."
+     },
+     "sampleLinkSource": "page_links",
+     "fallbackSources": [],
+     "sampleLimitation": null,
+     "discoveredInternalUrls": 90,
+     "siteAccess": {
+      "startUrl": "https://www.nxp.com/",
+      "startIsHomepage": true,
+      "homepage": {
+       "url": "https://www.nxp.com/",
+       "access": "is_start_page",
+       "httpStatus": null
+      },
+      "pages": {
+       "selected": 33,
+       "assessed": 3,
+       "refused": 0,
+       "missing": 0,
+       "notRetrieved": 30,
+       "excluded": 0,
+       "duplicate": 0
+      },
+      "scanCoverage": "partial",
+      "note": "3 van 33 geselecteerde pagina's zijn inhoudelijk beoordeeld; 30 niet opgehaald. Dit is een gedeeltelijk rapport: alleen de beoordeelde pagina's tellen mee. Bereikbare pagina's bewijzen niet dat de hele website toegankelijk is."
+     },
+     "sitewideCommerceEvidence": {
+      "confirmed": false,
+      "sampleCount": 0,
+      "urls": [],
+      "evidence": []
+     },
+     "representativeProduct": null,
+     "pages": [
+      {
+       "path": "/",
+       "type": "homepage",
+       "status": "audited",
+       "httpStatus": 200,
+       "nonContent": null,
+       "fetchFailure": null,
+       "evidenceSource": "raw_html",
+       "title": "Automotive, IoT & Industrial Solutions | NXP Semiconductors",
+       "description": "NXP is a global semiconductor company creating solutions that enable secure connections for a smarter world.",
+       "identityHeadings": [
+        "Automotive, IoT & Industrial Solutions",
+        "The Nervous System of Robotics",
+        "NXP at electronica 2026",
+        "Driving Item Intelligence",
+        "Consolidate with Confidence"
+       ],
+       "schemaTypes": [],
+       "commerce": {
+        "productSchema": false,
+        "productSchemaCount": 0,
+        "itemListSchema": false,
+        "storeSchema": false,
+        "strongCommerceAction": false,
+        "repeatedProductLinks": true,
+        "priceSignals": 0,
+        "confirmedRetailPage": false,
+        "financialOffer": false,
+        "eventSchema": false,
+        "product": null
+       },
+       "productLinks": [
+        "/company/about-nxp/sustainability:CORP_SOCIAL_RESP",
+        "/company/about-nxp/investor-relations:INVESTOR-RELATIONS",
+        "/company/about-nxp/history:NXP-HISTORY",
+        "/products/interfaces/ethernet-/industrial-ethernet-phys:INDUSTRIAL-ETHERNET-TRANSCEIVERS",
+        "/products/rfid-nfc/ucode-rain-rfid-uhf:MC_50483"
+       ],
+       "checks": [
+        {
+         "key": "http",
+         "status": "PASS",
+         "details": "HTTP 200"
+        },
+        {
+         "key": "title",
+         "status": "PASS",
+         "details": "Title gevonden (59 tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens."
+        },
+        {
+         "key": "description",
+         "status": "PASS",
+         "details": "Meta description gevonden (108 tekens); bruikbare lengte."
+        },
+        {
+         "key": "h1",
+         "status": "PASS",
+         "details": "5 H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout."
+        },
+        {
+         "key": "canonical",
+         "status": "WARNING",
+         "details": "Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem."
+        }
+       ]
+      },
+      {
+       "path": "/products/product-finders:PRODUCT-FINDERS",
+       "type": "category",
+       "status": "audited",
+       "httpStatus": 200,
+       "nonContent": null,
+       "fetchFailure": null,
+       "evidenceSource": "raw_html",
+       "title": "Product Finders | NXP Semiconductors",
+       "description": "Browse NXP's complete product portfolio with specialized product finders and parametric search tools to quickly locate parts that match your requirements",
+       "identityHeadings": [
+        "Product Finders",
+        "Product Finders"
+       ],
+       "schemaTypes": [
+        "webpage",
+        "breadcrumblist",
+        "listitem"
+       ],
+       "commerce": {
+        "productSchema": false,
+        "productSchemaCount": 0,
+        "itemListSchema": false,
+        "storeSchema": false,
+        "strongCommerceAction": true,
+        "repeatedProductLinks": true,
+        "priceSignals": 0,
+        "confirmedRetailPage": false,
+        "financialOffer": false,
+        "eventSchema": false,
+        "product": null
+       },
+       "productLinks": [
+        "/products/product-selector:PRODUCT-SELECTOR",
+        "/products/product-advisor:PRODUCT-ADVISOR",
+        "/products/cross-reference:CROSS-REFERENCE",
+        "/products/design-advisor:DESIGN-ADVISOR",
+        "/products/product-finders:PRODUCT-FINDERS"
+       ],
+       "checks": [
+        {
+         "key": "http",
+         "status": "PASS",
+         "details": "HTTP 200"
+        },
+        {
+         "key": "title",
+         "status": "PASS",
+         "details": "Title gevonden (36 tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens."
+        },
+        {
+         "key": "description",
+         "status": "PASS",
+         "details": "Meta description gevonden (153 tekens); bruikbare lengte."
+        },
+        {
+         "key": "h1",
+         "status": "PASS",
+         "details": "2 H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout."
+        },
+        {
+         "key": "canonical",
+         "status": "PASS",
+         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.nxp.com/products/product-finders:PRODUCT-FINDERS"
+        }
+       ]
+      },
+      {
+       "path": "/products/product-advisor:PRODUCT-ADVISOR",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/product-selector:PRODUCT-SELECTOR",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/interfaces/ethernet-/industrial-ethernet-phys:INDUSTRIAL-ETHERNET-TRANSCEIVERS",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/support/support/nxp-engineering-services:SW-SUPPORT",
+       "type": "support",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/support/support/secure-access-rights:SEC-ACCESS",
+       "type": "support",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/company/our-company/about-nxp:ABOUT-NXP",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/company/about-nxp/events/electronica-2026:NXP-ELECTRONICA-EUROPE",
+       "type": "event",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/pages/store:STORE",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/applications/industrial/transportation:MOBILITY",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/rfid-nfc/ucode-rain-rfid-uhf:MC_50483",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/S32N5",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/S32M2",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/i.MX94",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/i.MX-RT700",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/wireless-connectivity/wi-fi-plus-bluetooth-plus-802-15-4/wireless-mcu-with-integrated-tri-radio-1x1-wi-fi-6-plus-bluetooth-low-energy-5-4-802-15-4:RW612",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/processors-and-microcontrollers/discrete-neural-processing-units:DNPU",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/products/cross-reference:CROSS-REFERENCE",
+       "type": "product",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/support/support/my-nxp-account-benefits:NXP-ACCOUNT-BENEFITS",
+       "type": "support",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/company/our-company/about-nxp/corporate-responsibility/social-responsibility/statement-on-slavery-and-human-trafficking:RESPECTING-HUMAN-RIGHTS",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/about/careers-at-nxp:CAREERS",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/company/our-company/about-nxp/accessibility:ACCESSIBILITY",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/company/about-nxp/accessibility:ACCESSIBILITY",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/webapp/Download",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/applications/automotive/software-defined-vehicle:SOFTWARE-DEFINED-CARS",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/applications/automotive/adas-and-safe-driving:ADAS-AND-AUTONOMOUS-DRIVING",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/applications/automotive/body-and-vehicle-control:BODY-COMFORT",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/applications/automotive/connected-vehicle:AUTOMOTIVE-CONNECTIVITY",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/design/design-center/development-boards-and-designs/FRDM-IMX8MPLUS",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      }
+     ]
+    },
+    "commerceChecks": [
+     {
+      "key": "merchant_product_readiness",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "merchant_feed_signal",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "price_format",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "checkout_funnel_static",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "checkout_information_signal",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "price_currency_consistency",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "webshop_trust",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "product_price_consistency",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "product_availability",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "webshop_claims",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "checkout_trust",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "product_copy_optimizer",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     },
+     {
+      "key": "product_schema",
+      "status": "not_applicable",
+      "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing…"
+     }
+    ],
+    "score": {
+     "overall": 98,
+     "seo": 98,
+     "geo": 99,
+     "evidenceLevel": "insufficient",
+     "seoDisplay": "98",
+     "geoDisplay": "38–100 (indicatie)",
+     "seoEvidenceLevel": "provisional",
+     "geoEvidenceLevel": "insufficient"
+    },
+    "selfCheck": {
+     "corrections": [],
+     "reliability": "medium"
+    }
+   }
+  },
+  {
+   "host": "vdlgroep.com",
+   "name": "VDL Groep",
+   "expected": "manufacturing",
+   "run": {
+    "status": "success",
+    "apiStatus": 200,
+    "reason": null,
+    "elapsedMs": 15744,
+    "at": "2026-11-04T13:43:29.516Z"
+   },
+   "verdict": "unconfirmed",
+   "evidenceState": "available",
+   "failure": null,
+   "evidence": {
+    "request": {
+     "scannedUrl": "https://vdlgroep.com/",
+     "finalUrl": "https://www.vdlgroep.com/nl",
+     "finalHost": "vdlgroep.com",
+     "httpStatus": 200,
+     "scannedAt": "2026-11-04T13:43:29.497Z",
+     "scanDurationMs": 15707,
+     "runtime": {
+      "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+      "environment": "local",
+      "vercelEnv": null,
+      "sectorEngine": "3.5.2-page-evidence-186",
+      "crawler": "2.6.0",
+      "rules": "1.4.0",
+      "scoreModel": "3.5-evidence-gated"
+     }
+    },
+    "access": {
+     "rankfixBlocked": false,
+     "recoveredOwnLinks": null,
+     "recoveryWithoutNavigation": false,
+     "originalStatus": null,
+     "attribution": null,
+     "note": null
+    },
+    "hostFallback": null,
+    "rendering": {
+     "mode": "javascript_rendered",
+     "completeness": "complete",
+     "evidenceSource": "rendered_html",
+     "javascriptExecuted": true,
+     "fallbackReason": null,
+     "fallbackDetail": null,
+     "partialNavigation": false
+    },
+    "page": {
+     "title": "Welkom bij - VDL Groep",
+     "description": "",
+     "h1s": [
+      "WIJ STAAN VOOR KRACHT DOOR SAMENWERKING"
+     ],
+     "lang": "nl",
+     "canonical": null,
+     "ogTitle": "Welkom bij - VDL Groep",
+     "ogDescription": null,
+     "wordCount": 1155,
+     "internalLinks": 91,
+     "navigationLabels": [],
+     "schemaTypes": [],
+     "jsonLd": [],
+     "pricingCurrency": {
+      "visibleCurrencies": [],
+      "selectorCurrencies": [],
+      "structuredCurrencies": [],
+      "visiblePriceCount": 0,
+      "visiblePriceEvidenceStrength": "none",
+      "structuredPriceCount": 0,
+      "currencyConflict": false,
+      "mixedVisibleCurrencies": false
+     },
+     "checkoutFunnel": {
+      "productPage": false,
+      "addToCart": false,
+      "cartLink": false,
+      "checkoutLink": false,
+      "shippingInformation": false,
+      "shippingInformationVisible": false,
+      "shippingInformationStructured": false,
+      "returnsInformationVisible": false,
+      "returnsInformationStructured": false,
+      "shippingCostVisible": false,
+      "paymentMethodsVisible": false,
+      "staticHtmlOnly": false,
+      "javascriptRendered": true,
+      "interactiveFlowExecuted": false,
+      "sampledCheckoutDestinations": []
+     }
+    },
+    "classification": {
+     "websiteType": "Website",
+     "sector": {
+      "key": "unknown",
+      "label": "Sector niet bevestigd",
+      "confidence": "low",
+      "confidenceScore": 0,
+      "displayPolicy": "unconfirmed"
+     },
+     "pageType": {
+      "type": "homepage",
+      "confidence": "high",
+      "commercialLandingPage": false
+     },
+     "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+    },
+    "pageTypeEvidence": {
+     "type": "homepage",
+     "confidence": "high",
+     "evidence": [
+      "localized/root path: /nl"
+     ]
+    },
+    "sectorProfile": {
+     "sector": "unknown",
+     "label": "Sector niet bevestigd",
+     "confidence": "low",
+     "confidenceScore": 0,
+     "evidence": [],
+     "applicableModules": [
+      "core_seo",
+      "geo",
+      "technical",
+      "business_identity"
+     ],
+     "key": "unknown",
+     "businessModel": {
+      "model": "unknown",
+      "basis": "none",
+      "evidence": []
+     },
+     "extendedIndustryEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+     },
+     "pageEvidence": {
+      "decision": null,
+      "reason": "no_identity_evidence",
+      "independentPages": 1,
+      "supportingPages": 0,
+      "candidates": []
+     },
+     "secondaryActivities": [],
+     "businessModelMix": "single",
+     "decisionStatus": "unconfirmed",
+     "salesChannel": null
+    },
+    "websiteProfile": {
+     "websiteType": {
+      "value": "unknown",
+      "label": "Websitetype niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": [
+       "Geen bevestigde webshop en geen vastgestelde hoofdactiviteit"
+      ]
+     },
+     "commercePlatform": {
+      "value": null,
+      "label": "Geen webshopplatform",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": []
+     },
+     "cms": {
+      "value": null,
+      "label": "Niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": []
+     },
+     "frontendFramework": {
+      "value": "Next.js",
+      "label": "Next.js",
+      "status": "probable",
+      "confidence": 72,
+      "evidence": [
+       "Next.js runtime"
+      ]
+     },
+     "industryVertical": {
+      "value": null,
+      "label": "Zie hoofdactiviteit",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": [
+       "Branche wordt alleen apart bepaald voor een bevestigde webshop"
+      ]
+     },
+     "summary": "Websitetype niet vastgesteld"
+    },
+    "technologyProfile": {
+     "technologies": [
+      {
+       "name": "Next.js",
+       "role": "framework",
+       "confidence": 72,
+       "evidence": [
+        "Next.js runtime"
+       ]
+      }
+     ],
+     "siteType": "Website",
+     "cms": null,
+     "commercePlatform": null,
+     "framework": "Next.js",
+     "isCommerce": false,
+     "confidence": 72,
+     "confidenceLabel": "medium",
+     "evidence": [
+      "Next.js runtime"
+     ]
+    },
+    "commerceApplicability": {
+     "state": "absent",
+     "reason": "no_commerce_evidence",
+     "marketSelector": false,
+     "representativePagesAudited": 0,
+     "serviceCommerce": {
+      "subscription": false,
+      "booking": false,
+      "lead": false,
+      "price": false,
+      "hasCommercialActivity": false
+     },
+     "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+    },
+    "evidenceLayer": {
+     "evidence": {
+      "version": "1.2",
+      "page": {
+       "url": "https://www.vdlgroep.com/nl",
+       "rendered": true,
+       "language": "nl",
+       "title": "Welkom bij - VDL Groep"
+      },
+      "commerce": {
+       "cart": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "addToCart": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "checkout": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "prices": {
+        "value": {
+         "count": 0,
+         "currencies": []
+        },
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "products": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "productPage": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "productLinks": {
+        "value": 0,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       }
+      },
+      "appointments": {
+       "appointment": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "reservation": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "booking": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "quoteRequest": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       }
+      },
+      "inventory": {
+       "vehicles": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "properties": {
+        "value": true,
+        "confidence": "medium",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Vastgoed/woning-tekstsignaal gevonden"
+        ]
+       },
+       "jobs": {
+        "value": true,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+        ]
+       },
+       "rooms": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "menu": {
+        "value": true,
+        "confidence": "medium",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Restaurant/menu-tekstsignaal gevonden"
+        ]
+       }
+      },
+      "organization": {
+       "contact": {
+        "value": true,
+        "confidence": "high",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Structurele contactlink of telefoon/e-mailactie gevonden"
+        ]
+       },
+       "address": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "openingHours": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       "reviews": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       }
+      },
+      "sectorDetails": {
+       "realEstate": {
+        "listing": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "sale": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "rental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        }
+       },
+       "automotive": {
+        "service": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "dealer": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        }
+       },
+       "media": {
+        "article": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": [
+          "Artikel-/nieuwstekstsignaal gevonden"
+         ]
+        },
+        "author": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": [
+          "Auteurssignaal gevonden"
+         ]
+        },
+        "publishedDate": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        }
+       },
+       "sports": {
+        "event": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "teamOrPlayer": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "resultsOrStandings": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        }
+       },
+       "lodging": {
+        "shortStay": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "bedBreakfast": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "holidayRental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "holidayPark": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "camping": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "stayDates": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        },
+        "guests": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "rendered_html"
+         ],
+         "evidence": []
+        }
+       }
+      },
+      "schema": {
+       "types": [],
+       "organization": false,
+       "website": false,
+       "product": false,
+       "localBusiness": false,
+       "vehicle": false,
+       "realEstate": false,
+       "jobPosting": false,
+       "restaurant": false,
+       "hotel": false
+      }
+     },
+     "sectorCandidates": [
+      {
+       "key": "news_media",
+       "label": "Nieuws / media",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "articles",
+        "authors",
+        "dates",
+        "publisher",
+        "sources"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": [
+        "commerce"
+       ]
+      },
+      {
+       "key": "manufacturer",
+       "label": "Fabrikant / producent",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "products",
+        "company",
+        "distributors_or_contact"
+       ],
+       "optionalCapabilities": [
+        "commerce"
+       ],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "energy",
+       "label": "Energie / nutsbedrijf",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "plans_or_rates",
+        "service_area",
+        "signup",
+        "support"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "general_business",
+       "label": "Algemene bedrijfswebsite",
+       "score": 2,
+       "evidence": [
+        "Sectorspecifieke content gevonden"
+       ],
+       "expectedCapabilities": [
+        "organization",
+        "services_or_offer",
+        "contact"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      }
+     ],
+     "master": {
+      "version": "1.0",
+      "primarySector": {
+       "key": "unknown",
+       "label": "Sector niet bevestigd",
+       "confidence": "low",
+       "confidenceScore": 0,
+       "displayPolicy": "unconfirmed"
+      },
+      "partners": [
+       {
+        "partner": "core",
+        "status": "confirmed",
+        "confidence": "high",
+        "capabilities": [
+         "title",
+         "language"
+        ],
+        "sources": [
+         "url",
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       {
+        "partner": "commerce",
+        "status": "unconfirmed",
+        "confidence": "low",
+        "capabilities": [],
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": []
+       },
+       {
+        "partner": "business",
+        "status": "unconfirmed",
+        "confidence": "low",
+        "capabilities": [],
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Vastgoed/woning-tekstsignaal gevonden",
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is",
+         "Restaurant/menu-tekstsignaal gevonden"
+        ]
+       },
+       {
+        "partner": "local_booking",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "contact"
+        ],
+        "sources": [
+         "rendered_html"
+        ],
+        "evidence": [
+         "Structurele contactlink of telefoon/e-mailactie gevonden"
+        ]
+       }
+      ],
+      "partnerSummary": {
+       "total": 4,
+       "confirmed": 1,
+       "partial": 1,
+       "unconfirmed": 2
+      },
+      "capabilities": [
+       "properties",
+       "menu",
+       "contact",
+       "title",
+       "language"
+      ],
+      "activeModules": [
+       "core_seo",
+       "geo",
+       "technical",
+       "business_identity"
+      ],
+      "businessModels": [
+       "real_estate_inventory",
+       "hospitality_food"
+      ],
+      "secondarySectorCandidates": [],
+      "commerce": {
+       "confirmed": false,
+       "strength": 0
+      },
+      "coverage": {
+       "confirmedCapabilities": 5,
+       "evidenceSources": [
+        "url",
+        "rendered_html",
+        "multi_page"
+       ],
+       "partnerCoverage": 38
+      },
+      "conflicts": [],
+      "policy": "Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld. Hybride businessmodellen worden naast elkaar bewaard; een secundaire functie wordt niet door de hoofdsector overschreven.",
+      "capabilityStates": [
+       {
+        "id": "sells_products_online",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       },
+       {
+        "id": "lists_inventory",
+        "state": "likely",
+        "confidence": 0.7,
+        "proof": [
+         "Inventory-signaal gevonden zonder representatieve listingpagina"
+        ],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "offers_bookable_services",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       },
+       {
+        "id": "collects_leads",
+        "state": "likely",
+        "confidence": 0.7,
+        "proof": [
+         "Contact-/offertesignaal gevonden zonder representatief leadformulier"
+        ],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "serves_local_customers",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       }
+      ],
+      "finalDecisions": {
+       "commerce": {
+        "confirmed": false,
+        "currentPageEvidence": false,
+        "technologyProfile": false,
+        "technologyOnly": false,
+        "secondaryCommerceOnly": false,
+        "multiPageEvidence": false
+       }
+      },
+      "classification": {
+       "websiteType": "Website",
+       "sector": {
+        "key": "unknown",
+        "label": "Sector niet bevestigd",
+        "confidence": "low",
+        "confidenceScore": 0,
+        "displayPolicy": "unconfirmed"
+       },
+       "pageType": {
+        "type": "homepage",
+        "confidence": "high",
+        "commercialLandingPage": false
+       },
+       "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+      }
+     }
+    },
+    "sample": {
+     "sectionCoverage": {
+      "items": [
+       {
+        "section": "homepage",
+        "label": "Homepage",
+        "status": "checked",
+        "urls": [
+         "https://www.vdlgroep.com/nl"
+        ],
+        "note": "1 pagina('s) inhoudelijk beoordeeld."
+       },
+       {
+        "section": "offer",
+        "label": "Diensten / aanbod",
+        "status": "not_examined",
+        "urls": [
+         "https://www.vdlgroep.com/nl/vdl-groep/management",
+         "https://www.vdlgroep.com/nl/vdl-groep/duurzaamheid"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS, SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "contact",
+        "label": "Contact",
+        "status": "not_examined",
+        "urls": [
+         "https://www.vdlgroep.com/nl/contact"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "support",
+        "label": "Klantenservice / veelgestelde vragen",
+        "status": "not_found",
+        "urls": [],
+        "note": "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."
+       },
+       {
+        "section": "legal",
+        "label": "Juridisch (privacy, voorwaarden, cookies)",
+        "status": "not_examined",
+        "urls": [
+         "https://www.vdlgroep.com/nl/disclaimer",
+         "https://www.vdlgroep.com/nl/cookies",
+         "https://www.vdlgroep.com/nl/privacy-statement"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS, SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "content",
+        "label": "Artikelen / nieuws",
+        "status": "not_examined",
+        "urls": [
+         "https://www.vdlgroep.com/nl/nieuws"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       }
+      ],
+      "summary": "Gecontroleerd: Homepage. Niet toegankelijk of niet opgehaald (niet gecontroleerd): Diensten / aanbod, Contact, Juridisch (privacy, voorwaarden, cookies), Artikelen / nieuws. Niet gevonden in de steekproef: Klantenservice / veelgestelde vragen."
+     },
+     "sampleLinkSource": "page_links",
+     "fallbackSources": [],
+     "sampleLimitation": {
+      "extraPagesAudited": 0,
+      "reasons": [
+       "de gescande pagina bevatte maar 26 interne link(s)",
+       "19 geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald"
+      ],
+      "note": "De steekproef bleef klein omdat de gescande pagina bevatte maar 26 interne link(s); 19 geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald. Sitebrede conclusies rusten daarom vooral op de gescande pagina.",
+      "noteEn": "The sample stayed small because the scanned page contained only 26 internal link(s); 19 selected page(s) could not be fetched reliably. Site-wide conclusions therefore rest mainly on the scanned page."
+     },
+     "discoveredInternalUrls": 25,
+     "siteAccess": {
+      "startUrl": "https://www.vdlgroep.com/nl",
+      "startIsHomepage": true,
+      "homepage": {
+       "url": "https://www.vdlgroep.com/nl",
+       "access": "is_start_page",
+       "httpStatus": null
+      },
+      "pages": {
+       "selected": 20,
+       "assessed": 1,
+       "refused": 0,
+       "missing": 0,
+       "notRetrieved": 19,
+       "excluded": 0,
+       "duplicate": 0
+      },
+      "scanCoverage": "start_only",
+      "note": "1 van 20 geselecteerde pagina's zijn inhoudelijk beoordeeld; 19 niet opgehaald. Dit is een gedeeltelijk rapport: alleen de beoordeelde pagina's tellen mee. Bereikbare pagina's bewijzen niet dat de hele website toegankelijk is."
+     },
+     "sitewideCommerceEvidence": {
+      "confirmed": false,
+      "sampleCount": 0,
+      "urls": [],
+      "evidence": []
+     },
+     "representativeProduct": null,
+     "pages": [
+      {
+       "path": "/nl",
+       "type": "homepage",
+       "status": "audited",
+       "httpStatus": 200,
+       "nonContent": null,
+       "fetchFailure": null,
+       "evidenceSource": "rendered_html",
+       "title": "Welkom bij - VDL Groep",
+       "description": null,
+       "identityHeadings": [
+        "WIJ STAAN VOOR KRACHT DOOR SAMENWERKING"
+       ],
+       "schemaTypes": [],
+       "commerce": {
+        "productSchema": false,
+        "productSchemaCount": 0,
+        "itemListSchema": false,
+        "storeSchema": false,
+        "strongCommerceAction": false,
+        "repeatedProductLinks": false,
+        "priceSignals": 0,
+        "confirmedRetailPage": false,
+        "financialOffer": false,
+        "eventSchema": false,
+        "product": null
+       },
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "http",
+         "status": "PASS",
+         "details": "HTTP 200"
+        },
+        {
+         "key": "title",
+         "status": "PASS",
+         "details": "Title gevonden (22 tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens."
+        },
+        {
+         "key": "description",
+         "status": "WARNING",
+         "details": "Geen meta description-tag gevonden, ook niet na JavaScript-rendering."
+        },
+        {
+         "key": "h1",
+         "status": "PASS",
+         "details": "1 H1-heading(s) gevonden."
+        },
+        {
+         "key": "canonical",
+         "status": "WARNING",
+         "details": "Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem."
+        }
+       ]
+      },
+      {
+       "path": "/nl/contact",
+       "type": "contact",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/nieuws",
+       "type": "article",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/disclaimer",
+       "type": "legal",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/cookies",
+       "type": "legal",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/vdl-groep/management",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/vdl-groep/duurzaamheid",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/onze-5-werelden",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/vdl-groep/over-vdl",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/vdl-groep/sociale-betrokkenheid",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/vdl-groep/over-vdl/visie-missie",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/code-of-conduct",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/leveranciers-richtlijnen",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/5-werelden/hightech",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/5-werelden/mobility",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/5-werelden/energy",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/5-werelden/infratech",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/5-werelden/foodtech",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/incidentmeldingsformulier",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nl/privacy-statement",
+       "type": "legal",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      }
+     ]
+    },
+    "commerceChecks": [
+     {
+      "key": "merchant_product_readiness",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "merchant_feed_signal",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "price_format",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "checkout_funnel_static",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "checkout_information_signal",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "price_currency_consistency",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "webshop_trust",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "product_price_consistency",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "product_availability",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "webshop_claims",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "checkout_trust",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "product_copy_optimizer",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     },
+     {
+      "key": "product_schema",
+      "status": "not_applicable",
+      "message": "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing."
+     }
+    ],
+    "score": {
+     "overall": 84,
+     "seo": 88,
+     "geo": 78,
+     "evidenceLevel": "insufficient",
+     "seoDisplay": "88",
+     "geoDisplay": "78",
+     "seoEvidenceLevel": "provisional",
+     "geoEvidenceLevel": "provisional"
+    },
+    "selfCheck": {
+     "corrections": [],
+     "reliability": "medium"
+    }
+   }
+  },
+  {
+   "host": "zeiss.com",
+   "name": "ZEISS",
+   "expected": "manufacturing",
+   "run": {
+    "status": "success",
+    "apiStatus": 200,
+    "reason": null,
+    "elapsedMs": 13446,
+    "at": "2026-11-04T13:45:16.149Z"
+   },
+   "verdict": "unconfirmed",
+   "evidenceState": "available",
+   "failure": null,
+   "evidence": {
+    "request": {
+     "scannedUrl": "https://zeiss.com/",
+     "finalUrl": "https://www.zeiss.com/corporate/en/home.html",
+     "finalHost": "zeiss.com",
+     "httpStatus": 200,
+     "scannedAt": "2026-11-04T13:45:16.130Z",
+     "scanDurationMs": 13406,
+     "runtime": {
+      "commitSha": "0de0835757b38840940410ba79b9505d9ab9d72d",
+      "environment": "local",
+      "vercelEnv": null,
+      "sectorEngine": "3.5.2-page-evidence-186",
+      "crawler": "2.6.0",
+      "rules": "1.4.0",
+      "scoreModel": "3.5-evidence-gated"
+     }
+    },
+    "access": {
+     "rankfixBlocked": false,
+     "recoveredOwnLinks": null,
+     "recoveryWithoutNavigation": false,
+     "originalStatus": null,
+     "attribution": null,
+     "note": null
+    },
+    "hostFallback": null,
+    "rendering": {
+     "mode": "raw_html",
+     "completeness": "complete",
+     "evidenceSource": "raw_html",
+     "javascriptExecuted": false,
+     "fallbackReason": null,
+     "fallbackDetail": null,
+     "partialNavigation": false
+    },
+    "page": {
+     "title": "Solutions to shape the future | ZEISS",
+     "description": "ZEISS is an international leading technology enterprise operating in the optics and optoelectronics industries.",
+     "h1s": [
+      "Visionary minds. Enhanced by AI"
+     ],
+     "lang": "en",
+     "canonical": "https://www.zeiss.com/corporate/en/home.html",
+     "ogTitle": "ZEISS Group",
+     "ogDescription": "ZEISS is an international leading technology enterprise operating in the optics and optoelectronics industries.",
+     "wordCount": 1451,
+     "internalLinks": 183,
+     "navigationLabels": [
+      "Skip to main content",
+      "Products and solutions",
+      "Careers",
+      "Contact",
+      "Contact",
+      "Annual Report of the ZEISS Group",
+      "ZEISS Forum"
+     ],
+     "schemaTypes": [
+      "BreadcrumbList",
+      "ListItem",
+      "Organization"
+     ],
+     "jsonLd": [],
+     "pricingCurrency": {
+      "visibleCurrencies": [],
+      "selectorCurrencies": [],
+      "structuredCurrencies": [],
+      "visiblePriceCount": 0,
+      "visiblePriceEvidenceStrength": "none",
+      "structuredPriceCount": 0,
+      "currencyConflict": false,
+      "mixedVisibleCurrencies": false
+     },
+     "checkoutFunnel": {
+      "productPage": false,
+      "addToCart": false,
+      "cartLink": false,
+      "checkoutLink": false,
+      "shippingInformation": false,
+      "shippingInformationVisible": false,
+      "shippingInformationStructured": false,
+      "returnsInformationVisible": false,
+      "returnsInformationStructured": false,
+      "shippingCostVisible": false,
+      "paymentMethodsVisible": false,
+      "staticHtmlOnly": true,
+      "javascriptRendered": false,
+      "interactiveFlowExecuted": false,
+      "sampledCheckoutDestinations": []
+     }
+    },
+    "classification": {
+     "websiteType": "Website",
+     "sector": {
+      "key": "unknown",
+      "label": "Sector nog niet bevestigd (internationaal landkeuzeportaal)",
+      "confidence": "low",
+      "confidenceScore": 0,
+      "displayPolicy": "unconfirmed"
+     },
+     "pageType": {
+      "type": "service",
+      "confidence": "medium",
+      "commercialLandingPage": false
+     },
+     "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+    },
+    "pageTypeEvidence": {
+     "type": "service",
+     "confidence": "medium",
+     "evidence": [
+      "service intent in resolved page metadata/headings"
+     ]
+    },
+    "sectorProfile": {
+     "sector": "unknown",
+     "label": "Sector nog niet bevestigd (internationaal landkeuzeportaal)",
+     "confidence": "low",
+     "confidenceScore": 0,
+     "evidence": [
+      "Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies"
+     ],
+     "applicableModules": [
+      "core_seo",
+      "geo",
+      "technical",
+      "business_identity"
+     ],
+     "key": "unknown",
+     "businessModel": {
+      "model": "unknown",
+      "basis": "none",
+      "evidence": []
+     },
+     "extendedIndustryEvidence": {
+      "reason": "no_evidence",
+      "homepageIdentity": null,
+      "supportingPages": 0,
+      "candidates": [],
+      "applied": false
+     },
+     "pageEvidence": {
+      "decision": null,
+      "reason": "no_identity_evidence",
+      "independentPages": 1,
+      "supportingPages": 0,
+      "candidates": []
+     },
+     "secondaryActivities": [],
+     "businessModelMix": "single",
+     "decisionStatus": "unconfirmed",
+     "salesChannel": null
+    },
+    "websiteProfile": {
+     "websiteType": {
+      "value": "unknown",
+      "label": "Websitetype niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": [
+       "Geen bevestigde webshop en geen vastgestelde hoofdactiviteit"
+      ]
+     },
+     "commercePlatform": {
+      "value": null,
+      "label": "Geen webshopplatform",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": []
+     },
+     "cms": {
+      "value": "Adobe Experience Manager",
+      "label": "Adobe Experience Manager",
+      "status": "confirmed",
+      "confidence": 90,
+      "evidence": [
+       "Adobe Experience Manager: platformspecifiek assetpad"
+      ]
+     },
+     "frontendFramework": {
+      "value": null,
+      "label": "Niet vastgesteld",
+      "status": "unknown",
+      "confidence": 0,
+      "evidence": []
+     },
+     "industryVertical": {
+      "value": null,
+      "label": "Zie hoofdactiviteit",
+      "status": "not_applicable",
+      "confidence": 0,
+      "evidence": [
+       "Branche wordt alleen apart bepaald voor een bevestigde webshop"
+      ]
+     },
+     "summary": "Websitetype niet vastgesteld"
+    },
+    "technologyProfile": {
+     "technologies": [
+      {
+       "name": "Adobe Experience Manager",
+       "role": "cms",
+       "confidence": 90,
+       "evidence": [
+        "Adobe Experience Manager: platformspecifiek assetpad"
+       ]
+      }
+     ],
+     "siteType": "Website",
+     "cms": "Adobe Experience Manager",
+     "commercePlatform": null,
+     "framework": null,
+     "isCommerce": false,
+     "confidence": 90,
+     "confidenceLabel": "high",
+     "evidence": [
+      "Adobe Experience Manager: platformspecifiek assetpad"
+     ]
+    },
+    "commerceApplicability": {
+     "state": "unconfirmed",
+     "reason": "market_selector",
+     "marketSelector": true,
+     "representativePagesAudited": 0,
+     "serviceCommerce": {
+      "subscription": false,
+      "booking": false,
+      "lead": false,
+      "price": false,
+      "hasCommercialActivity": false
+     },
+     "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+    },
+    "evidenceLayer": {
+     "evidence": {
+      "version": "1.2",
+      "page": {
+       "url": "https://www.zeiss.com/corporate/en/home.html",
+       "rendered": false,
+       "language": "en",
+       "title": "Solutions to shape the future | ZEISS"
+      },
+      "commerce": {
+       "cart": {
+        "value": true,
+        "confidence": "high",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Cart/winkelwagen-signaal gevonden",
+         "Raw HTML beoordeeld; client-side signalen kunnen ontbreken"
+        ]
+       },
+       "addToCart": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "checkout": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "prices": {
+        "value": {
+         "count": 0,
+         "currencies": []
+        },
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "products": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "productPage": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "productLinks": {
+        "value": 0,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "appointments": {
+       "appointment": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "reservation": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "booking": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "quoteRequest": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "inventory": {
+       "vehicles": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "properties": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "jobs": {
+        "value": true,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+        ]
+       },
+       "rooms": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "menu": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "organization": {
+       "contact": {
+        "value": true,
+        "confidence": "high",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Structurele contactlink of telefoon/e-mailactie gevonden"
+        ]
+       },
+       "address": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "openingHours": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       },
+       "reviews": {
+        "value": false,
+        "confidence": "low",
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": []
+       }
+      },
+      "sectorDetails": {
+       "realEstate": {
+        "listing": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "sale": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "rental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "automotive": {
+        "service": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "dealer": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "media": {
+        "article": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Artikel-/nieuwstekstsignaal gevonden"
+         ]
+        },
+        "author": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Auteurssignaal gevonden"
+         ]
+        },
+        "publishedDate": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Publicatiedatumsignaal gevonden"
+         ]
+        }
+       },
+       "sports": {
+        "event": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "teamOrPlayer": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Team-/spelertekstsignaal gevonden"
+         ]
+        },
+        "resultsOrStandings": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        }
+       },
+       "lodging": {
+        "shortStay": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "bedBreakfast": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "holidayRental": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "holidayPark": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "camping": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "stayDates": {
+         "value": false,
+         "confidence": "low",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": []
+        },
+        "guests": {
+         "value": true,
+         "confidence": "medium",
+         "sources": [
+          "raw_html"
+         ],
+         "evidence": [
+          "Gast-/persoonsaantal gevonden"
+         ]
+        }
+       }
+      },
+      "schema": {
+       "types": [
+        "BreadcrumbList",
+        "ListItem",
+        "Organization"
+       ],
+       "organization": true,
+       "website": false,
+       "product": false,
+       "localBusiness": false,
+       "vehicle": false,
+       "realEstate": false,
+       "jobPosting": false,
+       "restaurant": false,
+       "hotel": false
+      }
+     },
+     "sectorCandidates": [
+      {
+       "key": "manufacturer",
+       "label": "Fabrikant / producent",
+       "score": 5,
+       "evidence": [
+        "Sectorspecifieke content gevonden",
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "products",
+        "company",
+        "distributors_or_contact"
+       ],
+       "optionalCapabilities": [
+        "commerce"
+       ],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "logistics",
+       "label": "Logistiek / transport",
+       "score": 5,
+       "evidence": [
+        "Sectorspecifieke content gevonden",
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "services",
+        "service_area",
+        "quote_request",
+        "contact"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "general_business",
+       "label": "Algemene bedrijfswebsite",
+       "score": 5,
+       "evidence": [
+        "Sectorspecifieke content gevonden",
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "organization",
+        "services_or_offer",
+        "contact"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "association",
+       "label": "Vereniging / brancheorganisatie",
+       "score": 3,
+       "evidence": [
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "mission",
+        "membership",
+        "contact"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "wholesale",
+       "label": "Groothandel / B2B handel",
+       "score": 3,
+       "evidence": [
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "catalog",
+        "business_customers",
+        "quote_or_order"
+       ],
+       "optionalCapabilities": [
+        "commerce"
+       ],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "telecom",
+       "label": "Telecom",
+       "score": 3,
+       "evidence": [
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "plans",
+        "pricing",
+        "coverage",
+        "signup"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "energy",
+       "label": "Energie / nutsbedrijf",
+       "score": 3,
+       "evidence": [
+        "Schema: Organization"
+       ],
+       "expectedCapabilities": [
+        "plans_or_rates",
+        "service_area",
+        "signup",
+        "support"
+       ],
+       "optionalCapabilities": [],
+       "forbiddenAssumptions": []
+      },
+      {
+       "key": "ecommerce",
+       "label": "Webshop / e-commerce",
+       "score": 2,
+       "evidence": [
+        "Evidence: commerce.cart"
+       ],
+       "expectedCapabilities": [
+        "products",
+        "pricing",
+        "cart",
+        "checkout",
+        "merchant",
+        "consumer_rights"
+       ],
+       "optionalCapabilities": [
+        "appointments"
+       ],
+       "forbiddenAssumptions": []
+      }
+     ],
+     "master": {
+      "version": "1.0",
+      "primarySector": {
+       "key": "unknown",
+       "label": "Sector nog niet bevestigd (internationaal landkeuzeportaal)",
+       "confidence": "low",
+       "confidenceScore": 0,
+       "displayPolicy": "unconfirmed"
+      },
+      "partners": [
+       {
+        "partner": "core",
+        "status": "confirmed",
+        "confidence": "high",
+        "capabilities": [
+         "title",
+         "language",
+         "organization_schema"
+        ],
+        "sources": [
+         "url",
+         "raw_html"
+        ],
+        "evidence": [
+         "Schema: BreadcrumbList",
+         "Schema: ListItem",
+         "Schema: Organization"
+        ]
+       },
+       {
+        "partner": "commerce",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "cart"
+        ],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Cart/winkelwagen-signaal gevonden",
+         "Raw HTML beoordeeld; client-side signalen kunnen ontbreken"
+        ]
+       },
+       {
+        "partner": "business",
+        "status": "unconfirmed",
+        "confidence": "low",
+        "capabilities": [],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+        ]
+       },
+       {
+        "partner": "local_booking",
+        "status": "partial",
+        "confidence": "medium",
+        "capabilities": [
+         "contact"
+        ],
+        "sources": [
+         "raw_html"
+        ],
+        "evidence": [
+         "Structurele contactlink of telefoon/e-mailactie gevonden"
+        ]
+       }
+      ],
+      "partnerSummary": {
+       "total": 4,
+       "confirmed": 1,
+       "partial": 2,
+       "unconfirmed": 1
+      },
+      "capabilities": [
+       "cart",
+       "contact",
+       "title",
+       "language",
+       "organization_schema"
+      ],
+      "activeModules": [
+       "core_seo",
+       "geo",
+       "technical",
+       "business_identity"
+      ],
+      "businessModels": [],
+      "secondarySectorCandidates": [
+       {
+        "key": "manufacturer",
+        "label": "Fabrikant / producent",
+        "score": 5,
+        "evidence": [
+         "Sectorspecifieke content gevonden",
+         "Schema: Organization"
+        ]
+       },
+       {
+        "key": "logistics",
+        "label": "Logistiek / transport",
+        "score": 5,
+        "evidence": [
+         "Sectorspecifieke content gevonden",
+         "Schema: Organization"
+        ]
+       },
+       {
+        "key": "general_business",
+        "label": "Algemene bedrijfswebsite",
+        "score": 5,
+        "evidence": [
+         "Sectorspecifieke content gevonden",
+         "Schema: Organization"
+        ]
+       },
+       {
+        "key": "association",
+        "label": "Vereniging / brancheorganisatie",
+        "score": 3,
+        "evidence": [
+         "Schema: Organization"
+        ]
+       }
+      ],
+      "commerce": {
+       "confirmed": false,
+       "strength": 1
+      },
+      "coverage": {
+       "confirmedCapabilities": 5,
+       "evidenceSources": [
+        "url",
+        "raw_html",
+        "multi_page"
+       ],
+       "partnerCoverage": 50
+      },
+      "conflicts": [],
+      "policy": "Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
+      "capabilityStates": [
+       {
+        "id": "sells_products_online",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       },
+       {
+        "id": "lists_inventory",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       },
+       {
+        "id": "offers_bookable_services",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       },
+       {
+        "id": "collects_leads",
+        "state": "likely",
+        "confidence": 0.7,
+        "proof": [
+         "Contact-/offertesignaal gevonden zonder representatief leadformulier"
+        ],
+        "reason": "weak_evidence"
+       },
+       {
+        "id": "serves_local_customers",
+        "state": "unknown",
+        "confidence": 0,
+        "proof": [],
+        "reason": "insufficient_coverage"
+       }
+      ],
+      "finalDecisions": {
+       "commerce": {
+        "confirmed": false,
+        "currentPageEvidence": false,
+        "technologyProfile": false,
+        "technologyOnly": false,
+        "secondaryCommerceOnly": false,
+        "multiPageEvidence": false
+       }
+      },
+      "classification": {
+       "websiteType": "Website",
+       "sector": {
+        "key": "unknown",
+        "label": "Sector nog niet bevestigd (internationaal landkeuzeportaal)",
+        "confidence": "low",
+        "confidenceScore": 0,
+        "displayPolicy": "unconfirmed"
+       },
+       "pageType": {
+        "type": "service",
+        "confidence": "medium",
+        "commercialLandingPage": false
+       },
+       "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+      }
+     }
+    },
+    "sample": {
+     "sectionCoverage": {
+      "items": [
+       {
+        "section": "homepage",
+        "label": "Homepage",
+        "status": "not_examined",
+        "urls": [
+         "https://www.zeiss.com/"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (geen antwoord); niet gecontroleerd."
+       },
+       {
+        "section": "offer",
+        "label": "Diensten / aanbod",
+        "status": "checked",
+        "urls": [
+         "https://www.zeiss.com/corporate/en/home.html"
+        ],
+        "note": "1 pagina('s) inhoudelijk beoordeeld; 8 niet te beoordelen."
+       },
+       {
+        "section": "contact",
+        "label": "Contact",
+        "status": "not_examined",
+        "urls": [
+         "https://www.zeiss.com/simulation/contact"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "support",
+        "label": "Klantenservice / veelgestelde vragen",
+        "status": "not_found",
+        "urls": [],
+        "note": "Geen pagina van dit type gevonden in de gelinkte navigatie of steekproef; niet gecontroleerd."
+       },
+       {
+        "section": "legal",
+        "label": "Juridisch (privacy, voorwaarden, cookies)",
+        "status": "not_examined",
+        "urls": [
+         "https://www.zeiss.com/privacy",
+         "https://www.zeiss.com/cookies"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS, SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       },
+       {
+        "section": "content",
+        "label": "Artikelen / nieuws",
+        "status": "not_examined",
+        "urls": [
+         "https://www.zeiss.com/corporate/en/c/stories/insights/e-mobility-megacities.html",
+         "https://www.zeiss.com/corporate/en/c/stories/insights/photonics.html",
+         "https://www.zeiss.com/meditec-ag/en/media-news/press-releases/2025/nominated-for-german-future-prize.html"
+        ],
+        "note": "Geselecteerd maar niet opgehaald (SCAN_INFRASTRUCTURE_EGRESS, SCAN_INFRASTRUCTURE_EGRESS); niet gecontroleerd."
+       }
+      ],
+      "summary": "Gecontroleerd: Diensten / aanbod. Niet toegankelijk of niet opgehaald (niet gecontroleerd): Homepage, Contact, Juridisch (privacy, voorwaarden, cookies), Artikelen / nieuws. Niet gevonden in de steekproef: Klantenservice / veelgestelde vragen."
+     },
+     "sampleLinkSource": "page_links",
+     "fallbackSources": [],
+     "sampleLimitation": {
+      "extraPagesAudited": 0,
+      "reasons": [
+       "de gescande pagina bevatte maar 156 interne link(s)",
+       "27 geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald"
+      ],
+      "note": "De steekproef bleef klein omdat de gescande pagina bevatte maar 156 interne link(s); 27 geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald. Sitebrede conclusies rusten daarom vooral op de gescande pagina.",
+      "noteEn": "The sample stayed small because the scanned page contained only 156 internal link(s); 27 selected page(s) could not be fetched reliably. Site-wide conclusions therefore rest mainly on the scanned page."
+     },
+     "discoveredInternalUrls": 154,
+     "siteAccess": {
+      "startUrl": "https://www.zeiss.com/corporate/en/home.html",
+      "startIsHomepage": false,
+      "homepage": {
+       "url": "https://www.zeiss.com/",
+       "access": "not_retrieved",
+       "httpStatus": null
+      },
+      "pages": {
+       "selected": 28,
+       "assessed": 1,
+       "refused": 0,
+       "missing": 0,
+       "notRetrieved": 27,
+       "excluded": 0,
+       "duplicate": 0
+      },
+      "scanCoverage": "start_only",
+      "note": "De scan startte vanaf de ingevoerde pagina, niet vanaf de homepage. De homepage kon niet worden opgehaald en is niet beoordeeld. 1 van 28 geselecteerde pagina's zijn inhoudelijk beoordeeld; 27 niet opgehaald. Dit is een gedeeltelijk rapport: alleen de beoordeelde pagina's tellen mee. Bereikbare pagina's bewijzen niet dat de hele website toegankelijk is."
+     },
+     "sitewideCommerceEvidence": {
+      "confirmed": false,
+      "sampleCount": 0,
+      "urls": [],
+      "evidence": []
+     },
+     "representativeProduct": null,
+     "pages": [
+      {
+       "path": "/corporate/en/home.html",
+       "type": "service",
+       "status": "audited",
+       "httpStatus": 200,
+       "nonContent": null,
+       "fetchFailure": null,
+       "evidenceSource": "raw_html",
+       "title": "Solutions to shape the future | ZEISS",
+       "description": "ZEISS is an international leading technology enterprise operating in the optics and optoelectronics industries.",
+       "identityHeadings": [
+        "Visionary minds. Enhanced by AI"
+       ],
+       "schemaTypes": [
+        "breadcrumblist",
+        "listitem",
+        "organization"
+       ],
+       "commerce": {
+        "productSchema": false,
+        "productSchemaCount": 0,
+        "itemListSchema": false,
+        "storeSchema": false,
+        "strongCommerceAction": false,
+        "repeatedProductLinks": false,
+        "priceSignals": 0,
+        "confirmedRetailPage": false,
+        "financialOffer": false,
+        "eventSchema": false,
+        "product": null
+       },
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "http",
+         "status": "PASS",
+         "details": "HTTP 200"
+        },
+        {
+         "key": "title",
+         "status": "PASS",
+         "details": "Title gevonden (37 tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens."
+        },
+        {
+         "key": "description",
+         "status": "PASS",
+         "details": "Meta description gevonden (111 tekens); bruikbare lengte."
+        },
+        {
+         "key": "h1",
+         "status": "PASS",
+         "details": "1 H1-heading(s) gevonden."
+        },
+        {
+         "key": "canonical",
+         "status": "PASS",
+         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.zeiss.com/corporate/en/home.html"
+        }
+       ]
+      },
+      {
+       "path": "/",
+       "type": "homepage",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/simulation/contact",
+       "type": "contact",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/corporate/en/c/stories/insights/e-mobility-megacities.html",
+       "type": "article",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/corporate/en/c/stories/insights/photonics.html",
+       "type": "article",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/photo/service",
+       "type": "service",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/cine/service",
+       "type": "service",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/hunting/service",
+       "type": "service",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/nature/service",
+       "type": "service",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/privacy",
+       "type": "legal",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/cookies",
+       "type": "legal",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/meditec/en/about-us/contact-us.html",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/corporate/en/about-zeiss/present/sustainability/zeiss-embl.html",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/metrology/en/explore/events/2026/zeiss-innovation-summit.html",
+       "type": "event",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/spectroscopy/service-support.html",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/digital-innovation-expertise",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/corporate/en/products-and-solutions.html",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/med/products",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/planetariums-products",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/oem-solutions/services.html",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/annualreport",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/zeissforum",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/vision-care/en/home.html",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/vision-care/en/eye-care-professionals/home.html",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/sunlens",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/extended-reality",
+       "type": "other",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/meditec-ag/en/media-news/press-releases/2025/nominated-for-german-future-prize.html",
+       "type": "article",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      },
+      {
+       "path": "/career",
+       "type": "corporate",
+       "status": "unable_to_confirm",
+       "httpStatus": null,
+       "nonContent": null,
+       "fetchFailure": "SCAN_INFRASTRUCTURE_EGRESS",
+       "evidenceSource": null,
+       "title": null,
+       "description": null,
+       "identityHeadings": [],
+       "schemaTypes": [],
+       "commerce": null,
+       "productLinks": [],
+       "checks": [
+        {
+         "key": "fetch",
+         "status": "UNABLE_TO_CONFIRM",
+         "details": "Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ophalen mislukt)."
+        }
+       ]
+      }
+     ]
+    },
+    "commerceChecks": [
+     {
+      "key": "merchant_product_readiness",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "merchant_feed_signal",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "price_format",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "checkout_funnel_static",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "checkout_information_signal",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "price_currency_consistency",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "webshop_trust",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "product_price_consistency",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "product_availability",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "webshop_claims",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "checkout_trust",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "product_copy_optimizer",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     },
+     {
+      "key": "product_schema",
+      "status": "unable_to_confirm",
+      "message": "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling."
+     }
+    ],
+    "score": {
+     "overall": 94,
+     "seo": 99,
+     "geo": 87,
+     "evidenceLevel": "insufficient",
+     "seoDisplay": "99",
+     "geoDisplay": "87",
+     "seoEvidenceLevel": "provisional",
+     "geoEvidenceLevel": "complete"
+    },
+    "selfCheck": {
+     "corrections": [],
+     "reliability": "low"
+    }
+   }
+  },
+  {
+   "host": "basf.com",
+   "name": "BASF",
+   "expected": "manufacturing",
+   "run": {
+    "status": "api_error",
+    "apiStatus": 503,
+    "reason": "SCAN_INFRASTRUCTURE_EGRESS",
+    "elapsedMs": 126,
+    "at": "2026-11-04T13:45:17.286Z"
+   },
+   "verdict": null,
+   "evidenceState": "scan_not_successful",
+   "failure": {
+    "code": "SCAN_INFRASTRUCTURE_EGRESS",
+    "error": "RankFix kan de website nu niet bereiken door een storing in de uitgaande verbinding van de scanomgeving. Dit is geen vastgestelde fout van de website. Er is geen score berekend en niets in rekening gebracht. Probeer opnieuw wanneer de verbinding is hersteld.",
+    "httpStatus": null,
+    "incident": {
+     "traceId": "rf-mw265mcx-2hxnz1z6vb",
+     "at": "2026-11-04T13:45:17.284Z",
+     "requestedUrl": "https://basf.com/",
+     "finalUrl": null,
+     "redirects": [],
+     "originHttpStatus": null,
+     "apiHttpStatus": 503,
+     "reasonCode": "SCAN_INFRASTRUCTURE_EGRESS",
+     "phase": "fetch",
+     "attribution": "rankfix_infrastructure",
+     "rankfixSide": true,
+     "retrySameSite": true,
+     "browserRender": {
+      "attempted": false,
+      "outcome": "not_attempted",
+      "reason": null
+     },
+     "explanation": "Een technisch probleem bij RankFix (database, platform of tijdslimiet) stopte de scan. Dit is geen probleem van de onderzochte website."
+    },
+    "access": null,
+    "traceId": "rf-mw265mcx-2hxnz1z6vb"
+   },
+   "evidence": null
+  },
+  {
+   "host": "sandvik.com",
+   "name": "Sandvik",
+   "expected": "manufacturing",
+   "run": {
+    "status": "api_error",
+    "apiStatus": 503,
+    "reason": "SCAN_INFRASTRUCTURE_EGRESS",
+    "elapsedMs": 516,
+    "at": "2026-11-04T13:45:18.811Z"
+   },
+   "verdict": null,
+   "evidenceState": "scan_not_successful",
+   "failure": {
+    "code": "SCAN_INFRASTRUCTURE_EGRESS",
+    "error": "RankFix kan de website nu niet bereiken door een storing in de uitgaande verbinding van de scanomgeving. Dit is geen vastgestelde fout van de website. Er is geen score berekend en niets in rekening gebracht. Probeer opnieuw wanneer de verbinding is hersteld.",
+    "httpStatus": null,
+    "incident": {
+     "traceId": "rf-mw265n8g-roed9de65o",
+     "at": "2026-11-04T13:45:18.809Z",
+     "requestedUrl": "https://sandvik.com/",
+     "finalUrl": null,
+     "redirects": [],
+     "originHttpStatus": null,
+     "apiHttpStatus": 503,
+     "reasonCode": "SCAN_INFRASTRUCTURE_EGRESS",
+     "phase": "fetch",
+     "attribution": "rankfix_infrastructure",
+     "rankfixSide": true,
+     "retrySameSite": true,
+     "browserRender": {
+      "attempted": false,
+      "outcome": "not_attempted",
+      "reason": null
+     },
+     "explanation": "Een technisch probleem bij RankFix (database, platform of tijdslimiet) stopte de scan. Dit is geen probleem van de onderzochte website."
+    },
+    "access": null,
+    "traceId": "rf-mw265n8g-roed9de65o"
+   },
+   "evidence": null
+  },
+  {
+   "host": "skf.com",
+   "name": "SKF",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "abb.com",
+   "name": "ABB",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "wur.nl",
+   "name": "Wageningen University",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "tudelft.nl",
+   "name": "TU Delft",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "kuleuven.be",
+   "name": "KU Leuven",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ox.ac.uk",
+   "name": "University of Oxford",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "nationaleombudsman.nl",
+   "name": "Nationale ombudsman",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "autoriteitpersoonsgegevens.nl",
+   "name": "Autoriteit Persoonsgegevens",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ema.europa.eu",
+   "name": "European Medicines Agency",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "eea.europa.eu",
+   "name": "European Environment Agency",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "lezen.nl",
+   "name": "Stichting Lezen",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "natuurmonumenten.nl",
+   "name": "Natuurmonumenten",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "oxfam.org.uk",
+   "name": "Oxfam",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "concertgebouw.nl",
+   "name": "Het Concertgebouw",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "mauritshuis.nl",
+   "name": "Mauritshuis",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "musee-orsay.fr",
+   "name": "Musée d'Orsay",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "prorail.nl",
+   "name": "ProRail",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "nsinternational.com",
+   "name": "NS International",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "rijkswaterstaat.nl",
+   "name": "Rijkswaterstaat",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "kadaster.nl",
+   "name": "Kadaster",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "cbs.nl",
+   "name": "Centraal Bureau voor de Statistiek",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "acm.nl",
+   "name": "Autoriteit Consument en Markt",
+   "expected": "public",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "dnb.nl",
+   "name": "De Nederlandsche Bank",
+   "expected": "finance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "afm.nl",
+   "name": "AFM",
+   "expected": "finance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "triodos.nl",
+   "name": "Triodos Bank",
+   "expected": "finance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "asnbank.nl",
+   "name": "ASN Bank",
+   "expected": "finance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vanlanschotkempen.com",
+   "name": "Van Lanschot Kempen",
+   "expected": "finance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "asr.nl",
+   "name": "a.s.r.",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "unive.nl",
+   "name": "Univé",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "zilverenkruis.nl",
+   "name": "Zilveren Kruis",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vgz.nl",
+   "name": "VGZ",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "cz.nl",
+   "name": "CZ",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "umcutrecht.nl",
+   "name": "UMC Utrecht",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "radboudumc.nl",
+   "name": "Radboudumc",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "mumc.nl",
+   "name": "Maastricht UMC+",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "amsterdamumc.nl",
+   "name": "Amsterdam UMC",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ggdghor.nl",
+   "name": "GGD GHOR Nederland",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "hartstichting.nl",
+   "name": "Hartstichting",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "longfonds.nl",
+   "name": "Longfonds",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "kwf.nl",
+   "name": "KWF",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "aap.nl",
+   "name": "Stichting AAP",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vogelbescherming.nl",
+   "name": "Vogelbescherming",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "milieudefensie.nl",
+   "name": "Milieudefensie",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "humanitas.nl",
+   "name": "Humanitas",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "rodekruis.nl",
+   "name": "Rode Kruis",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "legerdesheils.nl",
+   "name": "Leger des Heils",
+   "expected": "nonprofit",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "tue.nl",
+   "name": "Eindhoven University of Technology",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "utwente.nl",
+   "name": "Universiteit Twente",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "universiteitleiden.nl",
+   "name": "Universiteit Leiden",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "uu.nl",
+   "name": "Universiteit Utrecht",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "rug.nl",
+   "name": "Rijksuniversiteit Groningen",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "eur.nl",
+   "name": "Erasmus Universiteit Rotterdam",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ou.nl",
+   "name": "Open Universiteit",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "hogeschoolrotterdam.nl",
+   "name": "Hogeschool Rotterdam",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "fontys.nl",
+   "name": "Fontys",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "avans.nl",
+   "name": "Avans",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "han.nl",
+   "name": "HAN University of Applied Sciences",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "akzonobel.com",
+   "name": "AkzoNobel",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "dsm-firmenich.com",
+   "name": "DSM-Firmenich",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "signify.com",
+   "name": "Signify",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vanderlande.com",
+   "name": "Vanderlande",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "damen.com",
+   "name": "Damen Shipyards",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "royalihc.com",
+   "name": "Royal IHC",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "heijmans.nl",
+   "name": "Heijmans",
+   "expected": "construction",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "bam.com",
+   "name": "BAM",
+   "expected": "construction",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "volkerwessels.com",
+   "name": "VolkerWessels",
+   "expected": "construction",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ballast-nedam.nl",
+   "name": "Ballast Nedam",
+   "expected": "construction",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "arcadis.com",
+   "name": "Arcadis",
+   "expected": "engineering",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "haskoning.com",
+   "name": "Royal HaskoningDHV",
+   "expected": "engineering",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "sweco.nl",
+   "name": "Sweco",
+   "expected": "engineering",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "tennet.eu",
+   "name": "TenneT",
+   "expected": "energy",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "enexis.nl",
+   "name": "Enexis",
+   "expected": "energy",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "liander.nl",
+   "name": "Liander",
+   "expected": "energy",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "stedin.net",
+   "name": "Stedin",
+   "expected": "energy",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "gasunie.nl",
+   "name": "Gasunie",
+   "expected": "energy",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "portofrotterdam.com",
+   "name": "Port of Rotterdam",
+   "expected": "logistics",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "schiphol.nl",
+   "name": "Schiphol",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ret.nl",
+   "name": "RET",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "gvb.nl",
+   "name": "GVB",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "htm.nl",
+   "name": "HTM",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "arriva.nl",
+   "name": "Arriva Nederland",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "connexxion.nl",
+   "name": "Connexxion",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "dhl.com",
+   "name": "DHL Nederland",
+   "expected": "logistics",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "dpd.com",
+   "name": "DPD Nederland",
+   "expected": "logistics",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "boijmans.nl",
+   "name": "Museum Boijmans Van Beuningen",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "rijksmuseum.nl",
+   "name": "Rijksmuseum",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vangoghmuseum.nl",
+   "name": "Van Gogh Museum",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "nemosciencemuseum.nl",
+   "name": "NEMO Science Museum",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "naturalis.nl",
+   "name": "Naturalis",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "krollermuller.nl",
+   "name": "Kröller-Müller Museum",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "paleishetloo.nl",
+   "name": "Paleis Het Loo",
+   "expected": "culture",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "efteling.com",
+   "name": "Efteling",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "walibi.nl",
+   "name": "Walibi Holland",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "artis.nl",
+   "name": "ARTIS",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "burgerszoo.nl",
+   "name": "Burgers' Zoo",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "diergaardeblijdorp.nl",
+   "name": "Diergaarde Blijdorp",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "beeksebergen.nl",
+   "name": "Beekse Bergen",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "roompot.nl",
+   "name": "Roompot",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "landal.nl",
+   "name": "Landal",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "centerparcs.nl",
+   "name": "Center Parcs",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "valk.nl",
+   "name": "Van der Valk",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "fletcher.nl",
+   "name": "Fletcher Hotels",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "bastionhotels.com",
+   "name": "Bastion Hotels",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "nh-hotels.com",
+   "name": "NH Hotels",
+   "expected": "hospitality",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "delijn.be",
+   "name": "De Lijn",
+   "expected": "transport",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "uza.be",
+   "name": "UZA",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "uzgent.be",
+   "name": "UZ Gent",
+   "expected": "healthcare",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "ugent.be",
+   "name": "Universiteit Gent",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "uantwerpen.be",
+   "name": "Universiteit Antwerpen",
+   "expected": "education",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "fraunhofer.de",
+   "name": "Fraunhofer",
+   "expected": "research",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "mpg.de",
+   "name": "Max Planck Gesellschaft",
+   "expected": "research",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "bosch.com",
+   "name": "Robert Bosch",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "henkel.com",
+   "name": "Henkel",
+   "expected": "manufacturing",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "telekom.com",
+   "name": "Deutsche Telekom",
+   "expected": "telecom",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "allianz.com",
+   "name": "Allianz",
+   "expected": "insurance",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "dille-kamille.nl",
+   "name": "Dille & Kamille",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "wehkamp.nl",
+   "name": "wehkamp",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "hema.nl",
+   "name": "HEMA",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "praxis.nl",
+   "name": "Praxis",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "karwei.nl",
+   "name": "Karwei",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "welkoop.nl",
+   "name": "Welkoop",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "megekko.nl",
+   "name": "Megekko",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "bax-shop.nl",
+   "name": "Bax Music",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "obramat.es",
+   "name": "OBRAMAT",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "leroymerlin.fr",
+   "name": "Leroy Merlin",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "galaxus.ch",
+   "name": "Galaxus",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "digitec.ch",
+   "name": "Digitec",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "kwantum.nl",
+   "name": "Kwantum",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "leenbakker.nl",
+   "name": "Leen Bakker",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "vidaxl.nl",
+   "name": "vidaXL",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "sissy-boy.com",
+   "name": "Sissy-Boy",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "sostrenegrene.com",
+   "name": "Søstrene Grene",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "loberon.nl",
+   "name": "LOBERON",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "zara.com",
+   "name": "Zara",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "cos.com",
+   "name": "COS",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "arket.com",
+   "name": "ARKET",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "iciparisxl.nl",
+   "name": "ICI PARIS XL",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "flaconi.de",
+   "name": "flaconi",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  },
+  {
+   "host": "kruidvat.nl",
+   "name": "Kruidvat",
+   "expected": "ecommerce",
+   "run": null,
+   "verdict": null,
+   "evidenceState": "not_tested",
+   "failure": null,
+   "evidence": null
+  }
+ ]
+}

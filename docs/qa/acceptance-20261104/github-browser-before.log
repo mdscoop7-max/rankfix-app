@@ -1,0 +1,22 @@
+2026-11-04T12:15:43.1335133Z file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/common/WaitTask.js:46
+2026-11-04T12:15:43.1336048Z             this.#timeoutError = new TimeoutError(`Waiting failed: ${options.timeout}ms exceeded`);
+2026-11-04T12:15:43.1336574Z                                  ^
+2026-11-04T12:15:43.1337066Z 
+2026-11-04T12:15:43.1337267Z TimeoutError: Waiting failed: 60000ms exceeded
+2026-11-04T12:15:43.1338041Z     at new WaitTask (file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/common/WaitTask.js:46:34)
+2026-11-04T12:15:43.1339199Z     at IsolatedWorld.waitForFunction (file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Realm.js:49:26)
+2026-11-04T12:15:43.1340381Z     at CdpFrame.waitForFunction (file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:585:43)
+2026-11-04T12:15:43.1341525Z     at CdpFrame.<anonymous> (file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/util/decorators.js:101:27)
+2026-11-04T12:15:43.1343446Z     at CdpPage.waitForFunction (file:///home/runner/work/rankfix-app/rankfix-app/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:1542:37)
+2026-11-04T12:15:43.1345843Z     at waitStatus (file:///home/runner/work/rankfix-app/rankfix-app/tests/manual/testlab-stop-resume.browser.mjs:59:59)
+2026-11-04T12:15:43.1348024Z     at file:///home/runner/work/rankfix-app/rankfix-app/tests/manual/testlab-stop-resume.browser.mjs:66:7
+2026-11-04T12:15:43.1350024Z 
+2026-11-04T12:15:43.1350329Z Node.js v24.22.1
+2026-11-04T12:15:43.1430836Z ##[error]Process completed with exit code 1.
+2026-11-04T12:15:43.1589019Z Post job cleanup.
+2026-11-04T12:15:43.2498133Z [command]/usr/bin/git version
+2026-11-04T12:15:43.2549381Z git version 2.56.0
+2026-11-04T12:15:43.2591390Z Temporarily overriding HOME='/home/runner/work/_temp/d9a3f30d-167e-4241-98ab-4e1322cb6bf1' before making global git config changes
+2026-11-04T12:15:43.2593221Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T12:15:43.2597208Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/rankfix-app/rankfix-app
+2026-11-04T12:15:43.2645838Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand

@@ -7,9 +7,8 @@ PROFILES.push(...euRealProfiles(), ...euSyntheticProfiles());
 // HOLDOUT=only runs just the blind hold-out set (benchmark), never in CI.
 if (process.env.HOLDOUT === "only") PROFILES.splice(0, PROFILES.length, ...euHoldoutProfiles(process.env.HOLDOUT_FILE || "holdout.json"));
 installMatrixFetch2();
-const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
-const { POST } = await import(ROOT + "/app/api/scan/route.ts");
-const { labelFitsSector } = await import(ROOT + "/lib/report-consistency.ts");
+const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));
+const { labelFitsSector } = await import(new URL("../../lib/report-consistency.ts", import.meta.url));
 const only = process.env.ONLY ? process.env.ONLY.split(",") : null;
 const rows = []; const fs = await import("node:fs");
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; const errs = []; console.info = () => {}; console.warn = () => {}; console.error = (...a) => errs.push(a); return () => { [console.info, console.warn, console.log, console.error] = s; return errs; }; };
@@ -21,6 +20,7 @@ for (const p of PROFILES) {
   catch (e) { j = { thrown: String(e?.stack || e) }; }
   const ms = Date.now() - t0; const errs = restore();
   const problems = [];
+  if (p.expectCode && j.code !== p.expectCode) problems.push(`code ${j.code} (expected ${p.expectCode})`);
   if (p.expectHttp) { if (!p.expectHttp.includes(status)) problems.push(`HTTP ${status} not in ${p.expectHttp} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 500)}`); if (status !== 200) { rows.push({ id: p.id, status, sector: "-", key: (j.error||"").slice(0,60), conf: "", page: "", score: "", ms, problems }); continue; } }
   if (status !== 200) problems.push(`HTTP ${status} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 400)}`);
   else {
@@ -68,6 +68,7 @@ for (const p of PROFILES) {
       if (allowed.includes("__absent__")) { if (c && c.status === "pass") problems.push(`${k} should not pass (${c.message.slice(0, 80)})`); continue; }
       if (!c) { if ((process.env.MODE || "both") === "both") problems.push(`check ${k} missing`); } else if (!allowed.includes(c.status)) problems.push(`${k}=${c.status} not in ${allowed}: ${c.message.slice(0, 140)}`);
     }
+    for (const k of p.absentChecks || []) { const c = byKey(k); if (c) problems.push(`check ${k} must be absent but is ${c.status}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
     for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!types.length) { if (a) problems.push(`sample ${path} must not be sampled (personal utility page)`); continue; } if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
@@ -93,7 +94,16 @@ for (const p of PROFILES) {
       if (ps && !j.multiPage?.representativeProduct && !(j.evidenceLayer?.productOffers?.length || j.productOffers?.length || /productpagina|Product structured data/i.test(ps.message))) problems.push("product_schema pass without Product/Offer evidence");
       const importantOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints >= 8);
       if (j.overallScore >= 98 && importantOpen.length && j.scoreModel?.evidenceLevel === "complete") problems.push(`score ${j.overallScore} shown as complete with ${importantOpen.length} important unconfirmed check(s): ${importantOpen.map((c) => c.key).join(",")}`);
+      // 3.5: "complete" (Definitief) is impossible next to ANY unconfirmed scored check or a real range.
+      const anyOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints > 0);
+      if (j.scoreModel?.evidenceLevel === "complete" && anyOpen.length) problems.push(`evidenceLevel complete with ${anyOpen.length} unconfirmed check(s): ${anyOpen.map((c) => c.key).join(",")}`);
+      if (j.scoreModel?.evidenceLevel === "complete" && j.scoreModel?.range && j.scoreModel.range.low < j.scoreModel.range.high) problems.push(`evidenceLevel complete next to range ${j.scoreModel.range.low}-${j.scoreModel.range.high}`);
+      // Every scored check says where its evidence came from.
+      for (const c of all) if (c.maxPoints > 0 && !c.evidence?.source) problems.push(`${c.key}: no evidence source`);
     }
+    if (p.retryPass) { const rp = j.multiPage?.sampleRetryPass; if (!rp) problems.push("multiPage.sampleRetryPass missing"); else for (const [k, v] of Object.entries(p.retryPass)) if (rp[k] !== v) problems.push(`sampleRetryPass.${k}=${rp[k]} (expected ${v})`); }
+    if (p.sampleRecoveredMin) { const rec = (j.multiPage?.pageAudits || []).filter((x) => x.status === "audited" && (x.evidence || []).some((e) => /sequenti/.test(e))).length; if (rec < p.sampleRecoveredMin) problems.push(`only ${rec} sample pages recovered sequentially (expected ≥ ${p.sampleRecoveredMin}); ${JSON.stringify((j.multiPage?.pageAudits || []).map((x) => [new URL(x.url).pathname, x.status]))}`); }
+    for (const path of p.sampleUnconfirmed || []) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!a) problems.push(`sample ${path} missing`); else if (a.status !== "unable_to_confirm") problems.push(`sample ${path} is ${a.status}; a maintenance/challenge page must not be audited`); }
     if (p.secondary) for (const sec of p.secondary) if (!(j.sectorProfile?.secondaryActivities || []).some((x) => x.sector === sec)) problems.push(`secondary activity ${sec} missing`);
     if (p.maxSectorConfidence != null && (j.sectorProfile?.confidenceScore ?? 0) > p.maxSectorConfidence) problems.push(`sector confidence ${j.sectorProfile?.confidenceScore} > ${p.maxSectorConfidence}`);
     if (p.evidenceLevel && !p.evidenceLevel.includes(j.scoreModel?.evidenceLevel)) problems.push(`evidenceLevel ${j.scoreModel?.evidenceLevel} (expected ${p.evidenceLevel})`);
@@ -127,8 +137,22 @@ for (const p of PROFILES) {
       if (!["complete", "provisional", "insufficient"].includes(j.scoreModel.evidenceLevel)) problems.push("evidenceLevel missing");
       if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
       if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
+      // Per-dimension evidence (fresh144): SEO and GEO are judged separately, and one
+      // thin dimension makes the whole score an indication, whatever the sector.
+      const dims = j.scoreModel.dimensionEvidence;
+      if (!dims?.seo || !dims?.geo) problems.push("dimensionEvidence missing for mode both");
+      else {
+        for (const [name, d] of [["seo", dims.seo], ["geo", dims.geo]]) {
+          if (d.determinable !== (d.coveragePercent >= 60 && d.applicableWeight > 0)) problems.push(`${name} determinable=${d.determinable} at ${d.coveragePercent}%`);
+          if (!d.determinable && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`${name} evidence insufficient (${d.coveragePercent}%) but evidenceLevel ${j.scoreModel.evidenceLevel}`);
+          if (d.level === "complete" && d.unconfirmed > 0) problems.push(`${name} complete with ${d.unconfirmed} unconfirmed core check(s)`);
+        }
+      }
       // Without a primary sector the sector modules were never chosen: never "definitief".
       if (j.sectorProfile?.sector === "unknown" && j.scoreModel.evidenceLevel === "complete") problems.push("unknown primary sector shown as complete evidence");
+      // Provisional/insufficient evidence with a real range: the headline is that range.
+      if (j.scoreModel.evidenceLevel !== "complete" && r && r.low < r.high && j.scoreModel.headline?.kind !== "range") problems.push(`${j.scoreModel.evidenceLevel} evidence with range ${r.low}-${r.high} but headline ${j.scoreModel.headline?.display}`);
+      if (j.scoreModel.headline?.kind === "range" && !(j.overallScore >= r.low && j.overallScore <= r.high)) problems.push(`headline range ${j.scoreModel.headline.display} excludes score ${j.overallScore}`);
       if (j.coverage?.coveragePercent < 70 && j.overallScore >= 90 && j.scoreModel.headline?.kind !== "range") problems.push(`headline ${j.overallScore} shown as a bare number at ${j.coverage.coveragePercent}% coverage`);
     }
     // Homepage score and site sample must be reported side by side and agree.
@@ -141,6 +165,16 @@ for (const p of PROFILES) {
       } }
     // 3.5 evidence gate: every scored check names where it was observed and what was found.
     for (const c of checks) if (["pass", "warning", "fail"].includes(c.status) && c.maxPoints > 0 && (!c.evidence?.url || c.evidence.found === null || c.evidence.found === undefined)) problems.push(`scored check ${c.key}=${c.status} without evidence`);
+    // QA #186: one finding per (category, key), and one title never carries two
+    // contradicting conclusions (pass in one place, warning/fail in another).
+    { const seen = new Map();
+      for (const c of [...(j.seo?.checks || []), ...(j.geo?.checks || [])]) {
+        const id = `${c.category}:${c.key}`;
+        if (seen.has(id)) problems.push(`duplicate finding ${id} (${seen.get(id)} / ${c.status})`);
+        seen.set(id, c.status);
+      }
+      const issueKeys = new Set((j.issues || []).map((x) => `${x.category || ""}:${x.key || x.id || ""}`));
+      if ((j.issues || []).length && issueKeys.size < (j.issues || []).length) problems.push(`duplicate issues in issue list (${j.issues.length} vs ${issueKeys.size} unique)`); }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

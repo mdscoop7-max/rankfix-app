@@ -1,0 +1,38 @@
+name: Windows and Linux test portability
+
+on:
+  push:
+    branches: [fix/engine-reliability-20261101, qa/integration-mkb-144-20261102]
+  pull_request:
+    branches: [main, qa/engine-144-reliability-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      SESSION_SECRET: "portability-ci-placeholder-not-for-production"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: "RankFix QA café"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: "RankFix QA café/package-lock.json"
+      - name: Install dependencies
+        working-directory: "RankFix QA café"
+        run: npm ci --no-audit --no-fund
+      - name: Full offline test suite
+        working-directory: "RankFix QA café"
+        run: npm test
