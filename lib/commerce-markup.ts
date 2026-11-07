@@ -27,8 +27,26 @@ const CART_FORM = /<form\b[^>]{0,400}?\baction\s*=\s*["'][^"']{0,300}?(?:\/check
 // calls the form "checkout". Inspect each form/control independently so a real
 // shop next to a quote form remains observable.
 const LEAD_ACTION = /\b(?:offerte|prijsopgave|afspraak|quote|quotation|appointment|devis|rendez-vous|angebot anfordern|termin|presupuesto|cita|preventivo|appuntamento)\b/i;
+// Each form from its opening tag to the first following "</form>", like the
+// lazy pattern <form\b[^>]*>[\s\S]*?<\/form\s*>, but in ONE forward pass: the
+// lazy pattern re-scanned the rest of the page for every unclosed "<form"
+// (quadratic; 10,000 unclosed forms took seconds, scan-matrix redos formOpen).
+// Unclosed forms stay unchanged, exactly as the pattern left them.
+function replaceForms(html: string, replacer: (form: string) => string): string {
+  const open = /<form\b[^>]*>/gi, close = /<\/form\s*>/gi;
+  let out = "", last = 0;
+  for (let o = open.exec(html); o; o = open.exec(html)) {
+    close.lastIndex = o.index + o[0].length;
+    const c = close.exec(html);
+    if (!c) break; // no "</form>" after this one: no later form can close either
+    const end = c.index + c[0].length;
+    out += html.slice(last, o.index) + replacer(html.slice(o.index, end));
+    last = end; open.lastIndex = end;
+  }
+  return out + html.slice(last);
+}
 function purchaseMarkup(html: string): string {
-  return String(html || "").slice(0, 3_000_000).replace(/<form\b[^>]*>[\s\S]*?<\/form\s*>/gi, form => {
+  return replaceForms(String(html || "").slice(0, 3_000_000), form => {
     const controls = [...form.matchAll(/<button\b[^>]*>[\s\S]*?<\/button\s*>|<input\b[^>]*>/gi)]
       .map(m => m[0]).filter(control => !/type\s*=\s*["'](?:text|email|tel|hidden|password|search|number)["']/i.test(control));
     return controls.some(control => LEAD_ACTION.test(control.replace(/<[^>]*>/g, " ")) ||

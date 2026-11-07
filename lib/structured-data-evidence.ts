@@ -129,10 +129,19 @@ export function validJsonLdBlockTexts(html: string): string[] {
  * evidence form from JSON-LD: it is counted as structured data, never merged
  * into the JSON-LD block count.
  */
+// One opening tag at a time (linear): the former single pattern
+// <[a-z][^>]*\bitemtype… re-read every tag from each "<x" inside it, which was
+// quadratic on pages with long runs of unclosed tags (scan-matrix redos formOpen).
+function* openingTags(html: string, attribute: RegExp): Generator<string> {
+  for (const match of String(html || "").matchAll(/<[a-z][^>]*>/gi)) {
+    if (attribute.test(match[0])) yield match[0];
+  }
+}
 export function microdataTypes(html: string): string[] {
   const types: string[] = [];
-  for (const match of String(html || "").matchAll(/<[a-z][^>]*\bitemtype\s*=\s*(["'])([^"']+)\1[^>]*>/gi)) {
-    if (!/\bitemscope\b/i.test(match[0])) continue;
+  for (const tag of openingTags(html, /\bitemtype\s*=/i)) {
+    const match = /\bitemtype\s*=\s*(["'])([^"']+)\1/i.exec(tag);
+    if (!match || !/\bitemscope\b/i.test(tag)) continue;
     for (const url of match[2].split(/\s+/)) {
       const type = /^https?:\/\/(?:www\.)?schema\.org\/([A-Za-z][A-Za-z0-9]*)\/?$/i.exec(url)?.[1];
       if (type) types.push(type);
@@ -146,7 +155,9 @@ export function rdfaTypes(html: string): string[] {
   const source = String(html || "");
   const types: string[] = [];
   const vocabSchema = /\bvocab\s*=\s*(["'])https?:\/\/(?:www\.)?schema\.org\/?\1/i.test(source);
-  for (const match of source.matchAll(/<[a-z][^>]*\btypeof\s*=\s*(["'])([^"']+)\1[^>]*>/gi)) {
+  for (const tag of openingTags(source, /\btypeof\s*=/i)) {
+    const match = /\btypeof\s*=\s*(["'])([^"']+)\1/i.exec(tag);
+    if (!match) continue;
     for (const token of match[2].split(/\s+/)) {
       const prefixed = /^schema:([A-Za-z][A-Za-z0-9]*)$/i.exec(token)?.[1];
       const full = /^https?:\/\/(?:www\.)?schema\.org\/([A-Za-z][A-Za-z0-9]*)$/i.exec(token)?.[1];
