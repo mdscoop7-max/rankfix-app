@@ -118,6 +118,8 @@ export function determineOperatingRole(input: OperatingRoleInput): OperatingRole
   if (shopFunction && role === "webshop") for (const page of input.ownShopFunction) sources.add(page.source);
   const secondaryCapabilities = shopFunction && role !== "webshop" ? [`Online verkoop/bestellen als nevenfunctie (${input.ownShopFunction.length} pagina('s))`] : [];
   const independent = role === "unknown" ? 0 : sources.size;
+  // Every independent source is named, so the decision can be checked page by page.
+  if (role !== "unknown") evidence.push(...input.sectorSupportPages.slice(0, 4));
 
   // Sector counter-evidence: own pages declaring another activity than the decided one.
   const otherVotes = input.otherSectorPages.length;
@@ -141,7 +143,7 @@ export function determineOperatingRole(input: OperatingRoleInput): OperatingRole
     label: OPERATING_ROLE_LABELS[role],
     confidenceScore: confidence,
     status: status(confidence),
-    evidence: evidence.slice(0, 6),
+    evidence: evidence.slice(0, 8),
     counterEvidence: counter.slice(0, 4),
     independentSources: independent,
     secondaryCapabilities,

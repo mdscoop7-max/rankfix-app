@@ -6830,7 +6830,39 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // blog or magazine (editorial pages are no sector evidence either way).
         else if (!["ecommerce", "professional_services", "hospitality", "food_local_retail", "news_media"].includes(vote.sector) && !support.has(k)) other.set(k, { sector: vote.sector, text: `${vote.url}: ${vote.label}` });
       }
-      for (const k of support.keys()) other.delete(k);
+      // The organisation's own About page (over ons, about us, wie we zijn, missie):
+      // a second, independent source only when its OWN title, description or H1
+      // names the decided activity; naming another primary activity is counter-evidence.
+      const aboutPath = /(?:^|\/)(?:over|over-ons|over-[\p{L}\d-]+|about|about-us|about-[\p{L}\d-]+|wie-we-zijn|wie-zijn-wij|ons-verhaal|onze-organisatie|organisatie|missie[\p{L}\d-]*|our-company|company|this-is-[\p{L}\d-]+|ueber-uns|uber-uns|qui-sommes-nous|a-propos|chi-siamo|quienes-somos|sobre-nosotros)(?:\/|$)/iu;
+      const utilityPath = /(?:cookie|privacy|disclaimer|toegankelijk|accessib|contact|vacature|careers?|jobs|pers|press|nieuws|news|faq|veelgestelde|voorwaarden|terms|leadership|bestuur|management)/i;
+      const decidedVocab = [
+        ...declaredIndustryKeys().filter((item) => item.sector === decided && item.key !== "professional_services").map((item) => item.vocab[0]),
+        ...sectorSignals.filter((item) => item.sector === decided && item.sector !== "professional_services").map((item) => item.patterns[0]),
+      ].filter((rx): rx is RegExp => rx instanceof RegExp);
+      if (decided !== "unknown") for (const page of auditedRawPages) {
+        let path = "";
+        try { path = decodeURIComponent(new URL(page.url).pathname); } catch { continue; }
+        if (rootPath(page.url) || !aboutPath.test(path) || utilityPath.test(path)) continue;
+        const k = pageKey(page.url);
+        if (support.has(k) || other.has(k)) continue;
+        // The brand itself is no evidence: "Over Burgers' Zoo" names the brand, not
+        // a zoo. Word sequences that spell the host label ("Burgers' Zoo" =
+        // burgerszoo) are removed before the activity words are read.
+        const hostLabel = finalUrl.hostname.replace(/^www\./, "").split(".")[0].replace(/[^\p{L}\p{N}]/gu, "").toLowerCase();
+        const withoutHostBrand = (text: string) => {
+          const words = String(text || "").split(/(\s+)/);
+          for (let i = 0; i < words.length; i += 2) for (let len = 3; len >= 1; len--) {
+            const span = words.slice(i, i + len * 2 - 1).join("");
+            if (span && span.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase() === hostLabel) { for (let j = i; j < i + len * 2 - 1 && j < words.length; j++) words[j] = j % 2 ? " " : ""; break; }
+          }
+          return words.join("");
+        };
+        const own = withoutHostBrand(stripBrandNames([page.title, page.description, ...(page.identityHeadings || []).slice(0, 2)].filter(Boolean).join(" · "), finalUrl.hostname));
+        const pageEu = detectEuPrimaryIdentity({ title: withoutHostBrand(page.title || ""), description: withoutHostBrand(page.description || ""), h1s: (page.identityHeadings || []).map(withoutHostBrand), schemaTypes: page.schemaTypes, homepage: false });
+        const hit = decidedVocab.map((rx) => new RegExp(rx.source, rx.flags.replace("g", "")).exec(own)).find(Boolean);
+        if (hit || pageEu?.sector === decided) support.set(k, `${page.url}: eigen over-ons-pagina noemt dezelfde hoofdactiviteit (${hit ? `"${hit[0]}"` : pageEu?.label})`);
+        else if (pageEu && pageEu.confidenceScore >= 75 && !["ecommerce", "professional_services", "hospitality", "food_local_retail", "news_media"].includes(pageEu.sector)) other.set(k, { sector: pageEu.sector, text: `${page.url}: over-ons-pagina noemt ${pageEu.label}` });
+      }
       const ownFields = [title, description, ...identityH1s.slice(0, 2)].join(" · ");
       const homeDirectory = providerDirectoryIdentity({ title, description, h1s: identityH1s });
       const homeMediation = serviceBookingMediation({ title, description, identityHeadings: identityH1s });

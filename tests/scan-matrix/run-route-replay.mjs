@@ -30,11 +30,17 @@ const esc = (v) => decodeHtmlEntities(String(v ?? "")).replace(/&/g, "&amp;").re
 function commerceMarkup(c) {
   if (!c) return "";
   const parts = [];
-  if (c.strongCommerceAction || c.addToCart || c.cart) parts.push(`<form action="/cart/add" method="post"><input type="hidden" name="product_id" value="1"><button type="submit">Add to cart</button></form><a href="/cart">Cart</a>`);
+  // Reproduce ONLY recorded signals (7 Nov 2026, Ballast Nedam): a recorded cart
+  // link is a cart link, never an invented add-to-cart form; product links are
+  // plain links in the recorded number, never product cards.
+  if (c.strongCommerceAction || c.addToCart) parts.push(`<form action="/cart/add" method="post"><input type="hidden" name="product_id" value="1"><button type="submit">Add to cart</button></form>`);
+  if (c.cart) parts.push(`<a href="/cart">Cart</a>`);
   if (c.checkout) parts.push(`<a href="/checkout">Checkout</a>`);
   const prices = typeof c.priceSignals === "number" ? c.priceSignals : c.prices || 0;
   for (let i = 0; i < Math.min(prices, 12); i++) parts.push(`<span class="price">€ ${19 + i},99</span>`);
-  if (c.repeatedProductLinks || c.products) for (let i = 1; i <= 4; i++) parts.push(`<a class="product-card" href="/product/item-${i}">Item ${i}</a>`);
+  const productLinks = typeof c.productLinks === "number" ? c.productLinks : (c.repeatedProductLinks || c.products ? 4 : 0);
+  // At most four links, as before: the URLs themselves are not recorded.
+  for (let i = 1; i <= Math.min(productLinks, 4); i++) parts.push(`<a href="/product/item-${i}">Item ${i}</a>`);
   return parts.join(" ");
 }
 function ldBlocks(types, product) {
