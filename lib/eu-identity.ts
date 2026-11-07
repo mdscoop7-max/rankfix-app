@@ -1,4 +1,5 @@
 import { isComparisonPlatformText } from "./platform-identity.ts";
+import { providerDirectoryIdentity } from "./provider-directory.ts";
 /**
  * Multilingual primary-identity evidence for the Sector Motor (RankFix 3.1).
  *
@@ -521,6 +522,15 @@ export function sectorFamilyMentioned(sector: string, text: string): boolean {
  * because the site legitimately serves several sectors.
  */
 export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | null {
+  // P0-1: business model before sector. A homepage that lets visitors find and
+  // compare many providers of a trade is a directory about that trade; the
+  // trade words in its title are its subject, not its own activity.
+  if (input.homepage !== false) {
+    const directory = providerDirectoryIdentity({ title: input.title, description: input.description, h1s: input.h1s });
+    // The platform identity itself is declared by detectDeclaredIndustry; here the
+    // trade rules abstain so no own-trade identity is derived from the subject.
+    if (directory) return null;
+  }
   const result = detectEuPrimaryIdentityCore(input);
   const title = stripAudience((input.title || "").slice(0, 300));
   const named = TITLE_FAMILIES

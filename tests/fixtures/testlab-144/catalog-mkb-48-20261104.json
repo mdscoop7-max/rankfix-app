@@ -230,7 +230,8 @@
         "treatwell.nl"
       ],
       "group": "beauty",
-      "expected": "beauty",
+      "expected": "service_marketplace",
+      "labelCorrection": "7 Nov 2026: was \"beauty\". Treatwell boekt afspraken bij onafhankelijke salons (eigen omschrijving: 9.000 salons); een boekingsplatform is geen eigen beautybedrijf.",
       "round": "mkb48-20261104",
       "reviewStatus": "proposed_not_independently_verified"
     },
