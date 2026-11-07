@@ -82,6 +82,7 @@ import { countIndependentProducts, subscriptionPriced, isFinancialOfferSchema, m
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { determineOperatingRole, groupWordingIn, type OperatingRoleResult } from "@/lib/operating-role";
+import { computeScanReliability } from "@/lib/scan-reliability";
 import { providerDirectoryIdentity } from "@/lib/provider-directory";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
@@ -7858,6 +7859,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, ...Object.fromEntries((["contact","article","homepage","category","product","form","legal","service","listing","support","location","other"] as const).map((type)=>[type, reportedMultiPageAudits.filter((x)=>x.type===type).length])), audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
+    // Phase 1: scanner reliability (0-10), separate from the SEO/GEO score; computed
+    // only from report fields so it can be recomputed from the stored JSON.
+    const scanReliability = computeScanReliability({ sectorProfile, websiteProfile, coverage: overallCoverage, scoreModel, rendering, multiPage, selfCheck, access, recovery, httpStatus: response.status });
     // QA 144: every proven problem on another assessed page reaches the advice
     // list (URL, check, severity, evidence, fix), separately from the page score.
     const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
@@ -8022,7 +8026,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -8259,6 +8263,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       coverage: overallCoverage,
       scoreModel,
       selfCheck,
+      scanReliability,
       summary: scanSummary,
       websiteSpeed,
       rendering,
