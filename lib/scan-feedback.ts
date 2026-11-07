@@ -45,12 +45,38 @@ export const CLIENT_INJECTABLE_HEAD_CHECKS = new Set([
  * real evidence for body structure even when the browser step failed; only
  * client-injectable head metadata stays unconfirmed then.
  */
+// Repair 1 (7 Nov 2026, Codex point 5): a pass that rests on ABSENCE ("no
+// external image hosts found", "no redirects found", "no escape error found")
+// is only proven on a complete document. On a JavaScript page that was not
+// rendered (and whose raw HTML is not a substantive server render) nothing
+// was seen, so the pass is "not confirmed", never full points. A pass with
+// positive evidence (something WAS found and checked) stays valid.
+export const ABSENCE_PASS_CHECKS: Record<string, (message: string) => boolean> = {
+  image_sources: (m) => /^Geen externe afbeeldingshosts/i.test(m),
+  html_escape: () => true,
+  internal_redirects: (m) => /geen doorgestuurde bestemmingen/i.test(m),
+  semantic_link_destination: (m) => /^Geen sterke semantische mismatch/i.test(m),
+};
+
 export function applyJsEvidenceUncertainty(
   checks: EvidenceCheck[], input: { framework: boolean; rendered: boolean; url: string; rawSubstantive?: boolean },
 ): number {
   if (!input.framework || input.rendered) return 0;
   let changed = 0;
   for (const c of checks) {
+    const absencePass = c.status === "pass" && !input.rawSubstantive && Boolean(ABSENCE_PASS_CHECKS[c.key]?.(String(c.message || "")));
+    if (absencePass) {
+      c.status = "unable_to_confirm";
+      c.issue_status = "UNABLE_TO_CONFIRM";
+      c.points = 0;
+      c.confidence = "low";
+      c.reasonCode = "needs_js";
+      c.message = `Niet bevestigd: "${String(c.message || "").slice(0, 160)}" geldt alleen voor de opgehaalde HTML. De JavaScript-pagina is niet volledig weergegeven, dus de afwezigheid is niet bewezen.`;
+      c.fix = "Controleer dit opnieuw met een volledige browserweergave; ken geen punten toe op afwezigheid in onvolledige HTML.";
+      c.evidence = {url:input.url,found:null,details:c.message};
+      changed++;
+      continue;
+    }
     if (!DOM_DEPENDENT_CHECKS.has(c.key) || !["warning","fail"].includes(c.status)) continue;
     if (input.rawSubstantive && !CLIENT_INJECTABLE_HEAD_CHECKS.has(c.key)) continue;
     if (c.evidence?.found === true) continue;

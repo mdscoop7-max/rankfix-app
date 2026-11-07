@@ -83,6 +83,7 @@ import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { determineOperatingRole, groupWordingIn, type OperatingRoleResult } from "@/lib/operating-role";
 import { computeScanReliability } from "@/lib/scan-reliability";
+import { documentBaseUrl, resolveDocumentHref } from "@/lib/document-base";
 import { providerDirectoryIdentity } from "@/lib/provider-directory";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
@@ -1552,8 +1553,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       })
       .filter((item) => item.src);
     const links = [...neutralizeTemplateBindings(html).matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]).filter((href) => !isTemplateHref(href));
+    // Repair 2: relative hrefs resolve against the document's <base href>, like a browser.
+    const documentBase = documentBaseUrl(html, finalUrl);
     const internalLinks = links.filter((href) => {
-      try { return new URL(href, finalUrl).hostname === finalUrl.hostname; } catch { return false; }
+      return resolveDocumentHref(href, documentBase)?.hostname === finalUrl.hostname;
     }).length;
     const text = stripHtml(html);
     const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
@@ -2189,7 +2192,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       .flatMap((tag) => {
         const href = attrFromTag(tag, "href");
         if (!href) return [];
-        try { return [new URL(href, finalUrl).toString()]; } catch { return []; }
+        const resolved = resolveDocumentHref(href, documentBase); return resolved ? [resolved.toString()] : [];
       });
     const commonSitemapUrls = [
       sitemapUrl.toString(),
@@ -2357,7 +2360,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const hiddenAnchorCount = allAnchorTags.length - anchorTags.length;
     const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
-        const parsed = new URL(item.sourceHref, finalUrl);
+        const parsed = resolveDocumentHref(item.sourceHref, documentBase);
+        if (!parsed) return [];
         // www and the bare domain are the same site (links often omit or add "www.").
         if (!/^https?:$/.test(parsed.protocol) || parsed.hostname.toLowerCase().replace(/^www\./, "") !== finalUrl.hostname.toLowerCase().replace(/^www\./, "")) return [];
         parsed.hash = "";
@@ -2373,7 +2377,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const text = item.context.replace(/\s+/g, " ").trim().toLowerCase();
         if (text.length < 4 || text.length > 60 || /^(?:lees meer|meer|meer info|read more|more|learn more|klik hier|click here|home|bekijk|bekijken|ga naar|details|mehr|plus|ver más|leggi)$/.test(text)) continue;
         try {
-          const target = new URL(item.sourceHref, finalUrl);
+          const target = resolveDocumentHref(item.sourceHref, documentBase);
+          if (!target) continue;
           if (target.hostname.replace(/^www\./, "") !== finalUrl.hostname.replace(/^www\./, "")) continue;
           byText.set(text, new Set([...(byText.get(text) || []), (target.pathname.replace(/\/+$/, "") || "/") + target.search]));
         } catch {}
@@ -3638,7 +3643,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const selfNormalized = normalizeScanUrl(finalUrl.toString());
       const alternates = [...new Set(hreflangEntries
         .filter((entry) => entry.language !== "x-default")
-        .map((entry) => { try { return new URL(entry.href, finalUrl).toString(); } catch { return ""; } })
+        .map((entry) => resolveDocumentHref(entry.href, documentBase)?.toString() || "")
         .filter((url) => url && normalizeScanUrl(url) !== selfNormalized))].slice(0, 3);
       hreflangReciprocity.selfOnly = alternates.length === 0 && hreflangAssessment.kind === "unconfirmed";
       await Promise.all(alternates.map(async (alternate) => {
