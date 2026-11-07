@@ -85,3 +85,11 @@ test("accommodation booking platform (several kinds, global scale) is mediation;
   const park = detectEuPrimaryIdentity({ title: "Parkgroep | Vakantieparken in Nederland", description: "Onze vakantiehuizen en chalets op 20 parken in Nederland en Duitsland.", h1s: ["Vakantie bij ons"], hostname: "parkgroep.test" });
   assert.notEqual(park?.key, "travel");
 });
+
+test("a travel platform homepage selling flights or car hire next to hotels never declares itself a hotel (all paths)", async () => {
+  const { detectDeclaredIndustry } = await import("../lib/site-sector-corroboration.mjs");
+  const d = (title, description, h) => detectDeclaredIndustry({ url: "https://x.test/", title, description, identityHeadings: h ? [h] : [], schemaTypes: [] })?.key;
+  assert.notEqual(d("Goedkope vluchten, hotels en vakanties | Reisplatform", "Boek goedkope vliegtickets, hotels en huurauto's.", "Vluchten"), "hotel");
+  assert.equal(d("Hotel De Haven | Boutique hotel aan zee", "Ons hotel heeft 40 kamers, ontbijt en een restaurant. Boek uw overnachting direct.", "Hotel De Haven"), "hotel");
+  assert.equal(d("Hotelgroep | Onze hotels", "Overnachten in een van onze hotels met restaurant en vergaderzalen.", "Onze hotels"), "hotel");
+});
