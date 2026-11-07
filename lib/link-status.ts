@@ -1,14 +1,20 @@
 /**
- * Internal link outcomes, kept apart so a missing page, a server error, a block
- * and a network problem are never reported as the same thing.
+ * Internal link outcomes (F1, 7 Nov 2026), kept apart so a missing page, a server
+ * error, a temporary failure, a block and a network problem are never reported as
+ * the same thing. Only response data proves an error; a URL pattern never does.
  *   missing       HTTP 404/410, or HTTP 200 serving a not-found page ("soft 404")
- *   server_error  HTTP 5xx on two attempts: real for visitors, but not "missing"
- *   unconfirmed   HTTP 401/403/429 or no answer: RankFix could not check it
- *   ok            anything else (2xx/3xx with content)
+ *   server_error  HTTP 500/501/505+ on two measurements: real for visitors (penalised)
+ *   temporary     HTTP 408/502/503/504, or a 5xx measured once (Retry-After too long):
+ *                 reported, never penalised, never "permanent"
+ *   unconfirmed   HTTP 400/405/other 4xx, 401/403/429, a challenge, no answer, or a
+ *                 URL that only LOOKS like an error page: not proven, never penalised
+ *   ok            2xx with content
  * Account/login links that refuse anonymous requests are expected and skipped.
  */
-export type LinkOutcome = "ok" | "missing" | "server_error" | "unconfirmed" | "skipped";
-export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null };
+export type LinkOutcome = "ok" | "missing" | "server_error" | "temporary" | "unconfirmed" | "skipped";
+export type EvidenceStrength = "bewezen" | "tijdelijk" | "toegang_beperkt" | "niet_bevestigd";
+export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null;
+  /** HTTP measurements of this link (1 or 2). */ attempts?: number; /** Retry-After in seconds, when the site sent it. */ retryAfterSeconds?: number | null };
 
 /**
  * 31 Oct (PDF P4: an internal link to /pagenotfound was not reported). A link
@@ -23,32 +29,59 @@ export function isErrorPageUrl(url: string | null | undefined): boolean {
 }
 
 export function linkOutcome(link: LinkCheck): LinkOutcome {
-  if (isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))) return "missing";
   if (link.error || link.status === null) return "unconfirmed";
   // 6 Nov (403/404 reports): bot protection may answer 404/5xx with a
   // challenge page. That proves nothing about the destination.
   if (link.challenged) return "unconfirmed";
-  if (link.status === 404 || link.status === 410) return "missing";
-  if (link.status >= 500) return "server_error";
-  if (link.status === 401 || link.status === 403) return link.accountLink ? "skipped" : "unconfirmed";
-  if (link.status === 429) return "unconfirmed";
-  // HTTP 200 is not automatically healthy: a bot-check/challenge page proves
-  // nothing about the destination (QA 144), a "not found" template is missing.
-  if (link.challenged) return "unconfirmed";
+  const status = link.status;
+  if (status === 404 || status === 410) return "missing";
+  if (status === 408 || status === 502 || status === 503 || status === 504) return "temporary";
+  // Older stored results have no attempt count: the probe then always retried once.
+  if (status >= 500) return (link.attempts ?? 2) >= 2 ? "server_error" : "temporary";
+  if (status === 401 || status === 403) return link.accountLink ? "skipped" : "unconfirmed";
+  // 400, 405, 429 and every other 4xx: the request was refused or limited; the
+  // page is not proven broken (and never silently healthy).
+  if (status >= 400) return "unconfirmed";
+  // 3xx without a usable destination after the redirect limit: not proven either way.
+  if (status >= 300) return "unconfirmed";
+  // HTTP 200 serving a "not found" template is missing (response content proves it).
   if (link.softNotFound) return "missing";
+  // The SERVER redirecting the link to its own error page (/pagenotfound) is
+  // response evidence: the destination is missing (PDF P4).
+  if (link.finalUrl && link.finalUrl !== link.url && !isErrorPageUrl(link.url) && isErrorPageUrl(link.finalUrl)) return "missing";
+  // A link whose own URL only LOOKS like an error page (/404, /pagenotfound),
+  // answered with normal content, is a hint, never proof (owner rule, 7 Nov).
+  if (isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl)) return "unconfirmed";
   return "ok";
 }
 
+/** F2: evidence strength, likely cause and advice for one link, from its response data. */
+export function linkEvidence(link: LinkCheck): { strength: EvidenceStrength | null; cause: string; advice: string } {
+  const outcome = linkOutcome(link);
+  const status = link.status;
+  if (outcome === "ok" || outcome === "skipped") return { strength: null, cause: outcome === "skipped" ? "Account- of loginlink; weigert anonieme bezoekers zoals verwacht" : "Bereikbaar", advice: "" };
+  if (outcome === "missing") return { strength: "bewezen", cause: link.softNotFound ? `HTTP ${status} met een 'niet gevonden'-pagina (soft 404)` : status !== 404 && status !== 410 ? `De server stuurt de link door naar zijn foutpagina (${link.finalUrl})` : `HTTP ${status}: de pagina bestaat niet`, advice: "Pas de link aan, verwijder hem, of zet een 301-redirect naar de best passende pagina." };
+  if (outcome === "server_error") return { strength: "bewezen", cause: `HTTP ${status} bij ${link.attempts || 2} metingen; mogelijk nog tijdelijk`, advice: "Controleer de serverlogs en of bezoekers dezelfde fout krijgen." };
+  if (outcome === "temporary") return { strength: "tijdelijk", cause: `HTTP ${status}: tijdelijke storing of overbelasting${link.retryAfterSeconds ? ` (Retry-After ${link.retryAfterSeconds} s)` : ""}; niet bewezen permanent`, advice: "Controleer later opnieuw; onderneem pas actie als de fout blijft." };
+  if (link.challenged || status === 401 || status === 403 || status === 429) return { strength: "toegang_beperkt", cause: link.challenged ? `HTTP ${status} met een controle- of blokkadepagina` : status === 429 ? "HTTP 429: de website beperkt het aantal verzoeken" : `HTTP ${status}: toegang geweigerd voor RankFix`, advice: "Geen bewijs van een kapotte link; controleer in een browser." };
+  return { strength: "niet_bevestigd", cause: link.error || status === null ? "Geen antwoord (time-out, verbinding of redirectlus)" : status !== null && status >= 400 ? `HTTP ${status}: verzoek geweigerd; niet bewezen dat de pagina kapot is` : isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl) ? "De URL lijkt op een foutpagina, maar de inhoud bevestigt dat niet" : `HTTP ${status}`, advice: "Controleer deze link later opnieuw of in een browser." };
+}
+
 const pathOf = (url: string) => { try { const u = new URL(url); return `${u.pathname}${u.search}` || "/"; } catch { return url; } };
-const reasonOf = (link: LinkCheck) => isErrorPageUrl(link.url) || (!link.error && isErrorPageUrl(link.finalUrl))
-  ? "verwijst naar een foutpagina"
-  : link.error || link.status === null
-  ? "geen antwoord"
-  : link.status === 429 ? "HTTP 429, tijdelijk beperkt"
-  : link.status === 401 || link.status === 403 ? `HTTP ${link.status}, toegang geweigerd voor RankFix`
-  : link.challenged ? `HTTP ${link.status} met een controle-/blokkadepagina; bestemming niet bevestigd`
-  : link.softNotFound ? "HTTP 200 met een 'niet gevonden'-pagina (soft 404)"
-  : `HTTP ${link.status}`;
+// Short reason in the report sentence (unchanged wording where the outcome is unchanged).
+const reasonOf = (link: LinkCheck) => {
+  const outcome = linkOutcome(link);
+  if (outcome === "missing" && !link.softNotFound && link.status !== 404 && link.status !== 410) return "verwijst naar een foutpagina";
+  if (outcome === "unconfirmed" && (isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl)) && !link.error && link.status !== null && link.status < 300) return "URL lijkt op een foutpagina, inhoud bevestigt dat niet";
+  if (link.error || link.status === null) return "geen antwoord";
+  if (link.status === 429) return "HTTP 429, tijdelijk beperkt";
+  if (link.status === 401 || link.status === 403) return `HTTP ${link.status}, toegang geweigerd voor RankFix`;
+  if (link.challenged) return `HTTP ${link.status} met een controle-/blokkadepagina; bestemming niet bevestigd`;
+  if (link.softNotFound) return "HTTP 200 met een 'niet gevonden'-pagina (soft 404)";
+  if (outcome === "temporary") return `HTTP ${link.status}, tijdelijke storing${link.retryAfterSeconds ? ` (Retry-After ${link.retryAfterSeconds} s)` : ""}`;
+  if (outcome === "unconfirmed" && link.status >= 400) return `HTTP ${link.status}, verzoek geweigerd; niet bewezen kapot`;
+  return `HTTP ${link.status}`;
+};
 const list = (links: LinkCheck[], max = 5) => links.slice(0, max).map((l) => `${pathOf(l.url)} (${reasonOf(l)})`).join(", ") + (links.length > max ? ` en ${links.length - max} meer` : "");
 
 /** Deterministic evidence copy: optional AI translation must never erase URLs. */
@@ -72,18 +105,20 @@ export function localizedBrokenLinkCopy(links: LinkCheck[], referringPage: strin
 }
 
 /** Check status, message and action for the broken-links check (Dutch report text). */
-export function brokenLinkSummary(links: LinkCheck[], referringPage?: string): { status: "pass" | "warning" | "unable_to_confirm" | "not_applicable"; message: string; fix: string; missing: number; serverErrors: number; unconfirmed: number; checked: number; points: number } {
+export function brokenLinkSummary(links: LinkCheck[], referringPage?: string): { status: "pass" | "warning" | "unable_to_confirm" | "not_applicable"; message: string; fix: string; missing: number; serverErrors: number; unconfirmed: number; temporary: number; checked: number; points: number } {
   const counted = links.filter((l) => linkOutcome(l) !== "skipped");
   const missing = counted.filter((l) => linkOutcome(l) === "missing");
   const server = counted.filter((l) => linkOutcome(l) === "server_error");
-  const unconfirmed = counted.filter((l) => linkOutcome(l) === "unconfirmed");
+  const temporary = counted.filter((l) => linkOutcome(l) === "temporary");
+  const unconfirmed = counted.filter((l) => linkOutcome(l) === "unconfirmed" || linkOutcome(l) === "temporary");
   const verified = counted.length - unconfirmed.length;
-  const base = { missing: missing.length, serverErrors: server.length, unconfirmed: unconfirmed.length, checked: counted.length };
+  const base = { missing: missing.length, serverErrors: server.length, unconfirmed: unconfirmed.length - temporary.length, temporary: temporary.length, checked: counted.length };
   if (!counted.length) return { ...base, status: "not_applicable", message: "Geen controleerbare interne links gevonden op deze pagina.", fix: "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", points: 0 };
   const parts = [
     missing.length ? `${missing.length} verwijzen naar een ontbrekende pagina: ${list(missing)}` : "",
     server.length ? `${server.length} gaven een serverfout (ook bij een tweede poging; geen ontbrekende pagina, mogelijk tijdelijk): ${list(server)}` : "",
-    unconfirmed.length ? `${unconfirmed.length} niet te bevestigen (geblokkeerd, tijdelijk beperkt of geen antwoord; geen bewijs van een fout): ${list(unconfirmed)}` : "",
+    temporary.length ? `${temporary.length} tijdelijk niet bereikbaar (geen bewezen fout, niet als fout meegeteld): ${list(temporary)}` : "",
+    unconfirmed.length - temporary.length ? `${unconfirmed.length - temporary.length} niet te bevestigen (geblokkeerd, verzoek geweigerd of geen antwoord; geen bewijs van een fout): ${list(unconfirmed.filter((l) => linkOutcome(l) !== "temporary"))}` : "",
   ].filter(Boolean);
   // The page that contains the links, so the customer knows where to fix them.
   const head = `${counted.length} interne link(s) gecontroleerd${referringPage ? ` op ${referringPage}` : ""}`;
@@ -116,6 +151,7 @@ export type BrokenLinkRecord = {
   httpStatus: number | null;
   outcome: Exclude<LinkOutcome, "ok" | "skipped">;
   proven: boolean;
+  evidenceStrength: EvidenceStrength | null;
   evidence: string;
   impact: string;
   recommendedAction: string;
@@ -124,18 +160,16 @@ export function brokenLinkRecords(links: LinkCheck[], sourceUrl: string): Broken
   return links.flatMap((link) => {
     const outcome = linkOutcome(link);
     if (outcome === "ok" || outcome === "skipped") return [];
-    const evidence = outcome === "missing"
-      ? isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl) ? `De link verwijst naar een foutpagina (${link.finalUrl || link.url})`
-      : (link.softNotFound ? `HTTP ${link.status} met een 'niet gevonden'-pagina (soft 404)` : `HTTP ${link.status}: de pagina bestaat niet`)
-      : outcome === "server_error" ? `HTTP ${link.status} bij twee pogingen` : reasonOf(link);
+    const evidence = linkEvidence(link).cause;
     const impact = outcome === "missing"
       ? "Bezoekers en zoekmachines volgen een link naar een pagina die niet bestaat; linkwaarde gaat verloren."
       : outcome === "server_error" ? "Bezoekers krijgen mogelijk een foutpagina; zoekmachines kunnen de pagina niet indexeren zolang de fout blijft."
+        : outcome === "temporary" ? "Tijdelijke storing: bezoekers kunnen hinder ervaren, maar een blijvende fout is niet bewezen."
         : "Niet bewezen: RankFix kon de bestemming niet controleren. Dit is geen bevestigde kapotte link.";
     const recommendedAction = outcome === "missing"
       ? `Pas op ${sourceUrl} de link aan naar de juiste pagina, verwijder hem, of zet een 301-redirect van ${link.url} naar de best passende pagina.${link.softNotFound ? " Laat een 'niet gevonden'-pagina HTTP 404 geven in plaats van 200." : ""}`
       : outcome === "server_error" ? `Controleer de serverlogs voor ${link.url} en of bezoekers dezelfde fout krijgen.`
         : "Controleer deze link later opnieuw of in een browser; onderneem pas actie als een fout wordt bevestigd.";
-    return [{ sourceUrl, targetUrl: link.url, finalUrl: link.finalUrl ?? null, httpStatus: link.status, outcome, proven: outcome !== "unconfirmed", evidence, impact, recommendedAction }];
+    return [{ sourceUrl, targetUrl: link.url, finalUrl: link.finalUrl ?? null, httpStatus: link.status, outcome, proven: outcome === "missing" || outcome === "server_error", evidenceStrength: linkEvidence(link).strength, evidence, impact, recommendedAction }];
   });
 }

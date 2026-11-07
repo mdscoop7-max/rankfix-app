@@ -43,11 +43,14 @@ test("injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json place
   assert.deepEqual(jsonLdInjectorSignals(`<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC"></script>`), []);
 });
 
-test("PDF P4: a link to an error page is a missing page, whatever its HTTP status", async () => {
+test("PDF P4: a link to an error page is missing when the response proves it (content or server redirect)", async () => {
   const { isErrorPageUrl, linkOutcome } = await import("../lib/link-status.ts");
   for (const u of ["https://x.nl/pagenotfound", "https://x.nl/404", "https://x.nl/nl/not-found/", "https://x.nl/error?code=1", "https://x.nl/404.html"]) assert.equal(isErrorPageUrl(u), true, u);
   for (const u of ["https://x.nl/errors-and-omissions", "https://x.nl/404-tips", "https://x.nl/foutloos", "https://x.nl/"]) assert.equal(isErrorPageUrl(u), false, u);
-  assert.equal(linkOutcome({ url: "https://x.nl/pagenotfound", status: 200, error: false }), "missing");
+  // F1 owner rule (7 Nov 2026): a URL pattern alone is no proof. The error-page
+  // CONTENT (soft 404) or the server redirecting to its error page proves it.
+  assert.equal(linkOutcome({ url: "https://x.nl/pagenotfound", status: 200, error: false }), "unconfirmed");
+  assert.equal(linkOutcome({ url: "https://x.nl/pagenotfound", status: 200, error: false, softNotFound: true }), "missing");
   assert.equal(linkOutcome({ url: "https://x.nl/banden", status: 200, error: false, finalUrl: "https://x.nl/404" }), "missing");
   assert.equal(linkOutcome({ url: "https://x.nl/banden", status: null, error: true }), "unconfirmed");
 });

@@ -67,7 +67,8 @@ test("internal links: missing, server error, unconfirmed and account links are k
   const s = brokenLinkSummary([L("/a", 200), L("/b", 200), L("/weg", 404), L("/storing", 503), L("/prive", 403)]);
   assert.equal(s.status, "warning");
   assert.match(s.message, /1 verwijzen naar een ontbrekende pagina: \/weg \(HTTP 404\)/);
-  assert.match(s.message, /serverfout[^.]*\/storing \(HTTP 503\)/);
+  // F1 owner rule (7 Nov 2026): a 503 is a temporary failure, reported but never a proven server error.
+  assert.match(s.message, /tijdelijk niet bereikbaar[^.]*\/storing \(HTTP 503, tijdelijke storing\)/);
   assert.match(s.message, /niet te bevestigen[^.]*\/prive \(HTTP 403, toegang geweigerd voor RankFix\)/);
   assert.match(s.fix, /301-redirect/);
   // Blocked links never produce a silent pass: mostly unchecked → unconfirmed.

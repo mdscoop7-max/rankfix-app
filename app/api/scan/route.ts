@@ -40,7 +40,7 @@ import { checkoutActionInHtml, purchaseActionInHtml, productCardLinks, priceSign
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { shopInfoSignals, sitewideShopInfo, type ShopInfoSignals } from "@/lib/shop-info-signals";
 import { summarizeProductHunt, productHuntSentence, type ProductHuntSummary, type ProductCandidateAudit } from "@/lib/product-hunt-diagnostics";
-import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
+import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome, linkEvidence } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
@@ -2337,7 +2337,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; attempts?: number; retryAfterSeconds?: number | null; redirectChain?: Array<{ from: string; to: string; status: number }> };
+    // F2: one evidence row per non-OK link, the same in scan JSON, report, dashboard and Fix advice.
+    const linkEvidenceRow = (item: LinkAuditResult) => {
+      const evidenceOf = linkEvidence(item);
+      return { url: item.url, originalHref: item.sourceHref, baseHref: normalizeScanUrl(documentBase.toString()) !== normalizeScanUrl(finalUrl.toString()) ? documentBase.toString() : null,
+        referringPage: finalUrl.toString(), redirectChain: item.redirectChain || [], finalUrl: item.finalUrl, httpStatus: item.status, attempts: item.attempts ?? (item.error ? 0 : 1), retryAfterSeconds: item.retryAfterSeconds ?? null,
+        outcome: linkOutcome(item), evidenceStrength: evidenceOf.strength, cause: evidenceOf.cause, advice: evidenceOf.advice, softNotFound: Boolean(item.softNotFound) };
+    };
     const allAnchorTags = [...neutralizeTemplateBindings(html).matchAll(/<a\b([^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const attributes = match[1] || "";
@@ -2395,8 +2402,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const linkFetch = () => safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
       try {
         let result = await linkFetch();
-        // A single 5xx can be a hiccup: one retry before calling it a server error.
-        if (result.response.status >= 500) { try { await result.response.body?.cancel(); } catch {} await new Promise((resolve) => setTimeout(resolve, 400)); result = await linkFetch(); }
+        let attempts = 1;
+        let retryAfterSeconds: number | null = null;
+        // F1: a 5xx can be a hiccup. One bounded retry, honouring Retry-After (at most
+        // 3 s); a longer Retry-After is not waited for and the link stays "temporary".
+        if (result.response.status >= 500) {
+          const header = result.response.headers.get("retry-after");
+          const seconds = header ? (/^\d+$/.test(header.trim()) ? Number(header.trim()) : Math.max(0, Math.round((Date.parse(header) - Date.now()) / 1000))) : null;
+          retryAfterSeconds = Number.isFinite(seconds as number) ? seconds : null;
+          if (retryAfterSeconds === null || retryAfterSeconds <= 3) {
+            try { await result.response.body?.cancel(); } catch {}
+            await new Promise((resolve) => setTimeout(resolve, Math.max(400, (retryAfterSeconds || 0) * 1000)));
+            result = await linkFetch();
+            attempts = 2;
+          }
+        }
         const res = result.response;
         const destination = result.finalUrl?.toString() || res.url || item.url;
         // HTTP 200 serving a "page not found" template is a missing page (soft 404).
@@ -2415,7 +2435,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             challenged = linkGate?.kind === "challenge";
           } catch {}
         } else { try { await res.body?.cancel(); } catch {} }
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) , attempts, retryAfterSeconds, redirectChain: result.redirectChain || []};
       } catch {
         // PDF P4: no answer is never a broken link; one retry after a short backoff.
         try {
@@ -3431,7 +3451,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // status and outcome, so dashboard/PDF/JSON can list URL, reason and action.
             linkCheck.evidence = { url: finalUrl.toString(), found: linkSummary.missing + linkSummary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: linkSummary.message };
             (linkCheck as Check & { links?: unknown }).links = linkAuditResults
-              .map((item) => ({ url: item.url, referringPage: finalUrl.toString(), httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) }))
+              .map(linkEvidenceRow)
               .filter((item) => item.outcome !== "ok" && item.outcome !== "skipped");
             // sourceUrl/targetUrl/finalUrl/httpStatus/evidence/impact/recommendedAction per link.
             (linkCheck as Check & { linkRecords?: unknown }).linkRecords = brokenLinkRecords(linkAuditResults, finalUrl.toString());
@@ -7532,7 +7552,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const fetchedOk = new Map(multiPageAudits.filter((p) => p && p.httpStatus === 200 && p.status === "audited").map((p) => [normalizeScanUrl(p.url), p] as const));
       let reconciledFromSample = 0;
       for (const l of linkAuditResults) {
-        if (linkOutcome(l) === "unconfirmed" && fetchedOk.has(normalizeScanUrl(l.url))) { l.status = 200; l.error = false; l.challenged = false; reconciledFromSample++; }
+        if (["unconfirmed", "temporary"].includes(linkOutcome(l)) && fetchedOk.has(normalizeScanUrl(l.url))) { l.status = 200; l.error = false; l.challenged = false; reconciledFromSample++; }
       }
       if (linkCheck && (reconciledFromSample > 0 || (linkCheck.status !== "unable_to_confirm" && sampledMissing.length))) {
         for (const p of sampledMissing) {
@@ -7541,10 +7561,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
         const summary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
         const copy = scanLanguage === "nl" ? { message: summary.message, fix: summary.fix } : localizedBrokenLinkCopy(linkAuditResults, finalUrl.toString(), scanLanguage);
-        const rebuilt = check(summary.status, "broken_links", "seo", linkCheck.title, copy.message, copy.fix, summary.points, 5);
-        Object.assign(linkCheck, rebuilt, {
+        // The anchor-conflict note (no deduction) must survive the rebuild.
+        const conflicts = (linkCheck as Check & { anchorTargetConflicts?: Array<{ text: string; targets: string[] }> }).anchorTargetConflicts || [];
+        const conflictNote = conflicts.length ? ` Let op (geen aftrek): dezelfde linktekst verwijst naar verschillende pagina's: ${conflicts.map((c) => `"${c.text}" → ${c.targets.join(", ")}`).join("; ")}.` : "";
+        const rebuilt = check(summary.status, "broken_links", "seo", linkCheck.title, copy.message + conflictNote, copy.fix, summary.points, 5);
+        Object.assign(linkCheck, rebuilt, { anchorTargetConflicts: conflicts,
           evidence: { url: finalUrl.toString(), found: summary.missing + summary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: copy.message },
-          links: linkAuditResults.map((item) => ({ url: item.url, referringPage: finalUrl.toString(), sourceHref: item.sourceHref, httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) })).filter((item) => item.outcome !== "ok" && item.outcome !== "skipped"),
+          links: linkAuditResults.map(linkEvidenceRow).filter((item) => item.outcome !== "ok" && item.outcome !== "skipped"),
           linkRecords: brokenLinkRecords(linkAuditResults, finalUrl.toString()),
         });
       }

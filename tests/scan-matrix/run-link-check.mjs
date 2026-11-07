@@ -23,7 +23,9 @@ const c = j.seo.checks.find((x) => x.key === "broken_links");
 const problems = [];
 if (!c) problems.push("no broken_links check");
 else {
-  if (!/pagenotfound/.test(c.message) || c.status !== "warning") problems.push(`link to /pagenotfound not reported as broken (${c.status}: ${c.message.slice(0, 160)})`);
+  // F1 owner rule (7 Nov 2026): /pagenotfound answers HTTP 200 with normal content here,
+  // so its URL pattern alone is no proof: reported as not confirmed, never as broken.
+  if (!/pagenotfound \(URL lijkt op een foutpagina/.test(c.message) || /ontbrekende pagina[^.]*pagenotfound/.test(c.message)) problems.push(`link to /pagenotfound must be reported as unconfirmed, not broken (${c.status}: ${c.message.slice(0, 200)})`);
   if (/trap/.test(c.message)) problems.push("honeypot link was checked and reported");
   if (/flaky/.test(c.message)) problems.push(`link without first answer not retried: ${c.message.slice(0, 160)}`);
   if (!/dezelfde linktekst verwijst naar verschillende pagina's: "vind je vestiging"/i.test(c.message)) problems.push(`anchor conflict not reported: ${c.message.slice(-200)}`);

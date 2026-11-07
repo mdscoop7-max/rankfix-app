@@ -9,7 +9,7 @@ function fixture(t, special = false) {
   const dir = mkdtempSync(join(tmpdir(), special ? 'rankfix café # % ' : 'rankfix-analysis-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   for (const path of ['scripts/testlab', 'lib', 'run']) mkdirSync(join(dir, path), { recursive: true });
-  for (const path of ['scripts/testlab/analyze-evidence.mjs', 'scripts/testlab/labels.mjs', 'lib/report-claim-audit.mjs', 'lib/sector-catalog-candidates.mjs']) {
+  for (const path of ['scripts/testlab/analyze-evidence.mjs', 'scripts/testlab/labels.mjs', 'lib/report-claim-audit.mjs', 'lib/sector-catalog-candidates.mjs', 'lib/incident-attribution.mjs']) {
     copyFileSync(new URL('../' + path, import.meta.url), join(dir, path));
   }
   const put = (name, value) => writeFileSync(join(dir, 'run', name), JSON.stringify(value));

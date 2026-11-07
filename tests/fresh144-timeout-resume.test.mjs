@@ -10,7 +10,7 @@ test('fresh144 resume settles a repeated SCAN_TIMEOUT and continues, retaining d
   const dir = mkdtempSync(join(tmpdir(), 'rankfix-resume-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   for (const path of ['scripts/testlab', 'lib', 'qa-results/fresh144-latest', 'RankFix-QA']) mkdirSync(join(dir, path), { recursive: true });
-  for (const path of ['scripts/testlab/run-fresh144-local.mjs', 'scripts/testlab/labels.mjs', 'lib/testlab-evidence-export.mjs', 'lib/dimension-score-display.mjs', 'lib/testlab-outcome.mjs', 'lib/sector-catalog-candidates.mjs']) copyFileSync(new URL('../' + path, import.meta.url), join(dir, path));
+  for (const path of ['scripts/testlab/run-fresh144-local.mjs', 'scripts/testlab/labels.mjs', 'lib/testlab-evidence-export.mjs', 'lib/dimension-score-display.mjs', 'lib/testlab-outcome.mjs', 'lib/sector-catalog-candidates.mjs', 'lib/incident-attribution.mjs']) copyFileSync(new URL('../' + path, import.meta.url), join(dir, path));
   execFileSync('git', ['init', '--quiet', dir]);
   execFileSync('git', ['-C', dir, '-c', 'user.name=QA', '-c', 'user.email=qa@example.invalid', 'commit', '--quiet', '--allow-empty', '-m', 'fixture']);
   const sha = execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();

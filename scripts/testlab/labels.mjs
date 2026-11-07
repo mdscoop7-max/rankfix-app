@@ -1,4 +1,5 @@
 import { SECTOR_CATALOG_CANDIDATES as SECTOR_CATALOG } from '../../lib/sector-catalog-candidates.mjs';
+import { attributeIncident } from '../../lib/incident-attribution.mjs';
 // TestLab labels describe subtypes; the engine returns broader primary sectors.
 // Keep both comparisons visible. A broad match never proves a subtype.
 const labels={
@@ -198,23 +199,26 @@ export function sectorVerdict(expected,profile={}) {
  return {...c,verdict:'mismatch',reason:'Waarschijnlijk echte sectorfout: handmatig beoordelen'};
 }
 export function failureCategory(status,code='',attribution=null) {
+ // F3: one classification everywhere. Without incident evidence the attribution
+ // comes from the scanner's own rules (lib/scan-incident.ts), never from a
+ // status-only guess (a site's 402/429/401/403 is not a RankFix quota or login).
+ attribution=attribution||attributeIncident(Number(status||0),String(code||''));
+ if(attribution==='target_site')return /HTTP_NOT_FOUND|HTTP_PAYMENT_REQUIRED|SITE_TLS_INVALID|SITE_DOMAIN_NOT_FOUND|HTTP_SERVER_ERROR|SITE_ERROR_PAGE|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN/.test(code)?'site_unavailable':'site_blocked';
+ if(attribution==='network')return /TIMEOUT/.test(code)?'timeout':'network';
+ if(attribution==='rankfix_input')return 'site_or_input_error';
  // Incident attribution from the scan API is authoritative when present.
  if(attribution==='rankfix_session')return 'auth';
  if(attribution==='rankfix_quota')return 'quota';
  if(attribution==='rankfix_infrastructure')return 'infrastructure';
- if(/AUTH_LOOKUP_UNAVAILABLE/.test(code))return 'infrastructure';
- if(/SESSION_EXPIRED/.test(code))return 'auth';
- // The target website's own refusals (its 429, its login, its WAF) are site
- // blocks, never a RankFix quota: they must not stop the TestLab run.
- if(/SITE_RATE_LIMITED|HTTP_AUTH_REQUIRED/.test(code))return 'site_blocked';
- if(/WEBSITE_LIMIT|SCAN_LIMIT|QUOTA|RATE_LIMIT/.test(code)||[402,429].includes(status))return 'quota';
+ // Codes the scanner does not know itself: the earlier code-based reading,
+ // applied only after the scanner's attribution.
+ if(/BLOCKED|CHALLENGE|CAPTCHA|ROBOTS|UNVERIFIED_NOT_FOUND/.test(code)&&!/^URL_/.test(code))return 'site_blocked';
+ if(/WEBSITE_LIMIT|SCAN_LIMIT|QUOTA|RATE_LIMIT/.test(code))return 'quota';
  if(/DATABASE|INFRASTRUCTURE/.test(code))return 'infrastructure';
- if(/BLOCKED|CHALLENGE|CAPTCHA|ROBOTS|UNVERIFIED_NOT_FOUND/.test(code))return 'site_blocked';
- // The website served an error or maintenance page instead of its content.
  if(/SITE_ERROR_PAGE|HTTP_NOT_FOUND|HTTP_PAYMENT_REQUIRED|SITE_TLS_INVALID|SITE_DOMAIN_NOT_FOUND|HTTP_SERVER_ERROR/.test(code))return 'site_unavailable';
- if([401,403].includes(status))return 'auth';
+ if(/FETCH_|REDIRECT_LOOP|REDIRECT_LIMIT/.test(code))return 'network';
+ // rankfix_engine: RankFix itself failed; never a statement about the website.
  if(/TIMEOUT/.test(code))return 'timeout';
- if(status===0||/FETCH_|REDIRECT_LOOP|REDIRECT_LIMIT/.test(code))return 'network';
  if(status===200)return 'invalid_response';
  return status>=500?'server_error':'site_or_input_error';
 }

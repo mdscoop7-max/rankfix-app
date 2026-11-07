@@ -14,6 +14,7 @@ import sector80 from "@/tests/fixtures/testlab-144/catalog-sector-80-20261106.js
 import {hasLocalQaSession,localQaEnabled,loopbackRequest,localQaCookieName} from "@/lib/local-qa";
 import {scanRuntime} from "@/lib/scan-runtime";
 import {cookies} from "next/headers";
+import {compareSector} from "@/scripts/testlab/labels.mjs";
 
 export async function GET(request:NextRequest) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.NODE_ENV !== "development") {
@@ -51,7 +52,9 @@ export async function GET(request:NextRequest) {
     return NextResponse.json({error:"CATALOG_INTEGRITY_FAILED"},{status:503});
   return NextResponse.json({
     sites, count:sites.length, catalogId,
-    categoryCounts:{webshops:ecommerceCount,other:sites.length-ecommerceCount},
+    // F3 (Sector80): retail labels such as "electronics_retail" or "supermarket" are
+    // webshop/retail sites too; counting only the literal "ecommerce" showed 0 of 12.
+    categoryCounts:(()=>{const webshops=sites.filter(site=>site.expected==="ecommerce"||compareSector(site.expected,{}).expectedSector==="ecommerce").length;return {webshops,other:sites.length-webshops};})(),
     labels:"proposed_not_independently_verified",
     runtime:scanRuntime(),
     instruction:"Reads public websites only. Does not change customer sites. Start is always manual."
