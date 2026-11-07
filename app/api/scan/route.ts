@@ -16,7 +16,7 @@ import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
 import { verifySectorWithAi, mediationRole } from "@/lib/ai-sector-verifier";
 import { aiContentText } from "@/lib/ai-content-text";
-import { LOCAL_TRADE_KEYS, declaredIndustryKeys, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
+import { LOCAL_TRADE_KEYS, declaredIndustryKeys, declaredPortOperations, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, serviceBookingMediation, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules, sectorConfidenceGuard } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -81,6 +81,8 @@ import { nominateProductCards } from "@/lib/product-nomination";
 import { countIndependentProducts, subscriptionPriced, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
+import { determineOperatingRole, groupWordingIn, type OperatingRoleResult } from "@/lib/operating-role";
+import { providerDirectoryIdentity } from "@/lib/provider-directory";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
@@ -6801,6 +6803,81 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       for (const moduleKey of ["ecommerce","product"]) if (!sectorProfile.applicableModules.includes(moduleKey)) sectorProfile.applicableModules.push(moduleKey);
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
+    // P0-1 (7 Nov 2026): business model before sector (lib/operating-role.ts). The
+    // role gets its own confidence and counter-evidence; a sector is only confirmed
+    // with two independent sources (two fields of one homepage are one source).
+    let operatingRole: OperatingRoleResult | null = null;
+    {
+      const rootPath = (value: string) => { try { const u = new URL(value); return (u.pathname.replace(/\/+$/, "") || "/") === "/"; } catch { return false; } };
+      const pageKey = (value: string) => { try { const u = new URL(value); return u.hostname.replace(/^www\./, "") + (u.pathname.replace(/\/+$/, "") || "/"); } catch { return value; } };
+      const decided = String(sectorProfile.sector || "unknown");
+      const support = new Map<string, string>();
+      const other = new Map<string, { sector: string; text: string }>();
+      const pageVotes = [
+        ...(extendedIndustry.candidates || []).flatMap((c: { key: string; urls: string[] }) => {
+          const known = declaredIndustryKeys().find((item) => item.key === c.key);
+          return known ? c.urls.map((url) => ({ url, sector: known.sector, label: known.label })) : [];
+        }),
+        ...(multilingualPageIdentity.candidates || []).flatMap((c) => c.pages.map((p) => ({ url: p.url, sector: p.sector, label: p.label }))),
+      ];
+      for (const vote of pageVotes) {
+        if (!vote.url || rootPath(vote.url)) continue;
+        const k = pageKey(vote.url);
+        if (vote.sector === decided) support.set(k, `${vote.url}: ${vote.label}`);
+        // Counter-evidence is another PRIMARY activity: the generic fallback label
+        // (professional services) and visitor side offers (restaurant, stay, shop)
+        // on an attraction, port or public body are not; neither is the site's own
+        // blog or magazine (editorial pages are no sector evidence either way).
+        else if (!["ecommerce", "professional_services", "hospitality", "food_local_retail", "news_media"].includes(vote.sector) && !support.has(k)) other.set(k, { sector: vote.sector, text: `${vote.url}: ${vote.label}` });
+      }
+      for (const k of support.keys()) other.delete(k);
+      const ownFields = [title, description, ...identityH1s.slice(0, 2)].join(" · ");
+      const homeDirectory = providerDirectoryIdentity({ title, description, h1s: identityH1s });
+      const homeMediation = serviceBookingMediation({ title, description, identityHeadings: identityH1s });
+      const ownShopPages = auditedMultiPages.filter((item) => item.status === "audited" && item.commerceEvidence?.strongCommerceAction && !item.commerceEvidence?.financialOffer).map((item) => ({ source: pageKey(item.url), text: `${item.url}: eigen bestel-/winkelwagenfunctie` }));
+      const sectorCounts = new Map<string, number>();
+      for (const value of other.values()) sectorCounts.set(value.sector, (sectorCounts.get(value.sector) || 0) + 1);
+      const otherActivities = [...new Set([
+        ...((euPrimaryIdentity?.secondary || []).map((item) => item.sector)),
+        ...[...sectorCounts.entries()].filter(([, n]) => n >= 2).map(([sector]) => sector),
+      ])].filter((sector) => sector !== decided && sector !== "ecommerce" && sector !== "unknown");
+      // Activities named in the organisation's own fields (anchored keyword sectors).
+      const ownFieldActivities = [...new Set([
+        ...declaredIndustryKeys().filter((item) => item.vocab[0]?.test(ownFields)).map((item) => item.sector),
+        ...sectorSignals.filter((item) => item.patterns[0]?.test(ownFields)).map((item) => item.sector),
+      ])].filter((sector) => sector !== decided && sector !== "ecommerce" && sector !== "unknown");
+      if (ownFieldActivities.length >= 1) for (const sector of ownFieldActivities) if (!otherActivities.includes(sector)) otherActivities.push(sector);
+      operatingRole = determineOperatingRole({
+        sector: decided,
+        key: String(sectorProfile.key || decided),
+        sectorConfidence: Number(sectorProfile.confidenceScore || 0),
+        homepage: {
+          platform: [
+            ...(homeDirectory ? homeDirectory.evidence : []),
+            ...(homeMediation ? ["Eigen omschrijving: boeken of vergelijken bij onafhankelijke aanbieders"] : []),
+            ...(platformIdentity ? platformIdentity.evidence : []),
+          ],
+          own_service: (hasTrustedLocalEvidence || localBusinessDetails) && !homeDirectory && !homeMediation ? ["Eigen vestigingsgegevens (LocalBusiness met adres/telefoon) op de homepage"] : [],
+          webshop: retailPrimaryIdentity ? ["Eigen omschrijving als winkel of webshop"] : [],
+          manufacturer: decided === "manufacturing_industrial" ? [`Eigen identiteit: ${sectorProfile.label}`] : [],
+          publisher: decided === "news_media" ? [`Eigen identiteit: ${sectorProfile.label}`] : [],
+        },
+        sectorSupportPages: [...support.entries()].map(([source, text]) => ({ source, text })),
+        otherSectorPages: [...other.entries()].map(([source, value]) => ({ source, text: value.text })),
+        ownShopFunction: [...(confirmedAddToCart ? [{ source: pageKey(finalUrl.toString()), text: `${finalUrl.toString()}: winkelwagenfunctie op de gescande pagina` }] : []), ...ownShopPages].filter((item, i, all) => all.findIndex((x) => x.source === item.source) === i),
+        retailSector: decided === "ecommerce" || Boolean(retailPrimaryIdentity),
+        groupWording: groupWordingIn(ownFields),
+        otherActivities,
+      });
+      const cap = operatingRole.sectorCap;
+      if (cap && decided !== "unknown" && Number(sectorProfile.confidenceScore || 0) > cap.max) {
+        sectorProfile.confidenceScore = cap.max;
+        sectorProfile.confidence = cap.max >= 60 ? "medium" : "low";
+        sectorProfile.evidence = [...(sectorProfile.evidence || []), cap.reason].slice(0, 7);
+        Object.assign(sectorProfile, { confidenceCap: cap });
+      }
+      Object.assign(sectorProfile, { operatingRole });
+    }
     // AI sector verification (owner request 7 Nov): only when the rules did not
     // confirm a sector; one call, hard timeout; AI proposals count only with quotes
     // RankFix finds verbatim on >=2 own pages (lib/ai-sector-verifier.ts).
@@ -7573,6 +7650,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           .map((item)=>({ url: item.url, kind: item.type==="product" ? "product" as const : "category" as const, text: [item.ownIdentityText || "", item.commerceEvidence?.product?.name || ""].join(" · ") })),
       ],
     });
+    websiteProfile.operatingRole = operatingRole;
     // One website type for every consumer (QA #207: header "Webshop" next to
     // "Websitetype niet vastgesteld"). The technology profile follows the
     // evidence-gated website profile, never the other way round.

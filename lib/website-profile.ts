@@ -19,6 +19,8 @@
 export type DimensionStatus = "confirmed" | "probable" | "unknown" | "not_applicable" | "installed_no_shop";
 export type Dimension = { value: string | null; label: string; status: DimensionStatus; confidence: number; evidence: string[] };
 export type WebsiteProfile = {
+  /** P0-1: operating role (business model) with its own confidence and counter-evidence. */
+  operatingRole?: import("./operating-role").OperatingRoleResult | null;
   websiteType: Dimension;
   commercePlatform: Dimension;
   cms: Dimension;

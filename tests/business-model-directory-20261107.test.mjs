@@ -54,7 +54,8 @@ globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : 
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
 const { POST } = await import(${JSON.stringify(new URL("../app/api/scan/route.ts", import.meta.url).href)}); console.info = console.warn = console.error = () => {};
 const j = await (await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://dir.test/", mode: "both", language: "nl" }) }))).json();
-console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, conf: j.sectorProfile?.confidenceScore, websiteType: j.websiteProfile?.websiteType?.value }));
+const role = j.websiteProfile?.operatingRole || null;
+console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, conf: j.sectorProfile?.confidenceScore, websiteType: j.websiteProfile?.websiteType?.value, role: role && { role: role.role, conf: role.confidenceScore, n: role.independentSources, cap: role.sectorCap, evidence: role.evidence, counter: role.counterEvidence } }));
 process.exit(0);`);
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url), encoding: "utf8", timeout: 240000 });
   return readProcessResult(out, "RESULT ", script);
@@ -67,9 +68,25 @@ test("route: a gym directory is a platform, never a confirmed gym", () => {
   assert.equal(r.key, "service_marketplace", JSON.stringify(r));
   assert.equal(r.websiteType, "marketplace");
   assert.ok(r.conf < 80, "platform role from own fields only stays probable, not confirmed");
+  assert.equal(r.role.role, "platform");
+  assert.ok(r.role.evidence.some((e) => /3\.029 sportscholen/.test(e.text)), "source evidence names the counted providers");
 });
 
 test("route: a gym chain counting its own clubs stays a gym", () => {
   const r = scan(page("Sportschool met meer dan 200 clubs | FitKeten", "Train bij FitKeten, de sportschool met meer dan 200 clubs in Nederland. Vind een club bij jou in de buurt en word vandaag lid.", "Sportschool FitKeten", "<p>Word lid van onze sportschool. Onze clubs zijn 24/7 open.</p>"));
   assert.equal(r.sector, "fitness_sports", JSON.stringify(r));
+  assert.equal(r.role.role, "own_service");
+});
+
+test("route: one homepage is one source — title, description and H1 together never confirm a sector", () => {
+  const r = scan(page("FitClub Dorp | Sportschool en fitness in Dorp", "Sportschool FitClub in Dorp: fitness, groepslessen en personal training.", "Sportschool FitClub", "<p>Sportschool FitClub, Dorpsstraat 1, 1234 AB Dorp. Telefoon 0123-456789.</p>"));
+  assert.equal(r.sector, "fitness_sports");
+  assert.equal(r.role.n, 1);
+  assert.ok(r.conf <= 70, JSON.stringify(r));
+});
+
+test("route: a group with several activities gets no single confirmed sector", () => {
+  const r = scan(page("Voorbeeld Groep | Bouw, techniek en vastgoed", "Voorbeeld Groep is een familiebedrijf met werkmaatschappijen in bouw, installatietechniek en vastgoedontwikkeling.", "Voorbeeld Groep", "<p>Onze werkmaatschappijen bouwen, installeren en ontwikkelen.</p>"));
+  assert.equal(r.role.role, "holding", JSON.stringify(r));
+  assert.ok(r.conf < 80 && r.conf >= 60, "shown as probable, never confirmed");
 });
