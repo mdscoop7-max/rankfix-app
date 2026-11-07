@@ -131,3 +131,37 @@ test("text repeated on 3+ evidence pages is template text (menus without nav mar
     buildEvidencePack(site), [{ sector: "energy_utilities", key: "grid", label: "Netbeheerder", vocab: [/stroomnet/i] }]);
   assert.equal(r.ok, false);
 });
+
+test("quotes match on words: punctuation and block separators never decide, changed words always do", () => {
+  const site = [
+    { url: "https://r.test/", type: "homepage", title: "Reisplatform", text: "Boek goedkope vliegtickets naar 1.000 bestemmingen. · Vergelijk hotels en huurauto's in één keer." },
+    { url: "https://r.test/over-ons", type: "corporate", title: "Over ons", text: "Wij zijn een online reisbureau voor vluchten, hotels en pakketreizen." },
+  ];
+  const opt = [{ sector: "transport_travel", key: "travel", label: "Reisbemiddeling", vocab: [/vliegtickets|reisbureau|vluchten/i] }];
+  const pack = buildEvidencePack(site);
+  // Quote spans two text blocks and uses other punctuation: same words, same order.
+  const ok = verifyProposal({ key: "travel", role: "bemiddelaar", quotes: [
+    { url: "https://r.test/", quote: "goedkope vliegtickets naar 1.000 bestemmingen Vergelijk hotels" },
+    { url: "https://r.test/over-ons", quote: "“Wij zijn een online reisbureau”" },
+  ] }, pack, opt);
+  assert.equal(ok.ok, true);
+  // One changed word: not verbatim.
+  const bad = verifyProposal({ key: "travel", role: "bemiddelaar", quotes: [
+    { url: "https://r.test/", quote: "goedkope vliegtickets naar 2.000 bestemmingen" },
+    { url: "https://r.test/over-ons", quote: "Wij zijn het grootste online reisbureau" },
+  ] }, pack, opt);
+  assert.equal(bad.ok, false);
+  assert.deepEqual(bad.quoteChecks.map((c) => c.result), ["not_found_verbatim", "not_found_verbatim"]);
+  assert.match(bad.reason, /niet letterlijk op de pagina gevonden/);
+});
+
+test("each quote gets an exact rejection reason", () => {
+  const pack = buildEvidencePack(pages);
+  const r = verifyProposal({ key: "driving_school", role: "eigen_dienstverlener", quotes: [
+    { url: "https://x.test/elders", quote: "Grow is een rijschool met instructeurs" },
+    { url: "https://x.test/", quote: "Plan een" },
+    { url: "https://x.test/", quote: "Plan een proefles direct online" },
+    { url: "https://x.test/over-ons", quote: "Grow is een rijschool met meer dan 300 instructeurs" },
+  ] }, pack, options);
+  assert.deepEqual(r.quoteChecks.map((c) => c.result), ["page_not_in_evidence", "too_short", "no_activity_word", "counted"]);
+});

@@ -723,7 +723,14 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // QA international-28 control: a software vendor for hospitals ("Software voor
   // ziekenhuizen", "Ziekenhuissoftware" with a demo/pricing funnel) is not a care
   // provider; it names its customers' concepts (patients, clinics).
-  const softwareTitle = SOFTWARE.test(title) || /\p{L}{3,}(?:software|plattform|platform|logiciel)(?![\p{L}])/iu.test(title);
+  // AI trial 7 Nov (Moss, "Moss is a spend management platform …", typed
+  // "Zakelijke dienstverlening"): the organisation calling ITSELF a platform or
+  // software in its own description/H1 ("X is a/the … platform", "X ist die …
+  // Software") is as strong as the word in the title. Only with a real software
+  // funnel (demo, trial, pricing, features, integrations; a login alone is not).
+  const softwareSelfDescription = /(?:^|[.!?·|]\s*|\s)[\p{Lu}][\p{L}\d&.-]{1,30}\s+(?:is|ist|est|è|es|é|jest)\s+(?:the|a|an|de|het|een|die|der|das|eine?n?|la|le|l'|un|una|uma|o)?\s*(?:[\p{L}\d&-]+\s+){0,4}(?:platform|platforms|software|saas|plattform|plateforme|piattaforma|plataforma|logiciel|app)(?![\p{L}])/iu.test(description + " · " + h1);
+  const strictSoftwareFunnel = SOFTWARE_FUNNEL.test((nav + " " + h2 + " " + own).replace(/\b(?:login|inloggen|anmelden|log in|sign in)\b/gi, " "));
+  const softwareTitle = SOFTWARE.test(title) || /\p{L}{3,}(?:software|plattform|platform|logiciel)(?![\p{L}])/iu.test(title) || (softwareSelfDescription && strictSoftwareFunnel);
   const softwareVendor = (softwareTitle || SOFTWARE.test(own)) && SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own);
   const healthConcepts = distinct(own, HEALTH_CONCEPTS);
   const healthSchema = ["hospital", "medicalorganization", "medicalclinic", "physician"].some((t) => schema.has(t));

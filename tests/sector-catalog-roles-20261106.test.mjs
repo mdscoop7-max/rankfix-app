@@ -93,3 +93,11 @@ test("a travel platform homepage selling flights or car hire next to hotels neve
   assert.equal(d("Hotel De Haven | Boutique hotel aan zee", "Ons hotel heeft 40 kamers, ontbijt en een restaurant. Boek uw overnachting direct.", "Hotel De Haven"), "hotel");
   assert.equal(d("Hotelgroep | Onze hotels", "Overnachten in een van onze hotels met restaurant en vergaderzalen.", "Onze hotels"), "hotel");
 });
+
+test("AI trial 7 Nov (Moss): an organisation calling itself a platform/software in its own description, with a software funnel, is SaaS", () => {
+  const moss = detectEuPrimaryIdentity({ title: "Moss | Spend smarter", description: "Moss is a spend management platform that gives you corporate cards, invoice processing, supplier payments, and end to end accounting automation.", h1s: ["Modern Spend Management for Scaling Finance Teams"], navLabels: ["Product", "Pricing", "Book a demo", "Login"], hostname: "getmoss.com" });
+  assert.equal(moss?.sector, "saas_b2b");
+  // Negatives: an accountancy firm, a members' network "platform" without a software funnel, a login alone.
+  assert.notEqual(detectEuPrimaryIdentity({ title: "Jansen Accountants | Boekhouding", description: "Jansen Accountants is een accountantskantoor voor ondernemers.", h1s: ["Uw accountant"], navLabels: ["Diensten", "Login"], hostname: "jansen.test" })?.sector, "saas_b2b");
+  assert.notEqual(detectEuPrimaryIdentity({ title: "Ondernemersnetwerk Noord", description: "Ondernemersnetwerk Noord is het platform voor lokale ondernemers.", h1s: ["Samen sterk"], navLabels: ["Agenda", "Lid worden", "Login"], hostname: "onn.test" })?.sector, "saas_b2b");
+});

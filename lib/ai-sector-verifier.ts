@@ -20,9 +20,9 @@ export type AiUsage = { promptTokens: number | null; completionTokens: number | 
 export type AiVerification =
   | { status: "not_needed" | "disabled"; reason: string }
   | { status: "error"; reason: string; model?: string }
-  | { status: "rejected"; reason: string; model: string; proposal?: AiProposal }
+  | { status: "rejected"; reason: string; model: string; proposal?: AiProposal; quoteChecks?: QuoteCheck[] }
   | { status: "unknown"; reason: string; model: string }
-  | { status: "confirmed" | "conflict"; reason: string; model: string; option: AiSectorOption; role: AiBusinessRole; quotes: { url: string; quote: string }[] };
+  | { status: "confirmed" | "conflict"; reason: string; model: string; option: AiSectorOption; role: AiBusinessRole; quotes: { url: string; quote: string }[]; quoteChecks?: QuoteCheck[] };
 
 const MAX_TEXT_PER_PAGE = 1200;
 // Legal, privacy, cookie, careers and account pages say nothing about the activity.
@@ -45,32 +45,51 @@ export function buildEvidencePack(pages: AiEvidencePage[]): AiEvidencePage[] {
     .map((p) => ({ url: p.url, type: p.type, title: p.title || "", description: p.description || "", headings: (p.headings || []).slice(0, 3), text: String(p.text || "").replace(/\s+/g, " ").slice(0, MAX_TEXT_PER_PAGE) }));
 }
 
-const norm = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[“”„"'’`]/g, "").replace(/\s+/g, " ").trim();
+import { QUOTE_RESULT_NL } from "./ai-sector-report.ts";
+export { QUOTE_RESULT_NL };
+
+// Words only: letters and digits, lower case, NFKC. Punctuation, quotes, dashes and
+// the "·" between text blocks never decide; every word must still be on the page
+// in the same order, so nothing can be added, removed or paraphrased.
+const words = (s: string) => (String(s || "").normalize("NFKC").toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).join(" ");
+
+/** Why a single quote does or does not count (shown in the report and the JSON). */
+export type QuoteCheck = { url: string; quote: string; result: "counted" | "page_not_in_evidence" | "too_short" | "not_found_verbatim" | "template_text" | "no_activity_word" };
 
 /** Every claim must be a verbatim quote from the page it names; ≥2 different pages. */
-export function verifyProposal(proposal: AiProposal, pack: AiEvidencePage[], options: AiSectorOption[]): { ok: true; option: AiSectorOption; quotes: AiProposal["quotes"] } | { ok: false; reason: string } {
+export function verifyProposal(proposal: AiProposal, pack: AiEvidencePage[], options: AiSectorOption[]): { ok: true; option: AiSectorOption; quotes: AiProposal["quotes"]; quoteChecks: QuoteCheck[] } | { ok: false; reason: string; quoteChecks: QuoteCheck[] } {
   const option = options.find((o) => o.key === proposal.key);
-  if (!option) return { ok: false, reason: `Onbekende sleutel "${proposal.key}" (niet in de lijst van de motor)` };
-  if (!AI_ROLES.includes(proposal.role)) return { ok: false, reason: `Onbekende rol "${proposal.role}"` };
+  if (!option) return { ok: false, reason: `Onbekende sleutel "${proposal.key}" (niet in de lijst van de motor)`, quoteChecks: [] };
+  if (!AI_ROLES.includes(proposal.role)) return { ok: false, reason: `Onbekende rol "${proposal.role}"`, quoteChecks: [] };
   // Without the engine's own activity vocabulary a proposal cannot be verified.
-  if (!option.vocab?.length) return { ok: false, reason: `Geen activiteitenwoordenlijst voor "${option.key}": niet te verifiëren` };
-  const haystacks = new Map(pack.map((p) => [p.url, norm([p.title, p.description, ...(p.headings || []), p.text].join(" · "))]));
-  const verified = (proposal.quotes || []).filter((q) => {
-    const haystack = haystacks.get(q.url);
-    const quote = norm(String(q.quote || ""));
-    if (!haystack || quote.length < 12 || quote.split(" ").length < 3) return false;
+  if (!option.vocab?.length) return { ok: false, reason: `Geen activiteitenwoordenlijst voor "${option.key}": niet te verifiëren`, quoteChecks: [] };
+  const haystacks = new Map(pack.map((p) => [p.url, ` ${words([p.title, p.description, ...(p.headings || []), p.text].join(" "))} `]));
+  const quoteChecks: QuoteCheck[] = (proposal.quotes || []).slice(0, 6).map((q) => {
+    const url = String(q.url || ""), quote = String(q.quote || "");
+    const haystack = haystacks.get(url);
+    const w = words(quote);
+    const check = (result: QuoteCheck["result"]): QuoteCheck => ({ url, quote: quote.slice(0, 240), result });
+    if (!haystack) return check("page_not_in_evidence");
+    if (quote.length < 12 || w.split(" ").length < 3) return check("too_short");
+    if (!haystack.includes(` ${w} `)) return check("not_found_verbatim");
     // Template text (menus, footers, cookie lines) repeats on many pages; markup
     // filtering misses menus without nav/header elements. Text found on 3 or more
     // of the evidence pages is never independent evidence.
-    if ([...haystacks.values()].filter((h) => h.includes(quote)).length >= 3) return false;
-    // Verbatim AND about the activity: the quote itself must contain the engine's
-    // vocabulary for this sector ("rijschool", "rijles"); "We are DPD" proves nothing.
-    return haystack.includes(quote) && option.vocab!.some((re) => new RegExp(re.source, re.flags.replace("g", "")).test(String(q.quote)));
+    if ([...haystacks.values()].filter((h) => h.includes(` ${w} `)).length >= 3) return check("template_text");
+    // About the activity: the quote must contain the engine's own vocabulary for
+    // this sector ("rijschool", "rijles"); "We are DPD" proves nothing.
+    if (!option.vocab!.some((re) => new RegExp(re.source, re.flags.replace("g", "")).test(quote))) return check("no_activity_word");
+    return check("counted");
   });
+  const verified = quoteChecks.filter((c) => c.result === "counted");
   const pages = new Set(verified.map((q) => q.url));
-  if (pages.size < 2) return { ok: false, reason: `Slechts ${pages.size} pagina('s) met een letterlijk teruggevonden citaat over de activiteit zelf; minimaal 2 nodig` };
-  return { ok: true, option, quotes: verified.slice(0, 4) };
+  if (pages.size < 2) {
+    const why = [...new Set(quoteChecks.filter((c) => c.result !== "counted").map((c) => QUOTE_RESULT_NL[c.result]))].join("; ");
+    return { ok: false, reason: `Slechts ${pages.size} pagina('s) met een letterlijk teruggevonden citaat over de activiteit zelf; minimaal 2 nodig${why ? ` (overige citaten: ${why})` : ""}`, quoteChecks };
+  }
+  return { ok: true, option: { sector: option.sector, key: option.key, label: option.label }, quotes: verified.slice(0, 4).map(({ url, quote }) => ({ url, quote })), quoteChecks };
 }
+
 
 /** Roles that mean the site does not perform the activity itself. */
 export function mediationRole(role: AiBusinessRole): boolean {
@@ -130,10 +149,10 @@ export async function verifySectorWithAi(input: {
     try { proposal = JSON.parse(String(data.choices?.[0]?.message?.content || "")); } catch { return withUsage({ status: "error", reason: "AI-antwoord was geen geldige JSON", model }); }
     if (!proposal || proposal.key === "unknown") return withUsage({ status: "unknown", reason: "AI vond onvoldoende of tegenstrijdig bewijs", model });
     const check = verifyProposal(proposal, pack, input.options);
-    if (!check.ok) return withUsage({ status: "rejected", reason: check.reason, model, proposal });
+    if (!check.ok) return withUsage({ status: "rejected", reason: check.reason, model, proposal, quoteChecks: check.quoteChecks });
     const ruleSector = input.profile.sector && input.profile.sector !== "unknown" ? input.profile.sector : null;
     const agrees = !ruleSector || ruleSector === check.option.sector;
-    return withUsage({ status: agrees ? "confirmed" : "conflict", reason: agrees ? "AI-voorstel bevestigd met letterlijk websitebewijs" : `AI-bewijs (${check.option.label}) spreekt de onbevestigde regelbranche tegen`, model, option: check.option, role: proposal.role, quotes: check.quotes });
+    return withUsage({ status: agrees ? "confirmed" : "conflict", reason: agrees ? "AI-voorstel bevestigd met letterlijk websitebewijs" : `AI-bewijs (${check.option.label}) spreekt de onbevestigde regelbranche tegen`, model, option: check.option, role: proposal.role, quotes: check.quotes, quoteChecks: check.quoteChecks });
   } catch (error) {
     return withUsage({ status: "error", reason: controller.signal.aborted ? "AI-controle overschreed de tijdslimiet" : `AI-controle mislukt: ${error instanceof Error ? error.message : "onbekend"}`, model });
   } finally { clearTimeout(timer); }

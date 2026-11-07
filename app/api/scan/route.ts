@@ -911,6 +911,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     trace.phase = "fetch";
     const started = Date.now();
+    // Elapsed ms since scan start at the end of each major phase (AI trial 7 Nov:
+    // explain long scans without guessing).
+    const phaseMs: Record<string, number> = {};
+    const phaseMark = (name: string) => { phaseMs[name] = Date.now() - started; };
     // Whole-scan time budget (maxDuration = 300 s): no new browser render after
     // 180 s and no new sample page after 170 s, so every scan returns a report in
     // time instead of being killed by the platform with nothing stored.
@@ -1073,6 +1077,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     }, 12000, 12000));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
+    phaseMark("homepageFetched");
     if (response.status === 429) {
       return NextResponse.json(
         { error: scanError.rate, code: "SITE_RATE_LIMITED", retryable: true, charged: false },
@@ -2420,6 +2425,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       linkProbeRateLimited += batch.filter((item) => item.status === 429).length;
       linkAuditResults.push(...batch);
     }
+    phaseMark("internalLinksChecked");
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
     // Missing pages (404/410/soft 404), server errors (5xx twice) and unconfirmed links
@@ -5874,6 +5880,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       },
     );
     await Promise.all(representativeWorkers);
+    phaseMark("samplePagesAudited");
     // Some firewalls drop parallel connections from one client while serving the
     // same pages one at a time (QA #186: 15 of 16 sample pages failed in 4 s with
     // no HTTP status). When most fetches failed at network level, retry a bounded
@@ -6793,6 +6800,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         { sector: "transport_travel", key: "travel", label: "Reisbemiddeling (online reisbureau)", vocab: [/(?<![\p{L}])(?:reisbureau\p{L}*|reisorganisatie\p{L}*|online travel agency|travel agency|reisbemiddel\p{L}*|vluchten|vliegtickets?|flights?|pakketreizen|vakanties?|hotels?)(?![\p{L}])/iu] },
         { sector: "service_marketplace", key: "comparison_platform", label: "Vergelijkings- / offerteplatform", vocab: [/(?<![\p{L}])(?:vergelijk\p{L}*|compare|comparison|offertes?|quotes?|platform)(?![\p{L}])/iu] },
       ].filter((o, i, all) => all.findIndex((x) => x.key === o.key) === i);
+      phaseMark("beforeAiSector");
       const aiResult = await verifySectorWithAi({
         profile: sectorProfile,
         options: aiOptions,
@@ -6800,6 +6808,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // never evidence of the activity.
         pages: auditedRawPages.filter((item) => !isAudiencePagePath(item.url)).map((item) => ({ url: item.url, type: item.type, title: item.title, description: item.description, headings: item.identityHeadings, text: item.aiText || "" })),
       });
+      phaseMark("aiSector");
       const previousSector = sectorProfile.sector;
       const ruleOutcome = { sector: sectorProfile.sector, key: sectorProfile.key, label: sectorProfile.label, confidenceScore: sectorProfile.confidenceScore };
       const sectorModules = (sector: string) => sectorSignals.find((item) => item.sector === sector)?.modules || [];
@@ -7740,7 +7749,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Speed is independent evidence and never changes SEO/GEO scores.
     // Not measured when the page itself was refused or only recovered through the
     // browser; the report then says why mobile and desktop are missing.
+    phaseMark("beforePageSpeed");
     const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : speedNotMeasured(finalUrl.toString(), response.status);
+    phaseMark("pageSpeed");
 
     // The client already received SCAN_TIMEOUT: never store a report or count usage
     // for a scan the customer was told did not complete.
@@ -7872,7 +7883,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const scanRow = [newScanId, user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
-            scanDurationMs: Date.now() - started,
+            scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
             runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
@@ -8104,7 +8115,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       finalUrl: finalUrl.toString(),
       scannedAt: new Date().toISOString(),
       responseTime,
-      scanDurationMs: Date.now() - started,
+      scanDurationMs: Date.now() - started, phaseMs,
       httpStatus: response.status,
       overallScore: selectedOverallScore,
       grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)),
