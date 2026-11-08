@@ -1,3 +1,4 @@
+import { failedPageRoute, replayResponse } from "./replay-routes.mjs";
 import { fileURLToPath } from "node:url";
 // Full-route replay of the recorded 96-site TestLab run (QA #186).
 //
@@ -68,7 +69,7 @@ for (const site of fixture.sites) {
   routes.set(new URL(site.finalUrl).host + pathOf(site.finalUrl), { status: 200, html: pageHtml(home, { lang: site.lang, nav: site.nav, commerce: merged }) });
   for (const p of site.pages.slice(1)) {
     let key; try { key = new URL(p.url).host + pathOf(p.url); } catch { continue; }
-    if (p.status !== "audited") routes.set(key, { status: p.httpStatus && p.httpStatus >= 400 ? p.httpStatus : 404, html: "<html><head><title>Not found</title></head><body>Not found</body></html>" });
+    if (p.status !== "audited") routes.set(key, process.env.REPLAY_UNRECORDED === "legacy404" ? { status: p.httpStatus && p.httpStatus >= 400 ? p.httpStatus : 404, html: "<html><head><title>Not found</title></head><body>Not found</body></html>" } : failedPageRoute(p));
     else routes.set(key, { status: 200, html: pageHtml(p, { lang: site.lang }) });
   }
 }
@@ -81,13 +82,8 @@ if (fromRoot) for (const site of fixture.sites) {
   const root = `https://${site.host}/`;
   if (new URL(root).toString() !== new URL(site.finalUrl).toString() && !routes.has(`${site.host}/`)) routes.set(`${site.host}/`, { status: 301, location: site.finalUrl, html: "" });
 }
-globalThis.fetch = async (input) => {
-  const u = new URL(typeof input === "string" ? input : input.url);
-  const hit = routes.get(u.host + u.pathname + u.search) || routes.get(u.host + u.pathname) || routes.get(u.host + u.pathname.replace(/\/$/, "")) || routes.get(u.host + u.pathname + "/");
-  if (hit?.location) return new Response(null, { status: hit.status, headers: { location: hit.location } });
-  if (hit) return new Response(hit.html, { status: hit.status, headers: { "content-type": "text/html; charset=utf-8" } });
-  return new Response("not found", { status: 404, headers: { "content-type": "text/plain" } });
-};
+// Only recorded answers; anything else is "not recorded" (tests/scan-matrix/replay-routes.mjs).
+globalThis.fetch = async (input) => replayResponse(routes, input);
 globalThis.__RF_RENDER = async () => { throw new Error("RENDER_UNAVAILABLE_IN_REPLAY"); };
 
 const { POST } = await import(new URL("../../app/api/scan/route.ts", import.meta.url));

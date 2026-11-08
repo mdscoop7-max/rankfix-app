@@ -64,10 +64,13 @@ test("webshop chain on real stored webshops and CrowdStrike as negative control"
   const mods = (h) => (r[h].sectorProfile.applicableModules || []).filter((m) => ["ecommerce", "product", "pricing_currency", "checkout", "merchant", "eu_consumer"].includes(m));
   const check = (h, key) => r[h].seo.checks.find((c) => c.key === key);
   for (const h of ["allbirds.com", "gymshark.com", "bonsoy.com", "homewizard.com"]) assert.ok(mods(h).includes("ecommerce"), `${h}: ${mods(h)}`);
-  // No proven product page (bonsoy: 2 candidates, both 404): no product module, and the reason is named.
+  // No proven product page (bonsoy: 2 candidates, recorded WITHOUT a status): no product
+  // module, and the reason is named. 8 Nov 2026 (replay fidelity): the recording has no
+  // 404 for them, so they are "not loaded", never "bestaan niet" (that was an invented 404).
   assert.ok(!mods("bonsoy.com").includes("product"));
-  assert.equal(r["bonsoy.com"].multiPage.productHunt.outcomes.missing, 2);
-  assert.match(check("bonsoy.com", "product_price_consistency").message, /2 productkandidaten gevonden, 2 gecontroleerd: 2 bestaan niet/);
+  assert.equal(r["bonsoy.com"].multiPage.productHunt.outcomes.missing, 0);
+  assert.equal(r["bonsoy.com"].multiPage.productHunt.outcomes.not_loaded, 2);
+  assert.match(check("bonsoy.com", "product_price_consistency").message, /2 productkandidaten gevonden, 2 gecontroleerd: 2 niet geladen/);
   // Shopify product pages with a duplicate theme/app Product (allbirds) or a ProductGroup
   // with variants (gymshark) are product pages, not categories (6 Nov).
   for (const h of ["allbirds.com", "gymshark.com"]) {
@@ -75,9 +78,11 @@ test("webshop chain on real stored webshops and CrowdStrike as negative control"
     assert.ok(types.length && types.every((t) => t === "product"), `${h}: ${types}`);
     assert.ok(mods(h).includes("product"), h);
   }
-  // Scores unchanged by module activation (stored before-values).
-  assert.deepEqual(["allbirds.com", "bonsoy.com", "gymshark.com", "homewizard.com"].map((h) => r[h].overallScore), [80, 93, 94, 91]);
-  assert.equal(r["crowdstrike.com"].overallScore, 94);
+  // Scores unchanged by module activation (stored before-values). 8 Nov 2026: re-pinned
+  // once for the honest replay (no invented 404s for unrecorded links/robots.txt);
+  // the scanner itself did not change: [80, 93, 94, 91] with the old 404 replay.
+  assert.deepEqual(["allbirds.com", "bonsoy.com", "gymshark.com", "homewizard.com"].map((h) => r[h].overallScore), [80, 94, 95, 93]);
+  assert.equal(r["crowdstrike.com"].overallScore, 96, "honest replay (was 94 with the old 404 replay)");
   // Negative control: a cybersecurity vendor selling plans is not a webshop.
   assert.equal(r["crowdstrike.com"].sectorProfile.key, "cybersecurity");
   assert.deepEqual(mods("crowdstrike.com"), []);
