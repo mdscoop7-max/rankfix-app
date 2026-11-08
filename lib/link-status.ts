@@ -14,7 +14,10 @@
 export type LinkOutcome = "ok" | "missing" | "server_error" | "temporary" | "unconfirmed" | "skipped";
 export type EvidenceStrength = "bewezen" | "tijdelijk" | "toegang_beperkt" | "niet_bevestigd";
 export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null;
-  /** HTTP measurements of this link (1 or 2). */ attempts?: number; /** Retry-After in seconds, when the site sent it. */ retryAfterSeconds?: number | null };
+  /** HTTP measurements of this link (1 or 2). */ attempts?: number; /** Retry-After in seconds, when the site sent it. */ retryAfterSeconds?: number | null;
+  /** Where the measurement comes from: the link probe or the page sample. */ source?: "probe" | "sample";
+  /** The page sample fetched and audited this URL (HTTP 200, no challenge/error page). The probe's own status is kept. */
+  verifiedBySample?: { url: string; status: number } | null };
 
 /**
  * 31 Oct (PDF P4: an internal link to /pagenotfound was not reported). A link
@@ -29,6 +32,14 @@ export function isErrorPageUrl(url: string | null | undefined): boolean {
 }
 
 export function linkOutcome(link: LinkCheck): LinkOutcome {
+  const measured = probeOutcome(link);
+  // Phase A (8 Nov): an unanswered or temporary probe is settled only by a page the
+  // sample REALLY fetched and audited; the probe's own status is never rewritten.
+  if ((measured === "unconfirmed" || measured === "temporary") && link.verifiedBySample?.status === 200) return "ok";
+  return measured;
+}
+
+function probeOutcome(link: LinkCheck): LinkOutcome {
   if (link.error || link.status === null) return "unconfirmed";
   // 6 Nov (403/404 reports): bot protection may answer 404/5xx with a
   // challenge page. That proves nothing about the destination.
@@ -36,8 +47,8 @@ export function linkOutcome(link: LinkCheck): LinkOutcome {
   const status = link.status;
   if (status === 404 || status === 410) return "missing";
   if (status === 408 || status === 502 || status === 503 || status === 504) return "temporary";
-  // Older stored results have no attempt count: the probe then always retried once.
-  if (status >= 500) return (link.attempts ?? 2) >= 2 ? "server_error" : "temporary";
+  // Proven only on two REAL measurements; a missing attempt count is one measurement.
+  if (status >= 500) return (link.attempts ?? 1) >= 2 ? "server_error" : "temporary";
   if (status === 401 || status === 403) return link.accountLink ? "skipped" : "unconfirmed";
   // 400, 405, 429 and every other 4xx: the request was refused or limited; the
   // page is not proven broken (and never silently healthy).
@@ -59,7 +70,7 @@ export function linkOutcome(link: LinkCheck): LinkOutcome {
 export function linkEvidence(link: LinkCheck): { strength: EvidenceStrength | null; cause: string; advice: string } {
   const outcome = linkOutcome(link);
   const status = link.status;
-  if (outcome === "ok" || outcome === "skipped") return { strength: null, cause: outcome === "skipped" ? "Account- of loginlink; weigert anonieme bezoekers zoals verwacht" : "Bereikbaar", advice: "" };
+  if (outcome === "ok" || outcome === "skipped") return { strength: null, cause: outcome === "skipped" ? "Account- of loginlink; weigert anonieme bezoekers zoals verwacht" : link.verifiedBySample && probeOutcome(link) !== "ok" ? `Bereikbaar volgens de paginasteekproef (HTTP ${link.verifiedBySample.status}); de linkcontrole zelf kreeg ${link.status === null ? "geen antwoord" : `HTTP ${link.status}`}` : "Bereikbaar", advice: "" };
   if (outcome === "missing") return { strength: "bewezen", cause: link.softNotFound ? `HTTP ${status} met een 'niet gevonden'-pagina (soft 404)` : status !== 404 && status !== 410 ? `De server stuurt de link door naar zijn foutpagina (${link.finalUrl})` : `HTTP ${status}: de pagina bestaat niet`, advice: "Pas de link aan, verwijder hem, of zet een 301-redirect naar de best passende pagina." };
   if (outcome === "server_error") return { strength: "bewezen", cause: `HTTP ${status} bij ${link.attempts || 2} metingen; mogelijk nog tijdelijk`, advice: "Controleer de serverlogs en of bezoekers dezelfde fout krijgen." };
   if (outcome === "temporary") return { strength: "tijdelijk", cause: `HTTP ${status}: tijdelijke storing of overbelasting${link.retryAfterSeconds ? ` (Retry-After ${link.retryAfterSeconds} s)` : ""}; niet bewezen permanent`, advice: "Controleer later opnieuw; onderneem pas actie als de fout blijft." };

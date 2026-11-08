@@ -42,7 +42,7 @@ import { shopInfoSignals, sitewideShopInfo, type ShopInfoSignals } from "@/lib/s
 import { summarizeProductHunt, productHuntSentence, type ProductHuntSummary, type ProductCandidateAudit } from "@/lib/product-hunt-diagnostics";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome, linkEvidence } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
-import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
+import { requireEvidenceForScoredChecks, demoteLowConfidencePasses } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
@@ -1237,13 +1237,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             ? `El sitio devolvió un error del servidor (HTTP ${response.status}). Inténtalo más tarde; no se ha calculado ninguna puntuación.`
             : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
-      // MKB-48 (6 Nov, thewaxingcompany.nl): HTTP 402 "Payment Required" means the
-      // website's own hosting/plan is not active. It is the site being unavailable,
-      // not the site refusing RankFix.
+      // MKB-48 (6 Nov, thewaxingcompany.nl): HTTP 402 "Payment Required" comes from
+      // the website, not from RankFix. Phase D (8 Nov): the cause is not provable from
+      // outside, so the message names possibilities, never a certainty.
       const sitePaymentRequired = response.status === 402;
       if (sitePaymentRequired) {
-        httpMessages.nl = "Deze website is niet beschikbaar (HTTP 402, betaling vereist): meestal is het hosting- of websiteabonnement van de site niet actief. Dit is geen blokkade van RankFix; er is daarom geen score berekend.";
-        httpMessages.en = "This website is unavailable (HTTP 402, payment required): usually the site's own hosting or website plan is not active. RankFix was not blocked; no score was calculated.";
+        httpMessages.nl = "De website antwoordt met HTTP 402 (\"betaling vereist\"). De oorzaak is vanuit RankFix niet vast te stellen; mogelijk is een hosting- of websiteabonnement niet actief, of staat de pagina achter een betaalmuur. Er is daarom geen score berekend. Controleer de site in een browser of bij de hostingpartij.";
+        httpMessages.en = "The website answers HTTP 402 (\"payment required\"). RankFix cannot determine the cause; a hosting or website plan may be inactive, or the page may sit behind a paywall. No score was calculated. Check the site in a browser or with the hosting provider.";
       }
       const accessBlock = ![404, 410].includes(response.status) && response.status < 500 && !sitePaymentRequired;
       if (rootNotFound && notFoundVerification === "confirmed") {
@@ -2337,13 +2337,32 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; attempts?: number; retryAfterSeconds?: number | null; redirectChain?: Array<{ from: string; to: string; status: number }> };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; attempts?: number; retryAfterSeconds?: number | null; redirectChain?: Array<{ from: string; to: string; status: number }>; source?: "probe" | "sample"; verifiedBySample?: { url: string; status: number } | null };
+    // Phase A: one response check for every link measurement (first try and retries):
+    // HTTP 200 serving a not-found template is a soft 404; any answer carrying a
+    // challenge/bot page proves nothing about the destination (bot protection, 6 Nov).
+    const inspectLinkResponse = async (res: Response) => {
+      let softNotFound = false;
+      let challenged = false;
+      const errorAnswer = [404, 410].includes(res.status) || res.status >= 500;
+      if ((res.ok || errorAnswer) && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
+        try {
+          const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
+          const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
+          const linkText = stripHtml(head).slice(0, 4000);
+          const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
+          softNotFound = res.ok && linkGate?.kind === "error";
+          challenged = linkGate?.kind === "challenge";
+        } catch {}
+      } else { try { await res.body?.cancel(); } catch {} }
+      return { softNotFound, challenged };
+    };
     // F2: one evidence row per non-OK link, the same in scan JSON, report, dashboard and Fix advice.
     const linkEvidenceRow = (item: LinkAuditResult) => {
       const evidenceOf = linkEvidence(item);
       return { url: item.url, originalHref: item.sourceHref, baseHref: normalizeScanUrl(documentBase.toString()) !== normalizeScanUrl(finalUrl.toString()) ? documentBase.toString() : null,
         referringPage: finalUrl.toString(), redirectChain: item.redirectChain || [], finalUrl: item.finalUrl, httpStatus: item.status, attempts: item.attempts ?? (item.error ? 0 : 1), retryAfterSeconds: item.retryAfterSeconds ?? null,
-        outcome: linkOutcome(item), evidenceStrength: evidenceOf.strength, cause: evidenceOf.cause, advice: evidenceOf.advice, softNotFound: Boolean(item.softNotFound) };
+        outcome: linkOutcome(item), evidenceStrength: evidenceOf.strength, cause: evidenceOf.cause, advice: evidenceOf.advice, softNotFound: Boolean(item.softNotFound), source: item.source || "probe", verifiedBySample: item.verifiedBySample || null };
     };
     const allAnchorTags = [...neutralizeTemplateBindings(html).matchAll(/<a\b([^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
@@ -2420,32 +2439,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const res = result.response;
         const destination = result.finalUrl?.toString() || res.url || item.url;
         // HTTP 200 serving a "page not found" template is a missing page (soft 404).
-        let softNotFound = false;
-        let challenged = false;
-        // Error answers are read too: a 404/410/5xx carrying a bot-check page is not
-        // proof that the page is gone (bot protection, 6 Nov).
-        const errorAnswer = [404, 410].includes(res.status) || res.status >= 500;
-        if ((res.ok || errorAnswer) && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
-          try {
-            const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
-            const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
-            const linkText = stripHtml(head).slice(0, 4000);
-            const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
-            softNotFound = res.ok && linkGate?.kind === "error";
-            challenged = linkGate?.kind === "challenge";
-          } catch {}
-        } else { try { await res.body?.cancel(); } catch {} }
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) , attempts, retryAfterSeconds, redirectChain: result.redirectChain || []};
+        const { softNotFound, challenged } = await inspectLinkResponse(res);
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) , attempts, retryAfterSeconds, redirectChain: result.redirectChain || [], source: "probe" as const};
       } catch {
         // PDF P4: no answer is never a broken link; one retry after a short backoff.
         try {
           await new Promise((resolve) => setTimeout(resolve, 800));
           const retry = await safePublicFetch(new URL(item.url), { timeoutMs: 6000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
-          try { await retry.response.body?.cancel(); } catch {}
+          // Phase A: the retry answer passes the same challenge / error-page check.
+          const { softNotFound, challenged } = await inspectLinkResponse(retry.response);
           const destination = retry.finalUrl?.toString() || retry.response.url || item.url;
-          return { sourceHref: item.sourceHref, url: item.url, status: retry.response.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, accountLink: isNonContentUrl(item.url) };
+          return { sourceHref: item.sourceHref, url: item.url, status: retry.response.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url), attempts: 2, redirectChain: retry.redirectChain || [], source: "probe" as const };
         } catch {}
-        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
+        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url), attempts: 2, source: "probe" as const };
       }
     };
     const linkAuditResults: LinkAuditResult[] = [];
@@ -5130,6 +5136,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString(), found: item.status === "pass" ? true : item.evidence.found };
     }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
+    demoteLowConfidencePasses([...seoChecks,...geoChecks], finalUrl.toString());
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
@@ -7048,6 +7055,23 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";
     }
+    // Phase C (8 Nov 2026): the holding and counter-evidence limits of the operating
+    // role apply AFTER the AI verification and the webshop path too. Neither adds an
+    // independent source that resolves several activities or contradicting own pages,
+    // so they cannot lift the limit; the counter-evidence stays in the report.
+    if (operatingRole?.sectorCap && operatingRole.sectorCap.max < 70 && sectorProfile.sector !== "unknown") {
+      const cap = operatingRole.sectorCap;
+      if (Number(sectorProfile.confidenceScore || 0) > cap.max) {
+        sectorProfile.confidenceScore = cap.max;
+        sectorProfile.confidence = "medium";
+        masterEvidence.primarySector.confidence = sectorProfile.confidence;
+        masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
+        masterEvidence.primarySector.displayPolicy = "probable";
+      }
+      const kept = [cap.reason, ...operatingRole.counterEvidence.map((item) => `Tegenbewijs: ${item.text}`)];
+      sectorProfile.evidence = [...sectorProfile.evidence.filter((line) => !kept.includes(line)), ...kept].slice(-7);
+      Object.assign(sectorProfile, { confidenceCap: cap });
+    }
     const bookingPrimaryIdentity = BOOKING_PRIMARY_KEYS.has(sectorProfile.key) && sectorProfile.key !== "ecommerce";
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
@@ -7549,15 +7573,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         && anchorByUrl.has(normalizeScanUrl(p.url)) && !probed.has(normalizeScanUrl(p.url)));
       // PDF P4: a link probe without answer whose page WAS fetched with HTTP 200 by
       // the page sample is not an error (Croatia Airlines: "geen antwoord" vs 200).
-      const fetchedOk = new Map(multiPageAudits.filter((p) => p && p.httpStatus === 200 && p.status === "audited").map((p) => [normalizeScanUrl(p.url), p] as const));
+      const fetchedOk = new Map(multiPageAudits.filter((p) => p && p.httpStatus === 200 && p.status === "audited" && !p.nonContent).map((p) => [normalizeScanUrl(p.url), p] as const));
       let reconciledFromSample = 0;
       for (const l of linkAuditResults) {
-        if (["unconfirmed", "temporary"].includes(linkOutcome(l)) && fetchedOk.has(normalizeScanUrl(l.url))) { l.status = 200; l.error = false; l.challenged = false; reconciledFromSample++; }
+        // Phase A: keep the probe's own measurement; record the sample page as separate evidence.
+        if (["unconfirmed", "temporary"].includes(linkOutcome(l)) && fetchedOk.has(normalizeScanUrl(l.url))) { l.verifiedBySample = { url: fetchedOk.get(normalizeScanUrl(l.url))!.url, status: 200 }; reconciledFromSample++; }
       }
       if (linkCheck && (reconciledFromSample > 0 || (linkCheck.status !== "unable_to_confirm" && sampledMissing.length))) {
         for (const p of sampledMissing) {
           const a = anchorByUrl.get(normalizeScanUrl(p.url))!;
-          linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url) });
+          // One real measurement by the page sample, with its own challenge check.
+          linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url), attempts: 1, source: "sample", challenged: p.nonContent === "challenge" });
         }
         const summary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
         const copy = scanLanguage === "nl" ? { message: summary.message, fix: summary.fix } : localizedBrokenLinkCopy(linkAuditResults, finalUrl.toString(), scanLanguage);
@@ -7589,6 +7615,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       gateTitleCheck(seoChecks.find((item) => item.key === "title"), adviceIdentity, brand);
     }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
+    demoteLowConfidencePasses([...seoChecks,...geoChecks], finalUrl.toString());
     // Evidence gate (3.5): a check only carries points or a deduction when it has
     // demonstrable evidence (a source URL and a recorded finding). Without both it
     // becomes "niet te bevestigen" and leaves the score.

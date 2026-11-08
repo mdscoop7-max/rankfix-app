@@ -59,7 +59,9 @@ test("internal links: missing, server error, unconfirmed and account links are k
   assert.equal(linkOutcome(L("/a", 404)), "missing");
   assert.equal(linkOutcome(L("/a", 410)), "missing");
   assert.equal(linkOutcome(L("/a", 200, { softNotFound: true })), "missing");
-  assert.equal(linkOutcome(L("/a", 500)), "server_error");
+  // Phase A (8 Nov 2026, no invented measurements): a server error needs two REAL measurements.
+  assert.equal(linkOutcome(L("/a", 500, { attempts: 2 })), "server_error");
+  assert.equal(linkOutcome(L("/a", 500)), "temporary");
   assert.equal(linkOutcome(L("/a", 403)), "unconfirmed");
   assert.equal(linkOutcome(L("/a", 429)), "unconfirmed");
   assert.equal(linkOutcome(L("/a", null)), "unconfirmed");

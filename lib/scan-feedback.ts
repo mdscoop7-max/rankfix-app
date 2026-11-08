@@ -212,6 +212,28 @@ export function compareScoreVersions(
  * finding is not proven and becomes UNABLE_TO_CONFIRM with 0 points.
  * Returns how many checks were demoted.
  */
+/**
+ * Phase B (8 Nov 2026): a check whose own confidence is LOW can never earn full
+ * points. A low-confidence pass (e.g. a sector module that only found a keyword)
+ * becomes "niet bevestigd": 0 points and excluded from the weighting, so it is no
+ * penalty either. Warnings and failures are untouched (they are not rewards).
+ */
+export function demoteLowConfidencePasses(checks: EvidenceCheck[], pageUrl: string): number {
+  let demoted = 0;
+  for (const c of checks) {
+    if (c.status !== "pass" || c.confidence !== "low" || !(c.maxPoints > 0)) continue;
+    const original = String(c.message || "");
+    c.status = "unable_to_confirm";
+    c.issue_status = "UNABLE_TO_CONFIRM";
+    c.points = 0;
+    c.reasonCode = "weak_evidence";
+    c.evidence = { url: c.evidence?.url || pageUrl, found: null, details: `Signaal met lage zekerheid: ${original.slice(0, 200)}` };
+    c.message = `Niet bevestigd: "${original.slice(0, 160)}" rust op een signaal met lage zekerheid; telt daarom niet mee in de score (geen aftrek).`;
+    demoted++;
+  }
+  return demoted;
+}
+
 export function requireEvidenceForScoredChecks(checks: EvidenceCheck[], pageUrl: string): number {
   let demoted = 0;
   for (const c of checks) {
