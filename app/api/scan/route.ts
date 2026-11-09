@@ -1,3 +1,4 @@
+import { responseContentEvidence, type ResponseMeasurement } from "@/lib/response-evidence";
 import {metadataTopicMismatch} from "@/lib/metadata-alignment";
 import { readHeadDirectives } from "@/lib/head-directives";
 import { detectCmsSignatures } from "@/lib/cms-signatures";
@@ -2337,32 +2338,25 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; attempts?: number; retryAfterSeconds?: number | null; redirectChain?: Array<{ from: string; to: string; status: number }>; source?: "probe" | "sample"; verifiedBySample?: { url: string; status: number } | null };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; temporaryContent?: boolean; measurements?: ResponseMeasurement[]; accountLink?: boolean; challenged?: boolean; attempts?: number; retryAfterSeconds?: number | null; redirectChain?: Array<{ from: string; to: string; status: number }>; source?: "probe" | "sample"; verifiedBySample?: { url: string; status: number } | null };
     // Phase A: one response check for every link measurement (first try and retries):
     // HTTP 200 serving a not-found template is a soft 404; any answer carrying a
     // challenge/bot page proves nothing about the destination (bot protection, 6 Nov).
     const inspectLinkResponse = async (res: Response) => {
-      let softNotFound = false;
-      let challenged = false;
-      const errorAnswer = [404, 410].includes(res.status) || res.status >= 500;
-      if ((res.ok || errorAnswer) && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
+      if (/text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
         try {
           const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
-          const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
-          const linkText = stripHtml(head).slice(0, 4000);
-          const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
-          softNotFound = res.ok && linkGate?.kind === "error";
-          challenged = linkGate?.kind === "challenge";
+          return responseContentEvidence({ status: res.status, html: head, title: firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i), text: stripHtml(head).slice(0, 4000) });
         } catch {}
       } else { try { await res.body?.cancel(); } catch {} }
-      return { softNotFound, challenged };
+      return { softNotFound: false, challenged: false, temporaryContent: false, nonContent: undefined };
     };
     // F2: one evidence row per non-OK link, the same in scan JSON, report, dashboard and Fix advice.
     const linkEvidenceRow = (item: LinkAuditResult) => {
       const evidenceOf = linkEvidence(item);
       return { url: item.url, originalHref: item.sourceHref, baseHref: normalizeScanUrl(documentBase.toString()) !== normalizeScanUrl(finalUrl.toString()) ? documentBase.toString() : null,
         referringPage: finalUrl.toString(), redirectChain: item.redirectChain || [], finalUrl: item.finalUrl, httpStatus: item.status, attempts: item.attempts ?? (item.error ? 0 : 1), retryAfterSeconds: item.retryAfterSeconds ?? null,
-        outcome: linkOutcome(item), evidenceStrength: evidenceOf.strength, cause: evidenceOf.cause, advice: evidenceOf.advice, softNotFound: Boolean(item.softNotFound), source: item.source || "probe", verifiedBySample: item.verifiedBySample || null };
+        measurements: item.measurements || [], temporaryContent: Boolean(item.temporaryContent), outcome: linkOutcome(item), evidenceStrength: evidenceOf.strength, cause: evidenceOf.cause, advice: evidenceOf.advice, softNotFound: Boolean(item.softNotFound), source: item.source || "probe", verifiedBySample: item.verifiedBySample || null };
     };
     const allAnchorTags = [...neutralizeTemplateBindings(html).matchAll(/<a\b([^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
@@ -2418,41 +2412,30 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // links are not requested (QA #207: respect the website's rate limit).
     let linkProbeRateLimited = 0;
     const probeLink = async (item: (typeof uniqueInternalAnchors)[number]): Promise<LinkAuditResult> => {
-      const linkFetch = () => safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
-      try {
-        let result = await linkFetch();
-        let attempts = 1;
-        let retryAfterSeconds: number | null = null;
-        // F1: a 5xx can be a hiccup. One bounded retry, honouring Retry-After (at most
-        // 3 s); a longer Retry-After is not waited for and the link stays "temporary".
-        if (result.response.status >= 500) {
-          const header = result.response.headers.get("retry-after");
+      const measurements: ResponseMeasurement[] = [];
+      let retryAfterSeconds: number | null = null;
+      // At most two requests. A transport failure is never an HTTP measurement.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await safePublicFetch(new URL(item.url), { timeoutMs: attempt ? 6000 : 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+          const res = result.response;
+          const destination = result.finalUrl?.toString() || res.url || item.url;
+          const content = await inspectLinkResponse(res);
+          measurements.push({ status: res.status, error: false, challenged: content.challenged });
+          const header = res.headers.get("retry-after");
           const seconds = header ? (/^\d+$/.test(header.trim()) ? Number(header.trim()) : Math.max(0, Math.round((Date.parse(header) - Date.now()) / 1000))) : null;
           retryAfterSeconds = Number.isFinite(seconds as number) ? seconds : null;
-          if (retryAfterSeconds === null || retryAfterSeconds <= 3) {
-            try { await result.response.body?.cancel(); } catch {}
+          if (!attempt && res.status >= 500 && !content.challenged && (retryAfterSeconds === null || retryAfterSeconds <= 3)) {
             await new Promise((resolve) => setTimeout(resolve, Math.max(400, (retryAfterSeconds || 0) * 1000)));
-            result = await linkFetch();
-            attempts = 2;
+            continue;
           }
+          return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, ...content, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination), attempts: measurements.length, measurements, retryAfterSeconds, redirectChain: result.redirectChain || [], source: "probe" };
+        } catch {
+          measurements.push({ status: null, error: true });
+          if (!attempt) await new Promise((resolve) => setTimeout(resolve, 800));
         }
-        const res = result.response;
-        const destination = result.finalUrl?.toString() || res.url || item.url;
-        // HTTP 200 serving a "page not found" template is a missing page (soft 404).
-        const { softNotFound, challenged } = await inspectLinkResponse(res);
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) , attempts, retryAfterSeconds, redirectChain: result.redirectChain || [], source: "probe" as const};
-      } catch {
-        // PDF P4: no answer is never a broken link; one retry after a short backoff.
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const retry = await safePublicFetch(new URL(item.url), { timeoutMs: 6000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
-          // Phase A: the retry answer passes the same challenge / error-page check.
-          const { softNotFound, challenged } = await inspectLinkResponse(retry.response);
-          const destination = retry.finalUrl?.toString() || retry.response.url || item.url;
-          return { sourceHref: item.sourceHref, url: item.url, status: retry.response.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url), attempts: 2, redirectChain: retry.redirectChain || [], source: "probe" as const };
-        } catch {}
-        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url), attempts: 2, source: "probe" as const };
       }
+      return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url), attempts: measurements.length, measurements, source: "probe" };
     };
     const linkAuditResults: LinkAuditResult[] = [];
     for (let start = 0; start < uniqueInternalAnchors.length && linkProbeRateLimited < 2; start += 8) {
@@ -5581,7 +5564,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
-          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:r.status === 401 || r.status === 403
+          const responseEvidence = await inspectLinkResponse(r);
+          return { ...page, nonContent: responseEvidence.nonContent, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:responseEvidence.nonContent ? nonContentDetail({kind: responseEvidence.nonContent, reason: "response_content"}) : r.status === 401 || r.status === 403
             ? `HTTP ${r.status}: de website weigerde de toegang tot deze pagina, ook bij weergave in een browser. Een toegangsfout is geen inhoudspagina; deze pagina telt niet mee in de steekproef of de score.`
             : r.status === 404 || r.status === 410
               ? `HTTP ${r.status}: deze pagina bestaat niet (meer), terwijl de website ernaar linkt. Pas de link aan of zet een 301-redirect naar de juiste pagina. Telt niet mee in de steekproefscore.`
@@ -5649,7 +5633,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         ].join("|");
         const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
-          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, nonContent:"challenge", title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
         // Maintenance, error and block pages answer with HTTP 200 too; they are not
         // evidence of the website and never enter the sample or its scores.

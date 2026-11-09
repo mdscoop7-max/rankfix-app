@@ -1,0 +1,96 @@
+TAP version 13
+# (node:889) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/link-status.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: response evidence, never a redirect path, determines whether a destination is missing
+not ok 1 - response evidence, never a redirect path, determines whether a destination is missing
+  ---
+  duration_ms: 4.173075
+  type: 'test'
+  location: '/workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:7:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'missing' !== 'ok'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'ok'
+  actual: 'missing'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:8:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  ...
+# Subtest: one failed connection followed by one HTTP 500 is not two server-error responses
+not ok 2 - one failed connection followed by one HTTP 500 is not two server-error responses
+  ---
+  duration_ms: 0.468855
+  type: 'test'
+  location: '/workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:11:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'server_error'
+    - 'temporary'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'temporary'
+  actual: 'server_error'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:12:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: real route: probe and sample apply the same content and measurement rules
+not ok 3 - real route: probe and sample apply the same content and measurement rules
+  ---
+  duration_ms: 4585.099219
+  type: 'test'
+  location: '/workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:14:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sample must inspect a refused response before returning
+    + actual - expected
+    
+    + undefined
+    - 'challenge'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'challenge'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:17:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4862.761906

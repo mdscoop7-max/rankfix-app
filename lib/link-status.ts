@@ -1,3 +1,4 @@
+import type { ResponseMeasurement } from "./response-evidence";
 /**
  * Internal link outcomes (F1, 7 Nov 2026), kept apart so a missing page, a server
  * error, a temporary failure, a block and a network problem are never reported as
@@ -13,7 +14,7 @@
  */
 export type LinkOutcome = "ok" | "missing" | "server_error" | "temporary" | "unconfirmed" | "skipped";
 export type EvidenceStrength = "bewezen" | "tijdelijk" | "toegang_beperkt" | "niet_bevestigd";
-export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null;
+export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; temporaryContent?: boolean; measurements?: ResponseMeasurement[]; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null;
   /** HTTP measurements of this link (1 or 2). */ attempts?: number; /** Retry-After in seconds, when the site sent it. */ retryAfterSeconds?: number | null;
   /** Where the measurement comes from: the link probe or the page sample. */ source?: "probe" | "sample";
   /** The page sample fetched and audited this URL (HTTP 200, no challenge/error page). The probe's own status is kept. */
@@ -48,7 +49,10 @@ function probeOutcome(link: LinkCheck): LinkOutcome {
   if (status === 404 || status === 410) return "missing";
   if (status === 408 || status === 502 || status === 503 || status === 504) return "temporary";
   // Proven only on two REAL measurements; a missing attempt count is one measurement.
-  if (status >= 500) return (link.attempts ?? 1) >= 2 ? "server_error" : "temporary";
+  if (status >= 500) {
+    const errors = link.measurements ? link.measurements.filter((m) => !m.error && !m.challenged && m.status !== null && m.status >= 500 && ![502,503,504].includes(m.status)).length : (link.attempts ?? 1);
+    return errors >= 2 ? "server_error" : "temporary";
+  }
   if (status === 401 || status === 403) return link.accountLink ? "skipped" : "unconfirmed";
   // 400, 405, 429 and every other 4xx: the request was refused or limited; the
   // page is not proven broken (and never silently healthy).
@@ -57,12 +61,7 @@ function probeOutcome(link: LinkCheck): LinkOutcome {
   if (status >= 300) return "unconfirmed";
   // HTTP 200 serving a "not found" template is missing (response content proves it).
   if (link.softNotFound) return "missing";
-  // The SERVER redirecting the link to its own error page (/pagenotfound) is
-  // response evidence: the destination is missing (PDF P4).
-  if (link.finalUrl && link.finalUrl !== link.url && !isErrorPageUrl(link.url) && isErrorPageUrl(link.finalUrl)) return "missing";
-  // A link whose own URL only LOOKS like an error page (/404, /pagenotfound),
-  // answered with normal content, is a hint, never proof (owner rule, 7 Nov).
-  if (isErrorPageUrl(link.url) || isErrorPageUrl(link.finalUrl)) return "unconfirmed";
+  if (link.temporaryContent) return "temporary";
   return "ok";
 }
 
