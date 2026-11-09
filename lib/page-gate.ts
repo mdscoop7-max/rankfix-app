@@ -116,7 +116,7 @@ export function classifyNonContentPage(input: { title?: string | null; text?: st
   const bareMaintenance = /^(?:maintenance|onderhoud|wartung(?:sarbeiten)?|manutenzione|mantenimiento|manuten[çc][ãa]o|underhåll|vedligeholdelse)[.!…]*$/i;
   // A service/article may legitimately be titled "Onderhoud". The title alone
   // cannot turn its ordinary content into a website outage.
-  if (short && bareMaintenance.test(title) && (!text.trim() || bareMaintenance.test(text.trim()) || SITE_MAINTENANCE.test(text) || TEMPORARILY_DOWN.test(text))) return { kind: "maintenance", reason: "title_is_maintenance" };
+  if (short && bareMaintenance.test(title) && (!text.trim() || bareMaintenance.test(text.trim()) || SITE_MAINTENANCE.test(text) || TEMPORARILY_DOWN.test(text) || /^(?:kom later terug|probeer het later opnieuw|come back later|please try again later|try again later)[.!…]*$/i.test(text.trim()))) return { kind: "maintenance", reason: "title_is_maintenance" };
   if (short && SITE_MAINTENANCE.test(text)) return { kind: "maintenance", reason: "text_names_site_maintenance" };
   if (words < 120 && TEMPORARILY_DOWN.test(title) && !/(?:product|artikel|item|article|prodotto|producto|produit|voorraad|stock|lager)/i.test(head)) return { kind: "maintenance", reason: "title_names_unavailable" };
   // Body-only error wording needs a very short page without its own title.

@@ -30,10 +30,6 @@ for (const [host, site] of Object.entries(SITES)) {
     noModules: site.evaluation.retail ? [] : ["ecommerce","product","checkout","merchant"],
   } : {});
   if (r.sector === "unknown" && (j.sectorProfile?.confidence !== "low" || !(j.sectorProfile?.confidenceScore >= 0 && j.sectorProfile.confidenceScore <= 35))) problems.push(`${host}: unknown sector with unsupported certainty`);
-  // The same fixture input is retained. The owner now requires uncertainty to
-  // survive the FINAL identity gate; a candidate sector cannot prove absence.
-  const weakIdentity = Number(j.sectorProfile?.confidenceScore || 0) < 80
-    && j.commerceApplicability?.state === "unconfirmed";
   const modules = j.sectorProfile?.applicableModules || [];
   for (const expectedModule of e.modules || []) if (!modules.includes(expectedModule)) problems.push(`${host}: missing module ${expectedModule}`);
   for (const unexpectedModule of e.noModules || []) if (modules.includes(unexpectedModule)) problems.push(`${host}: unexpected module ${unexpectedModule}`);
@@ -56,8 +52,7 @@ for (const [host, site] of Object.entries(SITES)) {
   // One website identity: a specific classification label must match the website profile.
   if (e.consistentType && classType && !/^(?:Website|Webshop)$/.test(classType) && classType !== profileLabel) problems.push(`${host}: classification "${classType}" vs websiteProfile "${profileLabel}"`);
   // Transport or other service sales are not a webshop: no retail checks left "unable to confirm".
-  if (weakIdentity && (e.notShopUnconfirmed || e.commerceNot === "unconfirmed") && j.commerceApplicability?.state !== "unconfirmed") problems.push(`${host}: insufficient final identity must remain unconfirmed, got ${j.commerceApplicability?.state}`);
-  if (e.notShopUnconfirmed && !weakIdentity && r.shop.includes("unable_to_confirm")) problems.push(`${host}: retail checks unconfirmed (${[...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop|merchant/i.test(c.key || "") && c.status === "unable_to_confirm").map((c) => c.key).join(",")}); commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}`);
+  if (e.notShopUnconfirmed && r.shop.includes("unable_to_confirm")) problems.push(`${host}: retail checks unconfirmed (${[...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /commerce|product|cart|checkout|shop|merchant/i.test(c.key || "") && c.status === "unable_to_confirm").map((c) => c.key).join(",")}); commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}`);
   const geoCheck = (key) => (j.geo?.checks || []).find((c) => c.key === key);
   if (e.schemaStatus && geoCheck("schema")?.status !== e.schemaStatus) problems.push(`${host}: schema check ${geoCheck("schema")?.status} ${geoCheck("schema")?.points}/${geoCheck("schema")?.maxPoints} "${String(geoCheck("schema")?.message).slice(0, 140)}", expected ${e.schemaStatus}`);
   if (e.orgStatus && geoCheck("organization_website")?.status !== e.orgStatus) problems.push(`${host}: organization_website ${geoCheck("organization_website")?.status}, expected ${e.orgStatus}`);
@@ -65,12 +60,12 @@ for (const [host, site] of Object.entries(SITES)) {
   if (e.rdfaType && !(j.structuredDataEvidence?.rdfa?.types || []).includes(e.rdfaType)) problems.push(`${host}: rdfa types ${JSON.stringify(j.structuredDataEvidence?.rdfa)}`);
   if (e.noAbsenceClaim && /Geen (?:geldige JSON-LD )?structured data gevonden/.test(geoCheck("schema")?.message || "")) problems.push(`${host}: claims missing structured data although ${JSON.stringify(j.structuredDataEvidence)}`);
   if (e.orgDeductedOnce && geoCheck("organization_website")?.status === "warning" && !/telt één keer/.test(geoCheck("organization_website")?.message || "")) problems.push(`${host}: organization_website deduction not linked to the shared cause`);
-  if (e.commerceNot && !weakIdentity && j.commerceApplicability?.state === e.commerceNot) problems.push(`${host}: commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}; samples ${JSON.stringify(j.sitewideCommerceEvidence?.evidence || j.evidenceLayer?.sitewideCommerceEvidence?.evidence || null)?.slice(0, 300)}`);
+  if (e.commerceNot && j.commerceApplicability?.state === e.commerceNot) problems.push(`${host}: commerce ${j.commerceApplicability?.state}/${j.commerceApplicability?.reason}; samples ${JSON.stringify(j.sitewideCommerceEvidence?.evidence || j.evidenceLayer?.sitewideCommerceEvidence?.evidence || null)?.slice(0, 300)}`);
   if (e.notClassType && classType === e.notClassType) problems.push(`${host}: classification ${classType}`);
   if (e.notSector && r.sector === e.notSector) problems.push(`${host}: must not be sector ${e.notSector}`);
   if (e.notKey && r.key === e.notKey) problems.push(`${host}: must not be ${e.notKey}`);
   if (e.type && r.type !== e.type) problems.push(`${host}: website type ${r.type}, expected ${e.type}`);
-  if (e.shopChecks && r.shop.some((x) => x !== (weakIdentity && e.shopChecks === "not_applicable" ? "unable_to_confirm" : e.shopChecks))) problems.push(`${host}: shop checks ${r.shop.join("/")}, expected ${weakIdentity && e.shopChecks === "not_applicable" ? "unable_to_confirm (insufficient final identity)" : e.shopChecks}`);
+  if (e.shopChecks && r.shop.some((x) => x !== e.shopChecks)) problems.push(`${host}: shop checks ${r.shop.join("/")}, expected ${e.shopChecks}`);
   if (e.platform && r.platform !== e.platform) problems.push(`${host}: platform ${r.platform}, expected ${e.platform}`);
   if (e.noPlatform && r.platform) problems.push(`${host}: platform ${r.platform} from text only`);
   if (e.discountCheck === "active" && r.discount === "not_applicable") problems.push(`${host}: visible discount but the EU discount check is N.v.t.`);

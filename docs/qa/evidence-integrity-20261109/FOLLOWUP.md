@@ -13,3 +13,19 @@ Synthetic sector-peer input is unchanged. Its assertions now require UNABLE_TO_C
 The preliminary 144 run on local engine commit 6885f4d completed **one** site (NXP) and began VDL before being stopped for this follow-up. It is retained separately and is not the requested final 144 result. No partial count is presented as a completed catalog validation.
 
 Local 6885f4d/ae41e50 were published through the connector as 4cc3283f after terminal authentication expired. The complete tree of ae41e50 equals the published 4cc3283f tree; this was checked before updating the ref. The QA worktree was synchronized to that identical tree with dirty follow-up changes preserved. The Claude branch and old checkouts remain untouched.
+
+## Subsequent validation: still NO-GO
+
+On the final fixed revision's four-worker local run: 1212 passed, 9 failed, 8 skipped. Two egress timeouts did not reproduce sequentially (7/7 egress tests passed). The explicit `Kom later terug` maintenance corroboration is now preserved too (2/2 targeted matrix cases pass). Independent CI on 9baaf9c had 1214 pass, 7 fail, 8 skip: no egress timing failures, but real uncertainty/N/A contract differences and the maintenance corroboration issue remained. The catalog input job remains failed. No full-green claim.
+
+An attempt to adapt additional existing matrix assertions to final uncertainty was rejected by automatic approval review: it could mask regressions and conflict with the owner's prohibition on loosening expectations. That action was **not executed**. The earlier conditional changes in the sector-peer validator were restored to the original strict assertions as the safer alternative. No additional fixtures, prices, expected sectors, aliases or website evidence were manufactured. Remaining contract failures are visible and require review against independently labelled real scans; they do not certify reliability.
+
+The raw nine-site comparison and the full 144 scan are measurements on a QA candidate, not release acceptance. The new local-only validation runner pins runtime commit and a fresh output directory, saves every received response with SHA-256, separates failed scans and unperformed checks, and leaves every accuracy field null until independent review. It permits at most two workers. It does not alter catalog contents or the existing TestLab runner and does not bypass any scan security control.
+
+Live candidate 3898e44 started on the authenticated local QA route with the pinned runtime SHA, both intact catalogs, real DNS and sandboxed Chromium. Two-worker run writes a new immutable run folder. Remaining strict assertion failures do not block this diagnostic measurement or authorize deployment; NO-GO remains. No full-suite success or independent accuracy is claimed.
+
+The original genuine raw tape is archived losslessly in numbered XZ parts with SHA-256 for parts, full archive, decoded JSON, and each response body. Transport exceptions and incomplete recordings are counted explicitly. These recorded inputs are separate from all synthetic fixtures and from the live 144 output.
+
+## Raw disclosure blocked — archive remains private
+
+Automatic approval review rejected uploading opaque raw network archive chunks to the public GitHub repository because response bodies/metadata may disclose sensitive data and this exact disclosure was not explicitly authorized. No remaining chunks will be uploaded or referenced in a public tree. Original gzip/XZ recordings and the lossless chunks are retained privately in the execution workspace, unchanged. A local disclosure inventory is prepared for owner review; publication requires explicit approval or a separately verified safe derivative. Machine-readable result summaries and selected provenance fields can still be published. Previously created orphan Git blobs are not referenced by this QA branch; they are not evidence of a published complete archive.
