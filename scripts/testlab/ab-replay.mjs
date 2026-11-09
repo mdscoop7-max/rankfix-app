@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createNetworkTape, TAPE_FORMAT } from "./network-tape.mjs";
 // A/B scan-engine comparison on IDENTICAL content (31 Oct 2026, P5 request).
 // Read-only: only GET requests to the listed public websites, no fixes, no DB.
 //
@@ -62,25 +63,10 @@ if (!sites.length) { console.error("--sites ontbreekt"); process.exit(2); }
 let commit = "onbekend";
 try { commit = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(); } catch { /* not a git checkout */ }
 
-const cache = existsSync(cacheFile) ? JSON.parse(gunzipSync(readFileSync(cacheFile)).toString("utf8")) : {};
-const KEEP = ["content-type", "location", "server", "x-powered-by", "strict-transport-security", "content-security-policy", "x-content-type-options", "x-frame-options", "referrer-policy", "permissions-policy", "set-cookie", "cf-ray", "cf-mitigated", "x-iinfo", "x-datadome", "x-amzn-waf-action", "x-sucuri-id", "x-robots-tag", "link", "x-cache", "via"];
-const keyOf = (input, init) => `${(init?.method || (typeof input === "object" && input.method) || "GET").toUpperCase()} ${typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url}`;
-const realFetch = globalThis.fetch;
-let misses = [];
-globalThis.fetch = async (input, init = {}) => {
-  const key = keyOf(input, init);
-  if (mode === "replay") {
-    const hit = cache[key];
-    if (!hit) { misses.push(key); return new Response("not recorded", { status: 599, headers: { "x-ab-miss": "1" } }); }
-    const headers = new Headers(); for (const [k, v] of hit.headers) headers.append(k, v);
-    return new Response([204, 304].includes(hit.status) ? null : hit.body, { status: hit.status, headers });
-  }
-  const response = await realFetch(input, init);
-  const body = [204, 304].includes(response.status) ? "" : await response.clone().text().catch(() => "");
-  const headers = []; response.headers.forEach((v, k) => { if (KEEP.includes(k)) headers.push([k, v]); });
-  cache[key] = { status: response.status, headers, body: body.slice(0, 8_000_000) };
-  return response;
-};
+const cache = existsSync(cacheFile) ? JSON.parse(gunzipSync(readFileSync(cacheFile)).toString("utf8")) : { format: TAPE_FORMAT, entries: [] };
+const network = createNetworkTape({mode,tape:cache});
+const misses = network.misses;
+globalThis.fetch = network.fetch;
 // --render on (record only): use the real headless browser to see whether the
 // final DOM holds JSON-LD that the server HTML lacks (the P5 fairness question).
 // Never used for the A/B replay itself, which must compare identical inputs.
@@ -88,9 +74,10 @@ const renderOn = mode === "record" && opt("render", "off") === "on";
 if (!renderOn) globalThis.__RF_RENDER = async () => { throw new Error("RENDER_OFF_FOR_AB"); };
 const { POST } = await import(pathToFileURL(resolve(root, "app/api/scan/route.ts")).href);
 const quiet = !process.env.AB_VERBOSE; if (quiet) { console.info = () => {}; console.warn = () => {}; }
+const audits = {};
 const result = { commit, mode, root, generatedAt: new Date().toISOString(), renderMode: renderOn ? "on" : "off", sites: {} };
 for (const host of sites) {
-  misses = [];
+  const missStart = misses.length;
   const started = Date.now();
   let j = null, status = 0;
   try {
@@ -99,13 +86,15 @@ for (const host of sites) {
   } catch (e) { j = { error: String(e?.message || e) }; }
   const checks = {};
   for (const c of [...(j?.seo?.checks || []), ...(j?.geo?.checks || [])]) checks[c.key] = { status: c.status, points: c.points, max: c.maxPoints, msg: String(c.message || "").slice(0, 220) };
+  audits[host] = j;
   const schemaCheck = [...(j?.geo?.checks || [])].find((c) => c.key === "schema");
-  result.sites[host] = { rendered: Boolean(j?.rendering?.javascriptExecuted), schemaEvidence: schemaCheck?.evidence?.found ?? null, schemaTypes: j?.metrics?.schemaTypes || [], http: status, code: j?.code || null, score: j?.overallScore ?? null, seo: j?.seo?.score ?? null, geo: j?.geo?.score ?? null, coverage: j?.coverage?.coveragePercent ?? null, sector: j?.sectorProfile ? `${j.sectorProfile.sector}/${j.sectorProfile.key}` : null, misses: misses.length, missed: misses.slice(0, 20), elapsedMs: Date.now() - started, checks };
+  result.sites[host] = { rendered: Boolean(j?.rendering?.javascriptExecuted), schemaEvidence: schemaCheck?.evidence?.found ?? null, schemaTypes: j?.metrics?.schemaTypes || [], http: status, code: j?.code || null, score: j?.overallScore ?? null, seo: j?.seo?.score ?? null, geo: j?.geo?.score ?? null, coverage: j?.coverage?.coveragePercent ?? null, sector: j?.sectorProfile ? `${j.sectorProfile.sector}/${j.sectorProfile.key}` : null, misses: misses.length - missStart, missed: misses.slice(missStart), comparisonEligible: misses.length === missStart && network.captureErrors.length === 0 && !renderOn, elapsedMs: Date.now() - started, checks };
   console.log(`${mode} ${host}: HTTP ${status} score ${result.sites[host].score} dekking ${result.sites[host].coverage}% cache-missers ${misses.length}`);
 }
 writeFileSync(outFile, JSON.stringify(result, null, 1));
+writeFileSync(outFile + ".audits.json.gz", gzipSync(JSON.stringify(audits)));
 if (mode === "record") writeFileSync(cacheFile, gzipSync(JSON.stringify(cache)));
-console.log(`Klaar: ${outFile}${mode === "record" ? ` en ${cacheFile} (${Object.keys(cache).length} opgenomen antwoorden)` : ""}`);
+console.log(`Klaar: ${outFile}${mode === "record" ? ` en ${cacheFile} (${cache.entries.length} opgenomen metingen)` : ""}`);
 process.exit(0);
 
 async function observe() {
@@ -115,7 +104,8 @@ async function observe() {
   const perSite = Number(opt("subpages", "2"));
   const windows = String(opt("windows", "short,long")).split(",").filter(Boolean);
   const cacheFile = opt("cache");
-  const cached = cacheFile && existsSync(resolve(cacheFile)) ? JSON.parse(gunzipSync(readFileSync(resolve(cacheFile))).toString("utf8")) : {};
+  const recording = cacheFile && existsSync(resolve(cacheFile)) ? JSON.parse(gunzipSync(readFileSync(resolve(cacheFile))).toString("utf8")) : {};
+  const cached = recording.format === TAPE_FORMAT ? Object.fromEntries(recording.entries.filter(e=>!e.error&&!e.captureError).map(e=>["GET "+e.url,{...e,body:Buffer.from(e.bodyBase64,"base64").toString("utf8")}])) : recording;
   const sd = await import(pathToFileURL(resolve(root, "lib/structured-data-evidence.ts")).href);
   const rq = await import(pathToFileURL(resolve(root, "lib/report-quality.ts")).href);
   let render = null, renderImportError = null;
