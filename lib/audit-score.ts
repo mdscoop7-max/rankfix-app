@@ -16,7 +16,7 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "3.5-evidence-gated";
+export const SCORE_MODEL_VERSION = "3.5.1-evidence-integrity";
 
 // Fixed SEO/GEO core: adding sector-specific checks may increase report coverage
 // without silently changing the headline score on the same website.
@@ -28,7 +28,14 @@ export function stableCoreChecks<T extends ScorableAuditCheck & {key?:string}>(c
 }
 
 
+/** One uncertainty policy for score, denominator, range and summary. */
+function evidenceEligible(items: ScorableAuditCheck[]): ScorableAuditCheck[] {
+  return items.map((item) => item.confidence === "low" && ["PASS", "FAIL", "WARNING"].includes(item.issue_status)
+    ? { ...item, issue_status: "UNABLE_TO_CONFIRM", points: 0 } : item);
+}
+
 export function weightedCoverage(items: ScorableAuditCheck[]) {
+  items = evidenceEligible(items);
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
   const totalWeight = relevant.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
   const assessed = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
@@ -48,6 +55,7 @@ export function weightedCoverage(items: ScorableAuditCheck[]) {
 }
 
 export function scoreRange(items: ScorableAuditCheck[]) {
+  items = evidenceEligible(items);
   const applicable = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
   const assessed = applicable.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
   const unverified = applicable.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM");
@@ -80,27 +88,19 @@ export function combinedScoreRange(seo: ReturnType<typeof scoreRange>, geo: Retu
 }
 
 export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
+  items = evidenceEligible(items);
   const applicable = items.filter(
     (item) => item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM"
   );
   const max = applicable.reduce((sum, item) => sum + item.maxPoints, 0);
   if (!max) return 0;
 
-  // A low-confidence result must never masquerade as a proven hard failure.
-  // Callers should normally emit UNABLE_TO_CONFIRM for weak evidence; this
-  // safeguard prevents an accidental low-confidence FAIL from lowering scores.
-  const confidenceSafe = applicable.map((item) =>
-    item.issue_status === "FAIL" && item.confidence === "low"
-      ? { ...item, points: item.maxPoints, issue_status: "INFO" as const }
-      : item
-  );
-
   // Score each proven root cause once. Dependent checks stay visible for
   // explanation, but cannot multiply the same underlying penalty.
   const rootCausePenalty = new Map<string, number>();
   let earnedWithoutRootCause = 0;
   let maxWithoutRootCause = 0;
-  for (const item of confidenceSafe) {
+  for (const item of applicable) {
     if (!item.rootCause || item.issue_status === "PASS" || item.issue_status === "INFO") {
       earnedWithoutRootCause += item.points;
       maxWithoutRootCause += item.maxPoints;
@@ -122,6 +122,7 @@ export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
 }
 
 export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
+  items = evidenceEligible(items);
   const actionable = items.filter((item) => item.issue_status === "FAIL" || item.issue_status === "WARNING");
   const severityOf = (item: ScorableAuditCheck) =>
     "severity" in item ? String((item as ScorableAuditCheck & { severity?: string }).severity || "INFO") : "INFO";

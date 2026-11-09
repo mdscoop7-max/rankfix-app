@@ -7054,7 +7054,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // role apply AFTER the AI verification and the webshop path too. Neither adds an
     // independent source that resolves several activities or contradicting own pages,
     // so they cannot lift the limit; the counter-evidence stays in the report.
-    if (operatingRole?.sectorCap && operatingRole.sectorCap.max < 70 && sectorProfile.sector !== "unknown") {
+    if (operatingRole?.sectorCap && sectorProfile.sector !== "unknown") {
       const cap = operatingRole.sectorCap;
       if (Number(sectorProfile.confidenceScore || 0) > cap.max) {
         sectorProfile.confidenceScore = cap.max;

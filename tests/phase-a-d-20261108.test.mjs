@@ -62,14 +62,14 @@ test("A route: a retry answer passes the challenge and soft-404 check like a fir
   assert.equal(r["/stil-dan-fout"]?.source, "probe");
 });
 
-test("B: a low-confidence pass is 'niet bevestigd' with 0 points; warnings and confident passes stay", () => {
+test("B: a low-confidence pass is 'niet bevestigd' with 0 points; low-confidence warnings also become unconfirmed", () => {
   const checks = [
     { key: "sector_health_appointment", status: "pass", confidence: "low", points: 4, maxPoints: 4, message: "Een afspraak- of contactactie is bevestigd.", evidence: { url: "https://x.test/", found: true } },
     { key: "title", status: "pass", confidence: "high", points: 5, maxPoints: 5, message: "Titel aanwezig." },
     { key: "meta", status: "warning", confidence: "low", points: 2, maxPoints: 5, message: "Te kort." },
   ];
-  assert.equal(demoteLowConfidencePasses(checks, "https://x.test/"), 1);
-  assert.deepEqual(checks.map((c) => [c.status, c.points]), [["unable_to_confirm", 0], ["pass", 5], ["warning", 2]]);
+  assert.equal(demoteLowConfidencePasses(checks, "https://x.test/"), 2);
+  assert.deepEqual(checks.map((c) => [c.status, c.points]), [["unable_to_confirm", 0], ["pass", 5], ["unable_to_confirm", 0]]);
   assert.match(checks[0].message, /^Niet bevestigd: .*geen aftrek/);
 });
 

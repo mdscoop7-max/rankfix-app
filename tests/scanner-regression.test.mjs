@@ -238,7 +238,7 @@ test("score engine deduplicates penalties that share one proven root cause", asy
     { ...base, issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "meta_description" },
     { ...base, issue_status: "PASS", points: 6, maxPoints: 6 },
   ]);
-  assert.equal(SCORE_MODEL_VERSION, "3.5-evidence-gated");
+  assert.equal(SCORE_MODEL_VERSION, "3.5.1-evidence-integrity");
   assert.equal(score, 50);
 });
 

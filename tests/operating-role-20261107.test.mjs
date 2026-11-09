@@ -47,8 +47,8 @@ test("holding with several proven activities: no single confirmed sector", () =>
 });
 
 test("contradicting own pages: sector stays unconfirmed", () => {
-  const r = determineOperatingRole(base({ sectorSupportPages: [page(1)], otherSectorPages: [page(2, "energie"), page(3, "energie")] }));
-  assert.equal(determineOperatingRole(base({ sectorSupportPages: [page(1), page(4)], otherSectorPages: [page(2), page(3)] })).sectorCap, null, "a tie is no contradiction");
+  const r = determineOperatingRole(base({ homepage: { own_service: ["Onze sportschool"] }, sectorSupportPages: [page(1)], otherSectorPages: [page(2, "energie"), page(3, "energie")] }));
+  assert.equal(determineOperatingRole(base({ homepage: { own_service: ["Onze sportschool"] }, sectorSupportPages: [page(1), page(4)], otherSectorPages: [page(2), page(3)] })).sectorCap, null, "a tie is no contradiction");
   assert.equal(r.sectorCap.max, 65);
   assert.ok(r.counterEvidence.some((item) => /andere activiteit/.test(item.text)));
 });
@@ -61,7 +61,7 @@ test("webshop: own cart/checkout pages are functional, independent evidence", ()
 });
 
 test("a shop function on a museum or insurer is a secondary capability, not the role", () => {
-  const r = determineOperatingRole(base({ sector: "events_culture", key: "events_culture", ownShopFunction: [page(1, "tickets kopen"), page(2, "winkelwagen")] }));
+  const r = determineOperatingRole(base({ sector: "events_culture", key: "events_culture", homepage: { own_service: ["Ons museum organiseert tentoonstellingen"] }, ownShopFunction: [page(1, "tickets kopen"), page(2, "winkelwagen")] }));
   assert.equal(r.role, "own_service");
   assert.equal(r.independentSources, 1, "a ticket shop does not corroborate the cultural activity");
   assert.equal(r.secondaryCapabilities.length, 1);

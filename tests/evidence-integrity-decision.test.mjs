@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {determineOperatingRole} from '../lib/operating-role.ts';
+import {determineOperatingRole,ownActivityFragment} from '../lib/operating-role.ts';
 import {scoreApplicableChecks,weightedCoverage,scoreRange} from '../lib/audit-score.ts';
 import {demoteLowConfidencePasses} from '../lib/scan-feedback.ts';
 const base={sector:'fitness_sports',key:'fitness',sectorConfidence:95,homepage:{},sectorSupportPages:[],otherSectorPages:[],ownShopFunction:[],retailSector:false,groupWording:null,otherActivities:[]};
@@ -25,4 +25,12 @@ test('all low-confidence scored outcomes are excluded consistently, never reward
   assert.equal(demoteLowConfidencePasses(checks,'https://site.test/'),1);
   assert.equal(checks[0].issue_status,'UNABLE_TO_CONFIRM');
  }
+});
+
+test('own-activity guard preserves source fragments and rejects audience and third-party clauses',()=>{
+ const vocabulary=[/sportschool/i];
+ assert.equal(ownActivityFragment(['Software voor sportscholen'],[/sportscholen/i]),null);
+ assert.equal(ownActivityFragment(['Boek bij aangesloten sportscholen'],[/sportscholen/i]),null);
+ assert.equal(ownActivityFragment(['Onze sportschool verzorgt trainingen'],vocabulary),'Onze sportschool verzorgt trainingen');
+ assert.equal(ownActivityFragment(['Sportschool voor iedereen'],vocabulary),'Sportschool voor iedereen');
 });

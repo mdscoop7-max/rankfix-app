@@ -1,0 +1,326 @@
+TAP version 13
+# Subtest: an own About page naming the decided activity is a second independent source
+ok 1 - an own About page naming the decided activity is a second independent source
+  ---
+  duration_ms: 3061.6604
+  type: 'test'
+  ...
+# Subtest: an About page that only repeats the brand is no second source
+ok 2 - an About page that only repeats the brand is no second source
+  ---
+  duration_ms: 2167.297279
+  type: 'test'
+  ...
+# (node:2818) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/audit-score.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: full coverage preserves a verified high score
+ok 3 - full coverage preserves a verified high score
+  ---
+  duration_ms: 1.834071
+  type: 'test'
+  ...
+# Subtest: unknown coverage changes the provisional range, not the fixed core score
+ok 4 - unknown coverage changes the provisional range, not the fixed core score
+  ---
+  duration_ms: 1.823249
+  type: 'test'
+  ...
+# Subtest: N/A checks do not reduce evidence coverage
+ok 5 - N/A checks do not reduce evidence coverage
+  ---
+  duration_ms: 1.001572
+  type: 'test'
+  ...
+# Subtest: proven critical failure remains stronger than coverage cap
+ok 6 - proven critical failure remains stronger than coverage cap
+  ---
+  duration_ms: 0.395556
+  type: 'test'
+  ...
+# Subtest: a site score built from a thin page sample is never definitive
+ok 7 - a site score built from a thin page sample is never definitive
+  ---
+  duration_ms: 1.930807
+  type: 'test'
+  ...
+# (node:2825) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/link-status.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: every HTTP status gets an explicit outcome; 400/405/408 are never silently healthy
+ok 8 - every HTTP status gets an explicit outcome; 400/405/408 are never silently healthy
+  ---
+  duration_ms: 1.829434
+  type: 'test'
+  ...
+# Subtest: 5xx is only a proven server error after two measurements, and never for 502/503/504
+ok 9 - 5xx is only a proven server error after two measurements, and never for 502/503/504
+  ---
+  duration_ms: 0.819844
+  type: 'test'
+  ...
+# Subtest: no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing
+ok 10 - no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing
+  ---
+  duration_ms: 0.20906
+  type: 'test'
+  ...
+# Subtest: evidence strength per outcome; only proven errors cost points
+ok 11 - evidence strength per outcome; only proven errors cost points
+  ---
+  duration_ms: 2.140253
+  type: 'test'
+  ...
+# Subtest: one attribution for the scanned page: site, network, RankFix
+ok 12 - one attribution for the scanned page: site, network, RankFix
+  ---
+  duration_ms: 0.734735
+  type: 'test'
+  ...
+# Subtest: TestLab and scripts use the scanner's attribution, also without incident evidence
+ok 13 - TestLab and scripts use the scanner's attribution, also without incident evidence
+  ---
+  duration_ms: 0.780711
+  type: 'test'
+  ...
+# Subtest: Sector80: retail labels count as webshops (was 0 of 12)
+ok 14 - Sector80: retail labels count as webshops (was 0 of 12)
+  ---
+  duration_ms: 0.677407
+  type: 'test'
+  ...
+# Subtest: route: every link category is classified from its response, with evidence; only proven errors cost points
+ok 15 - route: every link category is classified from its response, with evidence; only proven errors cost points
+  ---
+  duration_ms: 3528.206858
+  type: 'test'
+  ...
+# (node:2858) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/operating-role.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a sector label is not own-activity evidence or an independent homepage source
+ok 16 - a sector label is not own-activity evidence or an independent homepage source
+  ---
+  duration_ms: 1.977347
+  type: 'test'
+  ...
+# Subtest: repeated URLs in supporting evidence never multiply independent sources
+ok 17 - repeated URLs in supporting evidence never multiply independent sources
+  ---
+  duration_ms: 0.423062
+  type: 'test'
+  ...
+# Subtest: all low-confidence scored outcomes are excluded consistently, never rewarded or penalised
+ok 18 - all low-confidence scored outcomes are excluded consistently, never rewarded or penalised
+  ---
+  duration_ms: 1.42819
+  type: 'test'
+  ...
+# Subtest: own-activity guard preserves source fragments and rejects audience and third-party clauses
+ok 19 - own-activity guard preserves source fragments and rejects audience and third-party clauses
+  ---
+  duration_ms: 1.648207
+  type: 'test'
+  ...
+# (node:2865) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/link-status.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: response evidence, never a redirect path, determines whether a destination is missing
+ok 20 - response evidence, never a redirect path, determines whether a destination is missing
+  ---
+  duration_ms: 1.527601
+  type: 'test'
+  ...
+# Subtest: one failed connection followed by one HTTP 500 is not two server-error responses
+ok 21 - one failed connection followed by one HTTP 500 is not two server-error responses
+  ---
+  duration_ms: 0.295727
+  type: 'test'
+  ...
+# Subtest: real route: probe and sample apply the same content and measurement rules
+ok 22 - real route: probe and sample apply the same content and measurement rules
+  ---
+  duration_ms: 5403.097028
+  type: 'test'
+  ...
+# (node:2881) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/operating-role.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: all seven roles have a Dutch label
+ok 23 - all seven roles have a Dutch label
+  ---
+  duration_ms: 4.852193
+  type: 'test'
+  ...
+# Subtest: two fields of one homepage are ONE source: no confirmed sector
+ok 24 - two fields of one homepage are ONE source: no confirmed sector
+  ---
+  duration_ms: 1.575141
+  type: 'test'
+  ...
+# Subtest: homepage + a distinct own page = two independent sources: no cap
+ok 25 - homepage + a distinct own page = two independent sources: no cap
+  ---
+  duration_ms: 0.680832
+  type: 'test'
+  ...
+# Subtest: platform: never confirmed as the provider it lists; own-trade sector is a conflict
+ok 26 - platform: never confirmed as the provider it lists; own-trade sector is a conflict
+  ---
+  duration_ms: 0.749513
+  type: 'test'
+  ...
+# Subtest: holding with several proven activities: no single confirmed sector
+ok 27 - holding with several proven activities: no single confirmed sector
+  ---
+  duration_ms: 0.983634
+  type: 'test'
+  ...
+# Subtest: contradicting own pages: sector stays unconfirmed
+ok 28 - contradicting own pages: sector stays unconfirmed
+  ---
+  duration_ms: 14.101385
+  type: 'test'
+  ...
+# Subtest: webshop: own cart/checkout pages are functional, independent evidence
+ok 29 - webshop: own cart/checkout pages are functional, independent evidence
+  ---
+  duration_ms: 0.35673
+  type: 'test'
+  ...
+# Subtest: a shop function on a museum or insurer is a secondary capability, not the role
+ok 30 - a shop function on a museum or insurer is a secondary capability, not the role
+  ---
+  duration_ms: 0.262099
+  type: 'test'
+  ...
+# Subtest: manufacturer, publisher and unknown
+ok 31 - manufacturer, publisher and unknown
+  ---
+  duration_ms: 0.775262
+  type: 'test'
+  ...
+# Subtest: group wording is read from own fields only
+ok 32 - group wording is read from own fields only
+  ---
+  duration_ms: 4.871399
+  type: 'test'
+  ...
+# (node:2888) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/link-status.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: A: the page sample settles an unanswered link without inventing an HTTP 200
+ok 33 - A: the page sample settles an unanswered link without inventing an HTTP 200
+  ---
+  duration_ms: 2.69649
+  type: 'test'
+  ...
+# Subtest: A: no invented measurements: a 5xx without an attempt count is one measurement
+ok 34 - A: no invented measurements: a 5xx without an attempt count is one measurement
+  ---
+  duration_ms: 0.506231
+  type: 'test'
+  ...
+# Subtest: A route: a retry answer passes the challenge and soft-404 check like a first answer
+ok 35 - A route: a retry answer passes the challenge and soft-404 check like a first answer
+  ---
+  duration_ms: 3331.915604
+  type: 'test'
+  ...
+# Subtest: B: a low-confidence pass is 'niet bevestigd' with 0 points; low-confidence warnings also become unconfirmed
+ok 36 - B: a low-confidence pass is 'niet bevestigd' with 0 points; low-confidence warnings also become unconfirmed
+  ---
+  duration_ms: 2.267258
+  type: 'test'
+  ...
+# Subtest: C: the role limit is re-applied after the AI step and the webshop path (source check)
+ok 37 - C: the role limit is re-applied after the AI step and the webshop path (source check)
+  ---
+  duration_ms: 5.169625
+  type: 'test'
+  ...
+# Subtest: D: the HTTP 402 message names possibilities, not a certainty
+ok 38 - D: the HTTP 402 message names possibilities, not a certainty
+  ---
+  duration_ms: 4.024702
+  type: 'test'
+  ...
+# (node:2904) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/structured-data-evidence.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: structured data: present / proven absent / not observed are three separate states
+ok 39 - structured data: present / proven absent / not observed are three separate states
+  ---
+  duration_ms: 3.931251
+  type: 'test'
+  ...
+# Subtest: 1 Nov: executable scripts — JSON-LD, JSON data and templates are not executable
+ok 40 - 1 Nov: executable scripts — JSON-LD, JSON data and templates are not executable
+  ---
+  duration_ms: 1.721283
+  type: 'test'
+  ...
+# Subtest: injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json placeholder; a filled block is not a placeholder
+ok 41 - injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json placeholder; a filled block is not a placeholder
+  ---
+  duration_ms: 1.519648
+  type: 'test'
+  ...
+# Subtest: PDF P4: a link to an error page is missing when the response content proves it; redirect spelling alone is insufficient
+ok 42 - PDF P4: a link to an error page is missing when the response content proves it; redirect spelling alone is insufficient
+  ---
+  duration_ms: 6.678318
+  type: 'test'
+  ...
+# Subtest: 1 Nov (P7): account, login and registration pages in DE/FR/IT/ES/PT and compound names are not sampled; content pages stay
+ok 43 - 1 Nov (P7): account, login and registration pages in DE/FR/IT/ES/PT and compound names are not sampled; content pages stay
+  ---
+  duration_ms: 25.121894
+  type: 'test'
+  ...
+# Subtest: PDF P7: language and colour variants are one page; carts and bot traps are not sampled
+ok 44 - PDF P7: language and colour variants are one page; carts and bot traps are not sampled
+  ---
+  duration_ms: 1.15059
+  type: 'test'
+  ...
+# Subtest: 1 Nov: one GTM detector — Google host, first-party server-side loader and inline snippet; gtag.js alone is not GTM
+ok 45 - 1 Nov: one GTM detector — Google host, first-party server-side loader and inline snippet; gtag.js alone is not GTM
+  ---
+  duration_ms: 0.618354
+  type: 'test'
+  ...
+# Subtest: P5: Microdata and RDFa are separate structured-data forms, never JSON-LD blocks
+ok 46 - P5: Microdata and RDFa are separate structured-data forms, never JSON-LD blocks
+  ---
+  duration_ms: 2.040874
+  type: 'test'
+  ...
+# Subtest: P5: a tag manager still loading at the end of the observation leaves absence unproven
+ok 47 - P5: a tag manager still loading at the end of the observation leaves absence unproven
+  ---
+  duration_ms: 0.62035
+  type: 'test'
+  ...
+# Subtest: P5: no structured data at all is one root cause, deducted once
+ok 48 - P5: no structured data at all is one root cause, deducted once
+  ---
+  duration_ms: 10.173002
+  type: 'test'
+  ...
+1..48
+# tests 48
+# suites 0
+# pass 48
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19536.046494

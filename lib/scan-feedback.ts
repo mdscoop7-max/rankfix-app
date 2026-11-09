@@ -213,15 +213,16 @@ export function compareScoreVersions(
  * Returns how many checks were demoted.
  */
 /**
- * Phase B (8 Nov 2026): a check whose own confidence is LOW can never earn full
+ * Evidence integrity (9 Nov 2026): a check whose confidence is LOW can never earn
  * points. A low-confidence pass (e.g. a sector module that only found a keyword)
  * becomes "niet bevestigd": 0 points and excluded from the weighting, so it is no
- * penalty either. Warnings and failures are untouched (they are not rewards).
+ * penalty either. Warnings and failures use the same policy. The historical
+ * function name remains for callers; all three scored outcomes are handled.
  */
 export function demoteLowConfidencePasses(checks: EvidenceCheck[], pageUrl: string): number {
   let demoted = 0;
   for (const c of checks) {
-    if (c.status !== "pass" || c.confidence !== "low" || !(c.maxPoints > 0)) continue;
+    if (!["pass", "warning", "fail"].includes(c.status) || c.confidence !== "low" || !(c.maxPoints > 0)) continue;
     const original = String(c.message || "");
     c.status = "unable_to_confirm";
     c.issue_status = "UNABLE_TO_CONFIRM";

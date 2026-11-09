@@ -25,7 +25,7 @@ test("every HTTP status gets an explicit outcome; 400/405/408 are never silently
 test("5xx is only a proven server error after two measurements, and never for 502/503/504", () => {
   assert.equal(linkOutcome(link(500, { attempts: 2 })), "server_error");
   assert.equal(linkOutcome(link(500, { attempts: 1 })), "temporary", "one measurement (Retry-After too long) is not proof");
-  assert.equal(linkOutcome(link(200, { url: "https://x.test/oud", finalUrl: "https://x.test/pagenotfound" })), "missing", "a server redirect to its error page is response evidence");
+  assert.equal(linkOutcome(link(200, { url: "https://x.test/oud", finalUrl: "https://x.test/pagenotfound" })), "ok", "a redirect path alone does not prove a missing response");
   for (const s of [502, 503, 504]) assert.equal(linkOutcome(link(s, { attempts: 2 })), "temporary");
   assert.match(linkEvidence(link(503, { retryAfterSeconds: 120 })).cause, /Retry-After 120/);
 });
@@ -34,7 +34,7 @@ test("no answer, a challenge page, a redirect limit or a URL pattern alone prove
   assert.equal(linkOutcome({ url: "https://x.test/a", status: null, error: true }), "unconfirmed");
   assert.equal(linkOutcome(link(404, { challenged: true })), "unconfirmed", "a 404 carrying a bot-check page");
   assert.equal(linkOutcome(link(301)), "unconfirmed");
-  assert.equal(linkOutcome(link(200, { url: "https://x.test/404", finalUrl: "https://x.test/404" })), "unconfirmed", "URL looks like an error page, content does not");
+  assert.equal(linkOutcome(link(200, { url: "https://x.test/404", finalUrl: "https://x.test/404" })), "ok", "normal HTTP 200 content remains usable despite its URL name");
   assert.equal(linkOutcome(link(200, { url: "https://x.test/pagenotfound", softNotFound: true })), "missing", "the response content proves it");
   assert.equal(linkOutcome(link(403, { accountLink: true })), "skipped");
 });
