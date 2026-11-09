@@ -1,0 +1,30 @@
+Diagnostic run only; overlapped implementation. Not final acceptance.
+✖ 5xx is only a proven server error after two measurements, and never for 502/503/504 (1.757014ms)
+✖ no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing (0.498649ms)
+✖ contradicting own pages: sector stays unconfirmed (3.245134ms)
+✖ a shop function on a museum or insurer is a secondary capability, not the role (0.464744ms)
+✖ B: a low-confidence pass is 'niet bevestigd' with 0 points; warnings and confident passes stay (1.891528ms)
+✖ HTTP status matrix: homepage, sampled pages and internal links (8358.231541ms)
+✖ link check: error-page targets are broken, honeypots skipped, no-answer retried, anchor conflicts reported (3629.663768ms)
+✖ score model exposes weighted coverage and transparent formula (23.750957ms)
+✖ score model protects low-confidence failures from hard penalties (4.635455ms)
+✖ KPN-like telecom provider: storefront-wide checks do not masquerade as primary audit gaps (8.0611ms)
+ℹ tests 1221
+ℹ suites 0
+ℹ pass 1203
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 8
+ℹ todo 0
+ℹ duration_ms 898151.926942
+✖ failing tests:
+✖ 5xx is only a proven server error after two measurements, and never for 502/503/504 (1.757014ms)
+✖ no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing (0.498649ms)
+✖ contradicting own pages: sector stays unconfirmed (3.245134ms)
+✖ a shop function on a museum or insurer is a secondary capability, not the role (0.464744ms)
+✖ B: a low-confidence pass is 'niet bevestigd' with 0 points; warnings and confident passes stay (1.891528ms)
+✖ HTTP status matrix: homepage, sampled pages and internal links (8358.231541ms)
+✖ link check: error-page targets are broken, honeypots skipped, no-answer retried, anchor conflicts reported (3629.663768ms)
+✖ score model exposes weighted coverage and transparent formula (23.750957ms)
+✖ score model protects low-confidence failures from hard penalties (4.635455ms)
+✖ KPN-like telecom provider: storefront-wide checks do not masquerade as primary audit gaps (8.0611ms)

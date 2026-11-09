@@ -160,7 +160,7 @@ test("score model exposes weighted coverage and transparent formula", async () =
   const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
-  assert.match(score, /SCORE_MODEL_VERSION = "3\.5-evidence-gated"/);
+  assert.match(score, /SCORE_MODEL_VERSION = "3\.5\.1-evidence-integrity"/);
   assert.match(score, /assessedWeight \/ totalWeight/);
   assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
   assert.match(route, /securitySeparate: true/);
@@ -314,13 +314,11 @@ test("description length advice is gradual without changing fix identity", async
 });
 
 
-test("score model protects low-confidence failures from hard penalties", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
-  assert.match(source, /SCORE_MODEL_VERSION = "3\.5-evidence-gated"/);
-  assert.match(source, /item\.issue_status === "FAIL" && item\.confidence === "low"/);
-  assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
-  assert.match(source, /for \(const item of confidenceSafe\)/);
+test("score model excludes low-confidence failures without rewarding them", async () => {
+  const {scoreApplicableChecks, weightedCoverage} = await import("../lib/audit-score.ts");
+  const checks=[{issue_status:"WARNING",confidence:"high",points:4,maxPoints:10}, {issue_status:"FAIL",confidence:"low",points:0,maxPoints:90}];
+  assert.equal(scoreApplicableChecks(checks),40);
+  assert.equal(weightedCoverage(checks).confirmed,1);
 });
 
 
@@ -1685,7 +1683,7 @@ test("KPN-like telecom provider: storefront-wide checks do not masquerade as pri
     assert.equal(isStorefrontOnlyForService(key, true, false), false, key);
   }
   const route = await import("node:fs/promises").then(({readFile})=>readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8"));
-  assert.match(route, /isStorefrontOnlyForService\(item\.key, Boolean\(primaryNonCommerceIdentity\), finalCommerceDecision\.confirmed\)/);
+  assert.match(route, /isStorefrontOnlyForService\(item\.key, confirmedNonCommerceIdentity[^\n]+finalCommerceDecision\.confirmed\)/);
   assert.match(route, /De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout/);
 });
 

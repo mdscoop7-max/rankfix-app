@@ -1,0 +1,15 @@
+# Validation follow-up — do not mistake first repair for completion
+
+The first immutable GitHub run on 4cc3283fc39611b53b07a6f137f038204b400980 failed five tests (1215 pass, 5 fail, 8 skip). Lint and production build passed; subsequent browser steps were skipped. The independent required-input job also failed, as expected. Run: https://github.com/mdscoop7-max/rankfix-app/actions/runs/42675045680 . This is not a green acceptance result.
+
+Two behavioral regressions were real: generic non-content copy hid the specific HTTP 404 explanation, and newly sharing maintenance detection exposed an existing false-positive on an ordinary document titled `Onderhoud`. Both were reproduced before correction. A standalone maintenance regression failed first; now ordinary substantive maintenance-service content remains content while actual website maintenance stays gated. Error sample responses retain their content attribution and specific HTTP reason, including challenge/temporary evidence in link reconciliation.
+
+Three remaining CI failures were stale source-text assertions (old model version, full-credit INFO for weak FAIL, and the earlier applicability variable). The weak-FAIL assertion was replaced with a numerical behavioral test: a weak failure neither rewards nor deducts and does not count as assessed.
+
+The nine-site recorded A/B run initially showed identical primary labels and scores, **not increased accuracy**. De Kas coverage rose 47→64 only by moving unconfirmed commerce checks to N/A. Further inspection found the late applicability gate still accepted an earlier identity despite its final uncertainty or an unrendered shell. Final applicability is now re-evaluated from the final accepted identity, preserves shell/refusal uncertainty and never uses the earlier service candidate to claim absence. The previous 9-site comparison is retained as round 1; a final comparison uses the identical immutable raw tape.
+
+Synthetic sector-peer input is unchanged. Its assertions now require UNABLE_TO_CONFIRM when the final identity/applicability is uncertain, rather than asserting N/A from the earlier candidate. This is a stricter no-claim contract, not a broadened sector equivalence or accepted accuracy increase. Existing numerical/site labels remain unchanged. 130 peer cases pass. HTTP matrix passes; new core regressions 11/11 pass; TypeScript passes. Full final revision tests follow separately.
+
+The preliminary 144 run on local engine commit 6885f4d completed **one** site (NXP) and began VDL before being stopped for this follow-up. It is retained separately and is not the requested final 144 result. No partial count is presented as a completed catalog validation.
+
+Local 6885f4d/ae41e50 were published through the connector as 4cc3283f after terminal authentication expired. The complete tree of ae41e50 equals the published 4cc3283f tree; this was checked before updating the ref. The QA worktree was synchronized to that identical tree with dirty follow-up changes preserved. The Claude branch and old checkouts remain untouched.

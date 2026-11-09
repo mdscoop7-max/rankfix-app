@@ -215,3 +215,13 @@ SHA256 en bewaart hashes van de volledige gecomprimeerde testlogs.
 Geen branchmerge of deployment uitgevoerd. Groene technische regressies tonen
 herstel binnen hun testscope; alle negen onafhankelijke betrouwbaarheidsmetingen
 blijven **niet aangetoond**, dus de uitrolbeslissing blijft NO-GO.
+
+## 9 november 2026 — evidence-integrity-herstel, nog geen GO
+
+Branch: `qa/codex-evidence-integrity-20261109`; baseline: `d5e16b037d83e3ae8e663f6b6e97e33ec52ecab5`. Claude's branch en bestaande catalogi blijven intact. Fasedossiers: [A](evidence-integrity-20261109/PHASE-A.md), [B](evidence-integrity-20261109/PHASE-B.md), [C](evidence-integrity-20261109/PHASE-C.md), [D](evidence-integrity-20261109/PHASE-D.md), [hercontrole](evidence-integrity-20261109/FOLLOWUP.md).
+
+Gepubliceerd: `154b350` (responsebeleid), `0ebad0d` (geen sector als eigen bewijs), `452ecef` (uniforme onzekerheid), `4cc3283f` (strikte ruwe replay + bestaande CI op QA). De eerste CI op 4cc3283f faalde: 1215 tests geslaagd, 5 mislukt, 8 overgeslagen; lint en build geslaagd. Verplichte oorspronkelijke catalogus/baseline ontbreken nog; geen vervangende data of afgezwakte gate. Hercontrole repareert twee echte regressies en drie verouderde broncode-asserties; volledige eindvalidatie volgt.
+
+Vastgelegde echte A/B-invoer: negen probleemsites, 372 netwerkmetingen. Beide motoren: nul ontbrekende replayrequests. Eerste vergelijking: sectorlabels en totaalscores gelijk; geen bewezen nauwkeurigheidswinst. Bewijsdekking De Kas steeg door N/A en is daarom geen bewijs van betere scanning; de applicabiliteitsbeslissing wordt aangescherpt en op dezelfde opname herhaald. Rendering staat in beide A/B-metingen uit; daarvoor volgt de echte lokale scanroute met sandboxed Chromium.
+
+Betrouwbaarheid brancheherkenning, scanvolledigheid, foutdetectie en evidence: **nog niet onafhankelijk vastgesteld**. Onbevestigde labels worden afzonderlijk geteld; een geslaagde HTTP-request of syntactisch bewijsveld telt niet als inhoudelijk juiste scan. Geen categorie krijgt 9/10 op grond van deze ontwikkeltests. Uitrol: **NO-GO** totdat echte 144-resultaten, voldoende bewijs en onafhankelijke labels de doelstelling ondersteunen. Geen productie-deployment of merge naar main uitgevoerd.

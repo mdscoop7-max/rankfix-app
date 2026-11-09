@@ -1,0 +1,46 @@
+TAP version 13
+# (node:7930) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/page-gate.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a maintenance service document is not a website-maintenance response based on its bare title
+not ok 1 - a maintenance service document is not a website-maintenance response based on its bare title
+  ---
+  duration_ms: 17.67814
+  type: 'test'
+  location: '/workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + {
+    +   kind: 'maintenance',
+    +   reason: 'title_is_maintenance'
+    + }
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual:
+    kind: 'maintenance'
+    reason: 'title_is_maintenance'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-integrity/tests/evidence-integrity-response.test.mjs:28:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 384.50471

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {classifyNonContentPage} from '../lib/page-gate.ts';
 import {linkOutcome} from '../lib/link-status.ts';
 import {readProcessResult} from './helpers/process-result.mjs';
 
@@ -20,4 +21,10 @@ test('real route: probe and sample apply the same content and measurement rules'
  assert.equal(r.links['/unstable']?.outcome,'temporary');
  assert.equal(r.links['/soft-server']?.outcome,'temporary','an error page is not necessarily a not-found page');
  assert.equal(r.links['/missing']?.outcome,'missing','real missing pages remain actionable');
+});
+
+test('a maintenance service document is not a website-maintenance response based on its bare title',()=>{
+ const text='Tekst over banden en onderhoud. '.repeat(30);
+ assert.equal(classifyNonContentPage({title:'Onderhoud',text,words:150}),null);
+ assert.equal(classifyNonContentPage({title:'Website in onderhoud',text:'We zijn zo snel mogelijk weer terug.'})?.kind,'maintenance');
 });

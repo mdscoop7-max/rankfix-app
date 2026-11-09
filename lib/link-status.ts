@@ -46,6 +46,7 @@ function probeOutcome(link: LinkCheck): LinkOutcome {
   // challenge page. That proves nothing about the destination.
   if (link.challenged) return "unconfirmed";
   const status = link.status;
+  if (link.temporaryContent && status < 500) return "temporary";
   if (status === 404 || status === 410) return "missing";
   if (status === 408 || status === 502 || status === 503 || status === 504) return "temporary";
   // Proven only on two REAL measurements; a missing attempt count is one measurement.

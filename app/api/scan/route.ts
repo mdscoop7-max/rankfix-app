@@ -5269,7 +5269,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "location" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; aiText?: string; ownIdentityText?: string; shopInfo?: ShopInfoSignals; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; responseEvidence?: ReturnType<typeof responseContentEvidence>; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; aiText?: string; ownIdentityText?: string; shopInfo?: ShopInfoSignals; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { visibleOffer?: import("@/lib/sample-product-checks").SampleVisibleOffer | null; productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; checkoutDestination?: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; serverRendered?: boolean; productMarkupAbsent?: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null ; offerKind?: "offer" | "aggregate" | "list" | "none"} | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5566,7 +5566,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
           const responseEvidence = await inspectLinkResponse(r);
-          return { ...page, nonContent: responseEvidence.nonContent, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:responseEvidence.nonContent ? nonContentDetail({kind: responseEvidence.nonContent, reason: "response_content"}) : r.status === 401 || r.status === 403
+          return { ...page, responseEvidence, nonContent: responseEvidence.nonContent, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:responseEvidence.nonContent === "challenge" || responseEvidence.nonContent === "maintenance" || responseEvidence.temporaryContent ? nonContentDetail({kind: responseEvidence.nonContent!, reason: "response_content"}) : r.status === 401 || r.status === 403
             ? `HTTP ${r.status}: de website weigerde de toegang tot deze pagina, ook bij weergave in een browser. Een toegangsfout is geen inhoudspagina; deze pagina telt niet mee in de steekproef of de score.`
             : r.status === 404 || r.status === 410
               ? `HTTP ${r.status}: deze pagina bestaat niet (meer), terwijl de website ernaar linkt. Pas de link aan of zet een 301-redirect naar de juiste pagina. Telt niet mee in de steekproefscore.`
@@ -6412,9 +6412,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // separate webshop (one such page suffices); listings and service prices never do.
     const transportRetailChainPages = auditedMultiPages.filter((item)=>item.status==="audited" && hasTransportRetailChain(item.commerceEvidence)).length;
     const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
-    const finalCommerceApplicability = commerceApplicability({
+    const resolveCommerceApplicability = (confirmedIdentity: boolean) => commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
-      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
+      primaryNonCommerceIdentity: confirmedIdentity,
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
       // A thin raw page is only a "JavaScript shell" with script/framework evidence; a short
       // server-rendered page is thin content, which says nothing about whether a store exists.
@@ -6439,6 +6439,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       referralPlatform,
       refusedRetailPages: multiPageAudits.filter((item)=>item && (item.type==="product" || item.type==="category" || item.type==="listing") && item.status!=="audited" && [202,401,403,405,429].includes(Number(item.httpStatus))).length,
     });
+    let finalCommerceApplicability = resolveCommerceApplicability(Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry));
     if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
@@ -7388,6 +7389,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // says "no products" next to sampled product or financial-product pages.
     const sampledFinancialProductPages = auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length + (financialOfferSchema ? 1 : 0);
     const FINANCIAL_PRODUCTS_NOT_RETAIL = "De gevonden productpagina's beschrijven financiële producten (rekening, lening, kaart of verzekering), geen fysieke retailproducten; deze retailcontrole is daarom niet van toepassing.";
+    // Applicability must consume the FINAL accepted identity, not an earlier
+    // candidate whose confidence the role/evidence gate later reduced.
+    const confirmedNonCommerceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
+      && sectorProfile.confidenceScore >= 80 && operatingRole?.status === "confirmed";
+    finalCommerceApplicability = resolveCommerceApplicability(confirmedNonCommerceIdentity);
+    if (finalCommerceApplicability.state === "absent" && !confirmedNonCommerceIdentity
+      && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
+      finalCommerceApplicability = {state:"unconfirmed",reason:"low_coverage"};
+    }
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
         if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
@@ -7399,7 +7409,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // (e.g. /products/checkout on a payment provider), so links named
       // "product" do not make retail product checks applicable there.
       const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
-      const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !finalCommerceDecision.confirmed &&
+      const serviceWithoutProductEvidence = confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused" && !finalCommerceDecision.confirmed &&
         !isProductPage && !hasProductSchema && !verifiedRepresentativeProductDetail && !representativeCommercialProductIntent &&
         (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
@@ -7408,7 +7418,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
             ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
             : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
-        } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry), finalCommerceDecision.confirmed)) {
+        } else if (isStorefrontOnlyForService(item.key, confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused", finalCommerceDecision.confirmed)) {
           setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
         } else {
           setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
@@ -7578,7 +7588,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         for (const p of sampledMissing) {
           const a = anchorByUrl.get(normalizeScanUrl(p.url))!;
           // One real measurement by the page sample, with its own challenge check.
-          linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url), attempts: 1, source: "sample", challenged: p.nonContent === "challenge" });
+          linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url), attempts: 1, source: "sample", challenged: p.nonContent === "challenge", temporaryContent: p.responseEvidence?.temporaryContent, measurements: [{status:p.httpStatus,error:false,challenged:p.nonContent === "challenge"}] });
         }
         const summary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
         const copy = scanLanguage === "nl" ? { message: summary.message, fix: summary.fix } : localizedBrokenLinkCopy(linkAuditResults, finalUrl.toString(), scanLanguage);

@@ -1,0 +1,84 @@
+TAP version 13
+# (node:8434) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/operating-role.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a sector label is not own-activity evidence or an independent homepage source
+ok 1 - a sector label is not own-activity evidence or an independent homepage source
+  ---
+  duration_ms: 10.482695
+  type: 'test'
+  ...
+# Subtest: repeated URLs in supporting evidence never multiply independent sources
+ok 2 - repeated URLs in supporting evidence never multiply independent sources
+  ---
+  duration_ms: 0.642947
+  type: 'test'
+  ...
+# Subtest: all low-confidence scored outcomes are excluded consistently, never rewarded or penalised
+ok 3 - all low-confidence scored outcomes are excluded consistently, never rewarded or penalised
+  ---
+  duration_ms: 17.38644
+  type: 'test'
+  ...
+# Subtest: own-activity guard preserves source fragments and rejects audience and third-party clauses
+ok 4 - own-activity guard preserves source fragments and rejects audience and third-party clauses
+  ---
+  duration_ms: 2.157517
+  type: 'test'
+  ...
+# (node:8441) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/page-gate.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: response evidence, never a redirect path, determines whether a destination is missing
+ok 5 - response evidence, never a redirect path, determines whether a destination is missing
+  ---
+  duration_ms: 1.666133
+  type: 'test'
+  ...
+# Subtest: one failed connection followed by one HTTP 500 is not two server-error responses
+ok 6 - one failed connection followed by one HTTP 500 is not two server-error responses
+  ---
+  duration_ms: 0.582692
+  type: 'test'
+  ...
+# Subtest: real route: probe and sample apply the same content and measurement rules
+ok 7 - real route: probe and sample apply the same content and measurement rules
+  ---
+  duration_ms: 7134.795209
+  type: 'test'
+  ...
+# Subtest: a maintenance service document is not a website-maintenance response based on its bare title
+ok 8 - a maintenance service document is not a website-maintenance response based on its bare title
+  ---
+  duration_ms: 20.025607
+  type: 'test'
+  ...
+# Subtest: A/B replay never invents an HTTP response for unrecorded input
+ok 9 - A/B replay never invents an HTTP response for unrecorded input
+  ---
+  duration_ms: 3.598346
+  type: 'test'
+  ...
+# Subtest: raw replay preserves bytes, query, headers, repeated responses and transport failures
+ok 10 - raw replay preserves bytes, query, headers, repeated responses and transport failures
+  ---
+  duration_ms: 83.146329
+  type: 'test'
+  ...
+# Subtest: raw replay refuses modified bytes and lossy historical projections
+ok 11 - raw replay refuses modified bytes and lossy historical projections
+  ---
+  duration_ms: 5.286694
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8564.406921
