@@ -1,3 +1,4 @@
+import { ownActivityFragment } from "@/lib/operating-role";
 import { responseContentEvidence, type ResponseMeasurement } from "@/lib/response-evidence";
 import {metadataTopicMismatch} from "@/lib/metadata-alignment";
 import { readHeadDirectives } from "@/lib/head-directives";
@@ -6830,6 +6831,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const decided = String(sectorProfile.sector || "unknown");
       const support = new Map<string, string>();
       const other = new Map<string, { sector: string; text: string }>();
+      const decidedVocab = [
+        ...declaredIndustryKeys().filter((item) => item.sector === decided && item.key !== "professional_services").map((item) => item.vocab[0]),
+        ...sectorSignals.filter((item) => item.sector === decided && item.sector !== "professional_services").map((item) => item.patterns[0]),
+      ].filter((rx): rx is RegExp => rx instanceof RegExp);
+      const ownSource = (url: string) => auditedRawPages.find((p) => pageKey(p.url) === pageKey(url));
+      const supportingFragments = new Set<string>();
       const pageVotes = [
         ...(extendedIndustry.candidates || []).flatMap((c: { key: string; urls: string[] }) => {
           const known = declaredIndustryKeys().find((item) => item.key === c.key);
@@ -6840,7 +6847,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       for (const vote of pageVotes) {
         if (!vote.url || rootPath(vote.url)) continue;
         const k = pageKey(vote.url);
-        if (vote.sector === decided) support.set(k, `${vote.url}: ${vote.label}`);
+        if (vote.sector === decided) {
+          const page = ownSource(vote.url);
+          const fragment = page && ownActivityFragment([page.title || "", page.description || "", ...(page.identityHeadings || [])], decidedVocab);
+          if (fragment && !supportingFragments.has(fragment.toLowerCase())) { support.set(k, `${vote.url}: "${fragment}"`); supportingFragments.add(fragment.toLowerCase()); }
+        }
         // Counter-evidence is another PRIMARY activity: the generic fallback label
         // (professional services) and visitor side offers (restaurant, stay, shop)
         // on an attraction, port or public body are not; neither is the site's own
@@ -6852,10 +6863,6 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // names the decided activity; naming another primary activity is counter-evidence.
       const aboutPath = /(?:^|\/)(?:over|over-ons|over-[\p{L}\d-]+|about|about-us|about-[\p{L}\d-]+|wie-we-zijn|wie-zijn-wij|ons-verhaal|onze-organisatie|organisatie|missie[\p{L}\d-]*|our-company|company|this-is-[\p{L}\d-]+|ueber-uns|uber-uns|qui-sommes-nous|a-propos|chi-siamo|quienes-somos|sobre-nosotros)(?:\/|$)/iu;
       const utilityPath = /(?:cookie|privacy|disclaimer|toegankelijk|accessib|contact|vacature|careers?|jobs|pers|press|nieuws|news|faq|veelgestelde|voorwaarden|terms|leadership|bestuur|management)/i;
-      const decidedVocab = [
-        ...declaredIndustryKeys().filter((item) => item.sector === decided && item.key !== "professional_services").map((item) => item.vocab[0]),
-        ...sectorSignals.filter((item) => item.sector === decided && item.sector !== "professional_services").map((item) => item.patterns[0]),
-      ].filter((rx): rx is RegExp => rx instanceof RegExp);
       if (decided !== "unknown") for (const page of auditedRawPages) {
         let path = "";
         try { path = decodeURIComponent(new URL(page.url).pathname); } catch { continue; }
@@ -6877,7 +6884,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const own = withoutHostBrand(stripBrandNames([page.title, page.description, ...(page.identityHeadings || []).slice(0, 2)].filter(Boolean).join(" · "), finalUrl.hostname));
         const pageEu = detectEuPrimaryIdentity({ title: withoutHostBrand(page.title || ""), description: withoutHostBrand(page.description || ""), h1s: (page.identityHeadings || []).map(withoutHostBrand), schemaTypes: page.schemaTypes, homepage: false });
         const hit = decidedVocab.map((rx) => new RegExp(rx.source, rx.flags.replace("g", "")).exec(own)).find(Boolean);
-        if (hit || pageEu?.sector === decided) support.set(k, `${page.url}: eigen over-ons-pagina noemt dezelfde hoofdactiviteit (${hit ? `"${hit[0]}"` : pageEu?.label})`);
+        const fragment = ownActivityFragment([own], decidedVocab);
+        if ((hit || pageEu?.sector === decided) && fragment && !supportingFragments.has(fragment.toLowerCase())) { support.set(k, `${page.url}: eigen over-ons-pagina: "${fragment}"`); supportingFragments.add(fragment.toLowerCase()); }
         else if (pageEu && pageEu.confidenceScore >= 75 && !["ecommerce", "professional_services", "hospitality", "food_local_retail", "news_media"].includes(pageEu.sector)) other.set(k, { sector: pageEu.sector, text: `${page.url}: over-ons-pagina noemt ${pageEu.label}` });
       }
       const ownFields = [title, description, ...identityH1s.slice(0, 2)].join(" · ");
@@ -6896,7 +6904,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         ...sectorSignals.filter((item) => item.patterns[0]?.test(ownFields)).map((item) => item.sector),
       ])].filter((sector) => sector !== decided && sector !== "ecommerce" && sector !== "unknown");
       if (ownFieldActivities.length >= 1) for (const sector of ownFieldActivities) if (!otherActivities.includes(sector)) otherActivities.push(sector);
+      const homeActivity = ownActivityFragment([title, description, ...identityH1s.slice(0, 2)], decidedVocab);
+      const activityProof = homeActivity ? [`${finalUrl.toString()}: "${homeActivity}"`] : [];
       operatingRole = determineOperatingRole({
+        homepageUrl: finalUrl.toString(),
         sector: decided,
         key: String(sectorProfile.key || decided),
         sectorConfidence: Number(sectorProfile.confidenceScore || 0),
@@ -6906,10 +6917,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             ...(homeMediation ? ["Eigen omschrijving: boeken of vergelijken bij onafhankelijke aanbieders"] : []),
             ...(platformIdentity ? platformIdentity.evidence : []),
           ],
-          own_service: (hasTrustedLocalEvidence || localBusinessDetails) && !homeDirectory && !homeMediation ? ["Eigen vestigingsgegevens (LocalBusiness met adres/telefoon) op de homepage"] : [],
+          own_service: !homeDirectory && !homeMediation && !["ecommerce", "manufacturing_industrial", "news_media"].includes(decided) ? activityProof : [],
           webshop: retailPrimaryIdentity ? ["Eigen omschrijving als winkel of webshop"] : [],
-          manufacturer: decided === "manufacturing_industrial" ? [`Eigen identiteit: ${sectorProfile.label}`] : [],
-          publisher: decided === "news_media" ? [`Eigen identiteit: ${sectorProfile.label}`] : [],
+          manufacturer: decided === "manufacturing_industrial" ? activityProof : [],
+          publisher: decided === "news_media" ? activityProof : [],
         },
         sectorSupportPages: [...support.entries()].map(([source, text]) => ({ source, text })),
         otherSectorPages: [...other.entries()].map(([source, value]) => ({ source, text: value.text })),
@@ -7388,7 +7399,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // (e.g. /products/checkout on a payment provider), so links named
       // "product" do not make retail product checks applicable there.
       const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
-      const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity) && !finalCommerceDecision.confirmed &&
+      const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !finalCommerceDecision.confirmed &&
         !isProductPage && !hasProductSchema && !verifiedRepresentativeProductDetail && !representativeCommercialProductIntent &&
         (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
@@ -7397,7 +7408,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
             ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
             : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
-        } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
+        } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry), finalCommerceDecision.confirmed)) {
           setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
         } else {
           setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);

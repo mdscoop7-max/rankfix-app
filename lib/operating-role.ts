@@ -29,6 +29,7 @@ export const OPERATING_ROLE_LABELS: Record<OperatingRole, string> = {
 export type RoleSource = { source: string; text: string };
 
 export type OperatingRoleInput = {
+  homepageUrl?: string;
   sector: string;
   key: string;
   sectorConfidence: number;
@@ -71,7 +72,7 @@ const PLATFORM_SECTOR_KEYS = /^(?:service_marketplace|comparison_platform|market
 export function determineOperatingRole(input: OperatingRoleInput): OperatingRoleResult {
   const home = input.homepage;
   const has = (role: keyof OperatingRoleInput["homepage"]) => (home[role] || []).length > 0;
-  const homeLines = (role: keyof OperatingRoleInput["homepage"]) => (home[role] || []).map((text) => ({ source: HOME, text }));
+  const homeLines = (role: keyof OperatingRoleInput["homepage"]) => (home[role] || []).map((text) => ({ source: input.homepageUrl || HOME, text }));
   const evidence: RoleSource[] = [];
   const counter: RoleSource[] = [];
   let role: OperatingRole = "unknown";
@@ -104,16 +105,11 @@ export function determineOperatingRole(input: OperatingRoleInput): OperatingRole
   } else if (has("own_service")) {
     role = "own_service";
     evidence.push(...homeLines("own_service"));
-  } else if (input.sector !== "unknown") {
-    // A known sector without a specific role signal: the organisation delivers
-    // its own activity; that is still only as strong as the sector evidence.
-    role = "own_service";
-    evidence.push({ source: HOME, text: "Eigen hoofdactiviteit zonder kenmerken van platform, webshop, fabrikant of uitgever" });
   }
 
   // Independent sources: the homepage once, each distinct own page, a functional proof.
   const sources = new Set<string>();
-  if (evidence.some((item) => item.source === HOME) || input.sector !== "unknown") sources.add(HOME);
+  if (evidence.some((item) => item.source === (input.homepageUrl || HOME))) sources.add(input.homepageUrl || HOME);
   for (const page of input.sectorSupportPages) sources.add(page.source);
   if (shopFunction && role === "webshop") for (const page of input.ownShopFunction) sources.add(page.source);
   const secondaryCapabilities = shopFunction && role !== "webshop" ? [`Online verkoop/bestellen als nevenfunctie (${input.ownShopFunction.length} pagina('s))`] : [];
@@ -156,4 +152,19 @@ const GROUP_WORDING = /(?<![\p{L}])(?:holding|holdings|concern|conglomera\p{L}*|
 export function groupWordingIn(text: string): string | null {
   const match = GROUP_WORDING.exec(String(text || ""));
   return match ? match[0] : null;
+}
+
+/** A matched fragment is retained verbatim, never replaced by a sector label.
+ * This is a conservative guard around existing detectors, not a new classifier. */
+export function ownActivityFragment(fields: string[], vocabulary: RegExp[]): string | null {
+  for (const field of fields) {
+    for (const fragment of String(field || "").split(/[.!?\n]+|[·|]/).map((s) => s.trim()).filter(Boolean)) {
+      if (/(?:\b(?:klanten|clients|customers|partners|reviews? (?:van|over|of)|software (?:voor|for)|oplossingen voor|solutions for|boek bij|book (?:at|with)|vergelijk|compare|industries we serve)\b)/i.test(fragment)) continue;
+      for (const rx of vocabulary) {
+        const match = new RegExp(rx.source, rx.flags.replace("g", "")).exec(fragment);
+        if (match && !/\b(?:voor|for|für|pour|per|para)\b/i.test(fragment.slice(0, match.index))) return fragment.slice(0, 500);
+      }
+    }
+  }
+  return null;
 }
