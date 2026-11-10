@@ -1,0 +1,36 @@
+{
+  "engine": "4e2ec78325c302fb49e41b72485bcad9e365b6cf",
+  "independentLabelsReviewed": false,
+  "results": [
+    {
+      "host": "arup.com",
+      "apiStatus": 502,
+      "success": false,
+      "code": "FETCH_UPSTREAM_UNCONFIRMED",
+      "sector": null,
+      "key": null,
+      "correct": null,
+      "rawSha256": "88951bda17b0825c281eb0884dd44c1165a2c007a160847c2d93f5c71df470c7"
+    },
+    {
+      "host": "fairphone.com",
+      "apiStatus": 502,
+      "success": false,
+      "code": "FETCH_UPSTREAM_UNCONFIRMED",
+      "sector": null,
+      "key": null,
+      "correct": null,
+      "rawSha256": "38c9d193fcd19a8e34fc4b8de1d3c967d7737e081f44f5d864cef70a861dbf26"
+    },
+    {
+      "host": "doctorswithoutborders.org",
+      "apiStatus": 502,
+      "success": false,
+      "code": "FETCH_UPSTREAM_UNCONFIRMED",
+      "sector": null,
+      "key": null,
+      "correct": null,
+      "rawSha256": "473f1da61386483222fd0ea3ba5655d19ed01f2b365a283ff951d2b57d3aeadf"
+    }
+  ]
+}
