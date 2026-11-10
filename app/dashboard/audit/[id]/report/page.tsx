@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { reportCheckReason as reasonFor } from "@/lib/report-check-reason";
 import { formatSpeedField, formatSpeedLab, speedAdviceMessage, speedFailureMessage } from "@/lib/speed-display";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -94,20 +95,7 @@ const reliabilityOf=(r:ReportResult|undefined)=>{
   if(scoreCov>=.7&&pages>=2)return "medium";
   return "limited";
 };
-const reasonFor=(c:Check,language:Locale)=>{
-  const code=c.reasonCode;
-  const msg=String(c.message||"").toLowerCase();
-  const js=code==="needs_js"||/javascript|client-side|render/.test(msg);
-  const weak=code==="weak_evidence"||/onvoldoende|insufficient|niet.*bevestig|unable/.test(msg);
-  if(language!=="nl") return c.message||"Evidence was insufficient for a definitive result.";
-  if(js)return "Niet te bevestigen omdat dit signaal mogelijk pas na JavaScript-rendering zichtbaar wordt; deze scan gebruikte raw HTML.";
-  if(code==="cap_absent"||c.status==="not_applicable")return "Deze controle geldt niet voor dit type website.";
-  if(code==="insufficient_pages")return "We analyseerden geen representatieve pagina waarop dit betrouwbaar zichtbaar was.";
-  if(code==="access_refused")return "De website weigerde RankFix op de pagina's die dit moeten bewijzen (bijvoorbeeld HTTP 403, 405 of 429); dit is niet te bevestigen, geen bewezen fout.";
-  if(code==="type_uncertain")return "Het type bedrijf is niet zeker genoeg om te bepalen of deze controle geldt.";
-  if(weak)return "Er zijn aanwijzingen gevonden, maar de beschikbare evidence is te zwak voor een betrouwbare conclusie.";
-  return c.message||"Onvoldoende controleerbare evidence in de geselecteerde pagina’s om deze controle betrouwbaar te bevestigen.";
-};
+
 const MODULE_LABELS:Record<Locale,Record<string,string>>={
  nl:{manufacturing_industrial:"Industrie & productie",education:"Onderwijs & opleiding",nonprofit:"Goede doelen & non-profit",energy_utilities:"Energie & nutsvoorzieningen",events_culture:"Evenementen & cultuur",fitness_sports:"Sport & fitness",local:"Lokaal",recruitment:"Recruitment & werk",government:"Overheid",telecom_technology:"Telecom & technologie",food_local_retail:"Voeding & lokale retail",booking:"Boeken & beschikbaarheid",marketplace:"Marktplaats",core_seo:"SEO",geo:"GEO / AI-zichtbaarheid",technical:"Techniek",security:"Beveiligingsinstellingen",ecommerce:"Webshop",product:"Producten",pricing_currency:"Prijs & valuta",merchant:"Merchant",checkout:"Checkout",eu_consumer:"EU consumenteninfo",local_seo:"Lokale SEO",structured_data:"Gestructureerde data",links:"Links & redirects",accessibility:"Toegankelijkheid",lead_conversion:"Conversie & contact",saas_b2b:"SaaS / B2B",tourism_recreation:"Toerisme & recreatie",service_marketplace:"Dienstenplatform",home_services:"Bouw & installatie",professional_services:"Zakelijke dienstverlening",automotive:"Automotive",health_wellness:"Zorg & gezondheid",beauty:"Beauty & wellness",hospitality:"Horeca",accommodation:"Verblijf & accommodatie",news_media:"Nieuws & media",business_identity:"Bedrijfsidentiteit",quality_trust:"Kwaliteit & vertrouwen",transport_travel:"Transport & mobiliteit",transport_logistics:"Transport & logistiek",real_estate:"Vastgoed"},
  en:{manufacturing_industrial:"Manufacturing & industry",education:"Education & training",nonprofit:"Charity & non-profit",energy_utilities:"Energy & utilities",events_culture:"Events & culture",fitness_sports:"Sports & fitness",local:"Local",recruitment:"Recruitment & jobs",government:"Government",telecom_technology:"Telecom & technology",food_local_retail:"Food & local retail",booking:"Booking & availability",marketplace:"Marketplace",core_seo:"SEO",geo:"GEO / AI visibility",technical:"Technical",security:"Security settings",ecommerce:"Online store",product:"Products",pricing_currency:"Pricing & currency",merchant:"Merchant",checkout:"Checkout",eu_consumer:"EU consumer information",local_seo:"Local SEO",structured_data:"Structured data",links:"Links & redirects",accessibility:"Accessibility",lead_conversion:"Conversion & contact",saas_b2b:"SaaS / B2B",tourism_recreation:"Tourism & recreation",service_marketplace:"Service marketplace",home_services:"Home services",professional_services:"Professional services",automotive:"Automotive",health_wellness:"Healthcare",beauty:"Beauty & wellness",hospitality:"Hospitality",accommodation:"Accommodation",news_media:"News & media",business_identity:"Business identity",quality_trust:"Quality & trust",transport_travel:"Transport & mobility",transport_logistics:"Transport & logistics",real_estate:"Real estate"},

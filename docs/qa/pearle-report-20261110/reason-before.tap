@@ -1,0 +1,76 @@
+TAP version 13
+# (node:975) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/report-check-reason.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Consent Mode retains its recorded runtime limitation without inventing a raw-only scan
+ok 1 - Consent Mode retains its recorded runtime limitation without inventing a raw-only scan
+  ---
+  duration_ms: 0.926952
+  type: 'test'
+  ...
+# Subtest: explicit reasons survive grouping, including different failures with the same reason code
+not ok 2 - explicit reasons survive grouping, including different failures with the same reason code
+  ---
+  duration_ms: 0.942364
+  type: 'test'
+  location: '/workspace/rankfix-app/tests/report-check-reason.test.mjs:12:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Niet te bevestigen omdat dit signaal mogelijk pas na JavaScript-rendering zichtbaar wordt; deze scan gebruikte raw HTML.'
+    - 'De browserversie is gerenderd, maar consentinteracties zijn niet uitgevoerd.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'De browserversie is gerenderd, maar consentinteracties zijn niet uitgevoerd.'
+  actual: 'Niet te bevestigen omdat dit signaal mogelijk pas na JavaScript-rendering zichtbaar wordt; deze scan gebruikte raw HTML.'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/report-check-reason.test.mjs:19:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: missing legacy messages get neutral fallbacks without inferring unperformed rendering
+not ok 3 - missing legacy messages get neutral fallbacks without inferring unperformed rendering
+  ---
+  duration_ms: 0.266961
+  type: 'test'
+  location: '/workspace/rankfix-app/tests/report-check-reason.test.mjs:24:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input was expected to not match the regular expression /deze scan gebruikte raw HTML|JavaScript-rendering zichtbaar/. Input:
+    
+    'Niet te bevestigen omdat dit signaal mogelijk pas na JavaScript-rendering zichtbaar wordt; deze scan gebruikte raw HTML.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Niet te bevestigen omdat dit signaal mogelijk pas na JavaScript-rendering zichtbaar wordt; deze scan gebruikte raw HTML.'
+  operator: 'doesNotMatch'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/rankfix-app/tests/report-check-reason.test.mjs:27:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 1
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 94.198985

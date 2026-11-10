@@ -1,0 +1,13 @@
+{
+  "command": "npm test",
+  "exitCode": 1,
+  "tests": 1235,
+  "passed": 1226,
+  "failed": 1,
+  "skipped": 8,
+  "durationMs": 509470.890042,
+  "failedTest": "EU regression bundle keeps classification, confidence and challenge guards",
+  "assertion": "Expected existing call reasonFor(check,language)",
+  "cause": "Extracted helper renamed the call site; the required source wiring was preserved with an import alias. Existing assertion unchanged.",
+  "followup": "wiring-after.log: 4 tests pass, zero fail; full suite rerun separately"
+}

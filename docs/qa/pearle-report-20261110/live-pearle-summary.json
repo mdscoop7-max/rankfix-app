@@ -1,0 +1,239 @@
+{
+  "sourceCommit": "251940f1670bec39ff2d49642ea798b67960eaca",
+  "date": "2026-11-10",
+  "input": "https://pearle.be/",
+  "finalUrl": "https://www.pearle.be/nl_BE",
+  "apiHttpStatus": 200,
+  "elapsedMs": 80231,
+  "method": "real live /api/scan request via local QA session, Chromium, configured proxy, TLS validation enabled; no replay",
+  "rawResponseSha256": "fad579cfe11b8a1c7500c5ec25aa319b9e60b7e35e4579bd190d82c4c27043d8",
+  "rawResponsePublished": false,
+  "rendering": {
+    "mode": "javascript_rendered",
+    "javascriptExecuted": true,
+    "completeness": "complete",
+    "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
+    "warning": false
+  },
+  "scores": {
+    "overall": 97,
+    "seo": 96,
+    "geo": 99,
+    "model": {
+      "version": "3.5.1-evidence-integrity",
+      "formula": "0.6 × SEO + 0.4 × GEO",
+      "provisional": true,
+      "evidenceLevel": "provisional",
+      "evidenceReasons": [
+        "Bewijsdekking 88% (onder 95%)",
+        "5 toepasselijke controle(s) niet te bevestigen",
+        "Belangrijke controle(s) niet bevestigd: Expertise-signalen (YMYL)"
+      ],
+      "range": {
+        "low": 86,
+        "high": 98,
+        "assessedWeight": 201,
+        "unverifiedWeight": 27,
+        "applicableWeight": 228,
+        "basis": "all_applicable_checks"
+      }
+    }
+  },
+  "sector": {
+    "sector": "health_wellness",
+    "key": "optician",
+    "label": "Opticien & oogzorg",
+    "confidence": "medium",
+    "confidenceScore": 90
+  },
+  "commerceApplicability": {
+    "state": "unconfirmed",
+    "reason": "weak_commerce_signals",
+    "marketSelector": false,
+    "representativePagesAudited": 9,
+    "serviceCommerce": {
+      "subscription": false,
+      "booking": false,
+      "lead": false,
+      "price": true,
+      "hasCommercialActivity": false
+    },
+    "message": "Er zijn product- of webshopsignalen gevonden, maar niet alle betaal-, winkelwagen- en retailfuncties zijn onafhankelijk bevestigd. Relevante productcontroles blijven mogelijk; onbevestigde shopfuncties zijn niet automatisch afwezig."
+  },
+  "counts": {
+    "selected": 16,
+    "fetched": 16,
+    "scored": 16,
+    "unscoredMetadata": 0,
+    "headOnly": 0,
+    "excludedNoindex": 0,
+    "fetchFailed": 0,
+    "outcomes": {
+      "selected": 16,
+      "scored": 16,
+      "unscored": 0,
+      "noindex": 0,
+      "nonContent": 0,
+      "thinContent": 0,
+      "missing": 0,
+      "notRetrieved": 0,
+      "duplicate": 0
+    },
+    "contact": 1,
+    "article": 1,
+    "homepage": 1,
+    "category": 4,
+    "product": 0,
+    "form": 0,
+    "legal": 2,
+    "service": 5,
+    "listing": 0,
+    "support": 1,
+    "location": 0,
+    "other": 1,
+    "audited": 16,
+    "unableToConfirm": 0
+  },
+  "pages": [
+    {
+      "url": "https://www.pearle.be/nl_BE",
+      "type": "homepage",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/home/contact",
+      "type": "contact",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/blog",
+      "type": "article",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/service",
+      "type": "service",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/service/garanties",
+      "type": "service",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/service/ziekenfondsen",
+      "type": "service",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/service/100-tevreden-klant-garantie",
+      "type": "service",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/home/gebruiksvoorwaarden",
+      "type": "legal",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/home/toegankelijkheidsverklaring",
+      "type": "legal",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/faq",
+      "type": "support",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/brillen/outlet",
+      "type": "category",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/zonnebrillen/outlet",
+      "type": "category",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/opticien",
+      "type": "other",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/afspraak-maken",
+      "type": "service",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/brillen/nieuwe-collectie",
+      "type": "category",
+      "status": "audited",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+      "type": "category",
+      "status": "audited",
+      "httpStatus": 200
+    }
+  ],
+  "checks": [
+    {
+      "key": "sector_health_appointment",
+      "status": "unable_to_confirm",
+      "message": "Niet bevestigd: \"Een afspraak- of contactactie is bevestigd.\" rust op een signaal met lage zekerheid; telt daarom niet mee in de score (geen aftrek).",
+      "reasonCode": "weak_evidence"
+    },
+    {
+      "key": "commercial_terms_signal",
+      "status": "not_applicable",
+      "message": "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.",
+      "reasonCode": "cap_absent"
+    },
+    {
+      "key": "consent_mode_readiness",
+      "status": "unable_to_confirm",
+      "message": "Google tracking is gevonden, maar de statische HTML bewijst niet of Consent Mode runtime via GTM of een CMP wordt ingesteld. Afwezigheid van een expliciet consent-signaal in de gerenderde pagina is daarom geen bewezen configuratiefout.",
+      "reasonCode": "weak_evidence"
+    },
+    {
+      "key": "checkout_funnel_static",
+      "status": "not_applicable",
+      "message": "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.",
+      "reasonCode": "cap_absent"
+    },
+    {
+      "key": "webshop_trust",
+      "status": "not_applicable",
+      "message": "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.",
+      "reasonCode": "cap_absent"
+    },
+    {
+      "key": "product_schema",
+      "status": "not_applicable",
+      "message": "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.",
+      "reasonCode": "cap_absent"
+    }
+  ],
+  "limits": [
+    "Observed optician label is not an independent sector-accuracy measurement.",
+    "No product detail page was selected in this run. The pasted report selected one: samples differ.",
+    "No checkout, consent, login, purchase or payment interaction executed.",
+    "This is one real website scan, not 144 live scans."
+  ]
+}

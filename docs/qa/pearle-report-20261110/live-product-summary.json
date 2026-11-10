@@ -1,0 +1,133 @@
+{
+  "sourceCommit": "251940f1670bec39ff2d49642ea798b67960eaca",
+  "date": "2026-11-10",
+  "method": "real live /api/scan, JavaScript rendering; no purchase or consent interactions",
+  "apiHttpStatus": 200,
+  "elapsedMs": 84000,
+  "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+  "rawResponseSha256": "f4eefe0636397c8a266fb1915e0c65f63e8290c90d9974b124d366c0c3e6640e",
+  "rawResponsePublished": false,
+  "pageType": {
+    "type": "product",
+    "confidence": "high",
+    "evidence": [
+      "Product schema present",
+      "Store schema present",
+      "commercial navigation + shop/support links",
+      "SKU signal present"
+    ]
+  },
+  "rendering": {
+    "mode": "javascript_rendered",
+    "javascriptExecuted": true,
+    "completeness": "complete"
+  },
+  "sector": {
+    "sector": "ecommerce",
+    "key": "ecommerce",
+    "confidence": "medium",
+    "confidenceScore": 65,
+    "evidence": [
+      "Schema: Product",
+      "Schema: Offer",
+      "Schema: OnlineStore",
+      "Tegenstrijdig bewijs over de eigen activiteit: branche niet bevestigd",
+      "Tegenbewijs: Eigen pagina beschrijft een andere activiteit: https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154: Opticien & oogzorg",
+      "Tegenbewijs: Eigen pagina beschrijft een andere activiteit: https://www.pearle.be/nl_BE: Opticien & oogzorg",
+      "Tegenbewijs: Eigen pagina beschrijft een andere activiteit: https://www.pearle.be/nl_BE/brillen/outlet: Opticien & oogzorg"
+    ]
+  },
+  "commerce": {
+    "state": "confirmed",
+    "marketSelector": false,
+    "representativePagesAudited": 12,
+    "serviceCommerce": {
+      "subscription": false,
+      "booking": false,
+      "lead": false,
+      "price": true,
+      "hasCommercialActivity": false
+    },
+    "message": "Product-, prijs- of winkelwagenbewijs bevestigd."
+  },
+  "scoreModel": {
+    "version": "3.5.1-evidence-integrity",
+    "provisional": true,
+    "evidenceLevel": "provisional",
+    "evidenceReasons": [
+      "Bewijsdekking 88% (onder 95%)",
+      "9 toepasselijke controle(s) niet te bevestigen",
+      "Hoofdsector niet eenduidig (zekerheid 65%)"
+    ],
+    "range": {
+      "low": 87,
+      "high": 100,
+      "assessedWeight": 248,
+      "unverifiedWeight": 35,
+      "applicableWeight": 283,
+      "basis": "all_applicable_checks"
+    }
+  },
+  "checks": [
+    {
+      "key": "commercial_terms_signal",
+      "status": "pass",
+      "message": "Een link naar voorwaarden is gevonden.",
+      "evidence": {
+        "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+        "found": "termsLink=true",
+        "details": "Een link naar voorwaarden is gevonden.",
+        "source": "rendered_html"
+      }
+    },
+    {
+      "key": "merchant_product_readiness",
+      "status": "pass",
+      "message": "Op deze bewezen productpagina bevat Product structured data minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.",
+      "evidence": {
+        "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+        "found": "ready=true; productSchema=true; offers=2",
+        "details": "Op deze bewezen productpagina bevat Product structured data minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.",
+        "source": "rendered_html"
+      }
+    },
+    {
+      "key": "checkout_funnel_static",
+      "status": "unable_to_confirm",
+      "message": "RankFix vond webshop-signalen in de gerenderde pagina, maar heeft de volledige product → winkelwagen → checkout-flow niet doorlopen; klikken en betalen worden bewust niet uitgevoerd.",
+      "evidence": {
+        "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+        "found": "productPage=true; addToCart=true; cartLink=false; checkoutLink=false; staticHtmlOnly=true",
+        "details": "RankFix vond webshop-signalen in de gerenderde pagina, maar heeft de volledige product → winkelwagen → checkout-flow niet doorlopen; klikken en betalen worden bewust niet uitgevoerd.",
+        "source": "rendered_html"
+      }
+    },
+    {
+      "key": "product_price_consistency",
+      "status": "pass",
+      "message": "Een expliciet gemarkeerde productprijs komt overeen met de Product/Offer structured-data prijs.",
+      "evidence": {
+        "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+        "found": "visible=220; visibleEvidence=explicit_product_markup; schema=220",
+        "details": "Een expliciet gemarkeerde productprijs komt overeen met de Product/Offer structured-data prijs.",
+        "source": "rendered_html"
+      }
+    },
+    {
+      "key": "product_schema",
+      "status": "pass",
+      "message": "Product JSON-LD bevat aantoonbaar productnaam, afbeelding en Offer-data met prijs, valuta en beschikbaarheid.",
+      "evidence": {
+        "url": "https://www.pearle.be/nl_BE/brillen/oakley-wheel-house-basecamp-collection-ox8166-1154",
+        "found": "[{\"name\":\"Oakley OX8166 Wheel House Basecamp Collection\",\"image\":true,\"sku\":\"888392699732\",\"offers\":[{\"type\":null,\"price\":null,\"highPrice\":null,\"currency\":null,\"availability\":null,\"shippingDetails\":false,\"returnPolicy\":false}]},{\"name\":\"Oakley OX8166 Wheel House Basecamp Collection 816611\",\"image\":true,\"sku\":\"888392699732\",\"offers\":[{\"type\":\"Offer\",\"price\":220,\"highPrice\":null,\"currency\":\"EUR\",\"availability\":\"https://schema.org/InStock\",\"shippingDetails\":false,\"returnPolicy\":false}]}]",
+        "details": "Product JSON-LD bevat aantoonbaar productnaam, afbeelding en Offer-data met prijs, valuta en beschikbaarheid.",
+        "source": "rendered_html"
+      }
+    }
+  ],
+  "limits": [
+    "Checkout was not executed; confirmed commerce means public product/price signals, not a verified transaction.",
+    "Product scan sector is ecommerce with confidence 65 and explicit optician counter-evidence: not an independently confirmed primary industry.",
+    "Product schema contains two same-SKU product candidates; the second has an Offer at EUR 220, InStock. No missing-price defect inferred from the first candidate."
+  ]
+}

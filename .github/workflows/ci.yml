@@ -85,6 +85,7 @@ jobs:
             sleep 1
           done
           node tests/manual/fixes-responsive.browser.mjs
+          CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node tests/manual/report-evidence-reasons.browser.mjs
       - name: Browser context regression (local production build, mocked APIs)
         if: ${{ success() }}
         run: node tests/ui-context-smoke.mjs

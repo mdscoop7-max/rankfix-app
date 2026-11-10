@@ -1,0 +1,20 @@
+(node:6450) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/report-check-reason.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Consent Mode retains its recorded runtime limitation without inventing a raw-only scan (1.20595ms)
+✔ explicit reasons survive grouping, including different failures with the same reason code (0.246189ms)
+✔ missing legacy messages get neutral fallbacks without inferring unperformed rendering (0.41274ms)
+(node:6457) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-app/lib/commerce-claims.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/rankfix-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ EU regression bundle keeps classification, confidence and challenge guards (25.172003ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 314.638313
