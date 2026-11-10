@@ -1,4 +1,5 @@
 "use client";
+import { readScanJson } from "@/lib/scan-response-client";
 import { fetchScanResponse } from "@/lib/scan-request-client";
 
 import Link from "next/link";
@@ -84,7 +85,7 @@ export default function DashboardScan() {
     setUrl(normalized); setBusy(true);
     try{
       const response=await fetchScanResponse({url:normalized,mode:"both",dashboard:true,language});
-      const data=await response.json();
+      const data=await readScanJson(response);
       if(response.status===401&&fixIssue){window.location.replace("/account?next="+encodeURIComponent(window.location.pathname+window.location.search));return;}
       if(!response.ok) throw new Error(data.error||t.failed);
       if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",normalized);
