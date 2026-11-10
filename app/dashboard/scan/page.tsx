@@ -1,4 +1,5 @@
 "use client";
+import { fetchScanResponse } from "@/lib/scan-request-client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,7 +83,7 @@ export default function DashboardScan() {
     try{new URL(normalized);}catch{setUrlError(language==="nl"?"Vul een geldige website in, bijvoorbeeld example.com.":"Enter a valid website, for example example.com.");return;}
     setUrl(normalized); setBusy(true);
     try{
-      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalized,mode:"both",dashboard:true,language})});
+      const response=await fetchScanResponse({url:normalized,mode:"both",dashboard:true,language});
       const data=await response.json();
       if(response.status===401&&fixIssue){window.location.replace("/account?next="+encodeURIComponent(window.location.pathname+window.location.search));return;}
       if(!response.ok) throw new Error(data.error||t.failed);

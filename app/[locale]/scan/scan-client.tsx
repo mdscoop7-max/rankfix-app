@@ -1,4 +1,5 @@
 "use client";
+import { fetchScanResponse } from "@/lib/scan-request-client";
 import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import { useState } from "react";
@@ -37,7 +38,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {
-      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale }) });
+      const response = await fetchScanResponse({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || t.error);
       const normalized = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
