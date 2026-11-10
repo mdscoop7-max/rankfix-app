@@ -59,7 +59,7 @@ test("scan route reuses a single primary and representative render attempt", asy
   assert.match(scanner, /representativeEvidenceSource !== "rendered_html"/);
   assert.match(headless, /MAX_CONCURRENT_BROWSERS = 2/);
   assert.match(headless, /MAX_QUEUED_BROWSERS = 8/);
-  assert.match(headless, /withinTimeout\(page\.content\(\), remaining\(\)\)/);
+  assert.match(headless, /withinTimeout\(\(\) => page\.content\(\), remaining\(\)\)/);
   assert.doesNotMatch(headless, /setUserAgent\("RankFixBrowser\/1\.0"\)/);
 });
 

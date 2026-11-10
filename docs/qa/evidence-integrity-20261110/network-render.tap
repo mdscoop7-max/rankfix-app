@@ -1,0 +1,164 @@
+TAP version 13
+# (node:863) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/browser-diagnostics.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: browser failures retain the URL, resource, browser code and only supported causes
+ok 1 - browser failures retain the URL, resource, browser code and only supported causes
+  ---
+  duration_ms: 13.372897
+  type: 'test'
+  ...
+# Subtest: www redirects and HTTPS upgrades are distinguishable from another page, query or site
+ok 2 - www redirects and HTTPS upgrades are distinguishable from another page, query or site
+  ---
+  duration_ms: 0.585528
+  type: 'test'
+  ...
+# Subtest: diagnostics bound storage but keep complete counts; snapshots cannot grow during browser close
+ok 3 - diagnostics bound storage but keep complete counts; snapshots cannot grow during browser close
+  ---
+  duration_ms: 1.537184
+  type: 'test'
+  ...
+# Subtest: a later empty window or request failures cannot erase five valid JSON-LD blocks
+ok 4 - a later empty window or request failures cannot erase five valid JSON-LD blocks
+  ---
+  duration_ms: 2.90141
+  type: 'test'
+  ...
+# Subtest: real renderer records redirects, failures, scanner aborts and navigation timeout
+ok 5 - real renderer records redirects, failures, scanner aborts and navigation timeout
+  ---
+  duration_ms: 257.254195
+  type: 'test'
+  ...
+# (node:874) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/link-status.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: every HTTP status gets an explicit outcome; 400/405/408 are never silently healthy
+ok 6 - every HTTP status gets an explicit outcome; 400/405/408 are never silently healthy
+  ---
+  duration_ms: 2.002572
+  type: 'test'
+  ...
+# Subtest: 5xx is only a proven server error after two measurements, and never for 502/503/504
+ok 7 - 5xx is only a proven server error after two measurements, and never for 502/503/504
+  ---
+  duration_ms: 0.958839
+  type: 'test'
+  ...
+# Subtest: no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing
+ok 8 - no answer, a challenge page, a redirect limit or a URL pattern alone prove nothing
+  ---
+  duration_ms: 0.43899
+  type: 'test'
+  ...
+# Subtest: evidence strength per outcome; only proven errors cost points
+ok 9 - evidence strength per outcome; only proven errors cost points
+  ---
+  duration_ms: 3.877043
+  type: 'test'
+  ...
+# Subtest: one attribution for the scanned page: site, network, RankFix
+ok 10 - one attribution for the scanned page: site, network, RankFix
+  ---
+  duration_ms: 1.193664
+  type: 'test'
+  ...
+# Subtest: TestLab and scripts use the scanner's attribution, also without incident evidence
+ok 11 - TestLab and scripts use the scanner's attribution, also without incident evidence
+  ---
+  duration_ms: 1.658648
+  type: 'test'
+  ...
+# Subtest: Sector80: retail labels count as webshops (was 0 of 12)
+ok 12 - Sector80: retail labels count as webshops (was 0 of 12)
+  ---
+  duration_ms: 0.839788
+  type: 'test'
+  ...
+# Subtest: route: every link category is classified from its response, with evidence; only proven errors cost points
+ok 13 - route: every link category is classified from its response, with evidence; only proven errors cost points
+  ---
+  duration_ms: 3770.973612
+  type: 'test'
+  ...
+# Subtest: expired render deadline must not start a browser promise that later rejects unhandled
+ok 14 - expired render deadline must not start a browser promise that later rejects unhandled
+  ---
+  duration_ms: 261.381946
+  type: 'test'
+  ...
+# (node:918) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/scan-egress.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+ok 15 - only the evidenced scan-tunnel signature is infrastructure, never a generic website Envoy error
+  ---
+  duration_ms: 2.141427
+  type: 'test'
+  ...
+# Subtest: safe fetch rejects the proxy outage before reporting a website HTTP status
+ok 16 - safe fetch rejects the proxy outage before reporting a website HTTP status
+  ---
+  duration_ms: 97.815758
+  type: 'test'
+  ...
+# Subtest: ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+ok 17 - ordinary plaintext 503 responses retain their exact readable body, headers and object identity
+  ---
+  duration_ms: 6.732221
+  type: 'test'
+  ...
+# Subtest: a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+ok 18 - a stalled 503 signature probe stays bounded and tee cancellation does not deadlock the caller
+  ---
+  duration_ms: 1002.039517
+  type: 'test'
+  ...
+# Subtest: the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+ok 19 - the outage is retryable RankFix infrastructure in persistence, incident and TestLab, without charging
+  ---
+  duration_ms: 2.191554
+  type: 'test'
+  ...
+# Subtest: real scan route: primary proxy outage never becomes a proven website or broken-link fault
+ok 20 - real scan route: primary proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 956.612965
+  type: 'test'
+  ...
+# Subtest: real scan route: sample proxy outage never becomes a proven website or broken-link fault
+ok 21 - real scan route: sample proxy outage never becomes a proven website or broken-link fault
+  ---
+  duration_ms: 2640.984916
+  type: 'test'
+  ...
+# (node:968) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/rankfix-integrity/lib/scan-egress.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /workspace/rankfix-integrity/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: an upstream connection refusal is not evidence that the target website served an error
+ok 22 - an upstream connection refusal is not evidence that the target website served an error
+  ---
+  duration_ms: 65.904637
+  type: 'test'
+  ...
+# Subtest: ordinary origin maintenance and server responses retain their original status and body
+ok 23 - ordinary origin maintenance and server responses retain their original status and body
+  ---
+  duration_ms: 1.112853
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10157.306235

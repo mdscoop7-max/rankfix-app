@@ -19,6 +19,7 @@ export type ScanAttemptCategory =
 /** Network failure → stable code. Never contains raw runtime text. */
 export function fetchFailureCode(error: unknown): string {
   if (error instanceof Error && error.message === "SCAN_INFRASTRUCTURE_EGRESS") return "SCAN_INFRASTRUCTURE_EGRESS";
+  if (error instanceof Error && error.message === "UPSTREAM_RESPONSE_UNCONFIRMED") return "FETCH_UPSTREAM_UNCONFIRMED";
   const text = `${error instanceof Error ? `${error.name} ${error.message}` : String(error)} ${(error as { cause?: { code?: string; message?: string } })?.cause?.code || ""} ${(error as { cause?: { message?: string } })?.cause?.message || ""}`;
   if (/REDIRECT_LOOP/.test(text)) return "REDIRECT_LOOP";
   if (/REDIRECT_LIMIT/.test(text)) return "REDIRECT_LIMIT";

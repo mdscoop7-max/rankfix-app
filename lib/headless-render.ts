@@ -82,11 +82,13 @@ function releaseBrowserSlot() {
   else activeBrowsers = Math.max(0, activeBrowsers - 1);
 }
 
-async function withinTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+// Browser operations are lazy: evaluate remaining() before starting work. If
+// that budget check throws, no unattached CDP promise can reject after close.
+async function withinTimeout<T>(work: () => Promise<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      work,
+      work(),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => reject(new Error("RENDER_TIMEOUT")), Math.max(1, timeoutMs));
       }),
@@ -268,7 +270,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // This does not bypass site protections or mark a degraded page as valid.
     if (!structuredMode && !partialNavigation && remaining() > 1700) {
       try {
-        await withinTimeout(page.evaluate(() => new Promise<void>((resolve) => {
+        await withinTimeout(() => page.evaluate(() => new Promise<void>((resolve) => {
           const appRoot = document.querySelector("#__nuxt, #__next, [ng-version], [data-reactroot]");
           if (!appRoot || typeof MutationObserver === "undefined") { resolve(); return; }
           let quietTimer = 0;
@@ -297,11 +299,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     }
     const finalUrl = validatePublicHttpUrl(page.url());
     await assertPublicDns(finalUrl.hostname);
-    const html = await withinTimeout(page.content(), remaining());
+    const html = await withinTimeout(() => page.content(), remaining());
     if (!html || html.length < 20 || html.length > 8000000) throw new Error("RENDERED_HTML_INVALID");
     // Only inspect the actually hydrated DOM; this is a bounded basic accessible
     // name inspection, not a WCAG/axe-core certification.
-    const domDetails = await withinTimeout(page.evaluate(() => {
+    const domDetails = await withinTimeout(() => page.evaluate(() => {
       const t = document.title || "";
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -335,11 +337,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // A partially loaded page is not a basis for an accessibility rule run.
     if (!partialNavigation && !structuredMode) try {
       const axeCore = (await import("axe-core")).default;
-      await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
+      await withinTimeout(() => page.evaluate(axeCore.source), Math.min(2500, remaining()));
       // Passed as a STRING, not a function: a bundled/transpiled async function
       // carries helper references (e.g. "t") that do not exist in the page and
       // failed with "t is not defined" (QA 144). A string is evaluated as-is.
-      axeReport = await withinTimeout(page.evaluate(AXE_RUN_SCRIPT) as Promise<AxeSummary>, Math.min(3500, remaining()));
+      axeReport = await withinTimeout(() => page.evaluate(AXE_RUN_SCRIPT) as Promise<AxeSummary>, Math.min(3500, remaining()));
     } catch (error) {
       axeError = error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE";
       console.info("RankFix axe-core fallback", { reason: axeError });
@@ -356,7 +358,8 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     throw error;
   } finally {
     if (browser) {
-      try { await withinTimeout(browser.close(), 2000); }
+      const browserToClose = browser;
+      try { await withinTimeout(() => browserToClose.close(), 2000); }
       catch {
         // If Chrome stops responding, do not keep a leaking process alive.
         try { browser.process()?.kill("SIGKILL"); } catch {}

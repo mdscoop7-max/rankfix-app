@@ -37,8 +37,15 @@ export async function assertScanEgressAvailable(response: Response): Promise<voi
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  if (isScanEgressFailure(response.status, new TextDecoder().decode(bytes))) {
+  const body = new TextDecoder().decode(bytes);
+  if (isScanEgressFailure(response.status, body)) {
     void response.body?.cancel().catch(() => {});
     throw new Error(SCAN_EGRESS_ERROR);
+  }
+  // A gateway says it could not obtain origin headers. Keep the observed 503,
+  // but do not attribute it to either the target or RankFix without evidence.
+  if (body.trimStart().startsWith("upstream connect error or disconnect/reset before headers.")) {
+    void response.body?.cancel().catch(() => {});
+    throw new Error("UPSTREAM_RESPONSE_UNCONFIRMED", { cause: { observedHttpStatus: response.status } });
   }
 }

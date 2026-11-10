@@ -1058,7 +1058,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         return NextResponse.json({ error: tlsText, code: tlsCode, tlsReason, diagnosis: diagnoseFetchFailure("FETCH_TLS", Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false }, { status: siteFault ? 422 : 502 });
       }
       if (!timeoutRecovery) return NextResponse.json(
-        { error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
+        { error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, observedUpstreamHttpStatus: code === "FETCH_UPSTREAM_UNCONFIRMED" ? (fetchError as Error & {cause?: {observedHttpStatus?: number}}).cause?.observedHttpStatus ?? null : undefined, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
         { status: 502 }
       );
       // Placeholder for the unanswered request; content comes from the browser.
@@ -7389,15 +7389,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // says "no products" next to sampled product or financial-product pages.
     const sampledFinancialProductPages = auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length + (financialOfferSchema ? 1 : 0);
     const FINANCIAL_PRODUCTS_NOT_RETAIL = "De gevonden productpagina's beschrijven financiële producten (rekening, lening, kaart of verzekering), geen fysieke retailproducten; deze retailcontrole is daarom niet van toepassing.";
-    // Applicability must consume the FINAL accepted identity, not an earlier
-    // candidate whose confidence the role/evidence gate later reduced.
-    const confirmedNonCommerceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
-      && sectorProfile.confidenceScore >= 80 && operatingRole?.status === "confirmed";
+    // A precise sector and a retail function are separate decisions. The own-
+    // activity detectors already establish whether the offer is a service or
+    // industrial activity. Sector uncertainty must not invent a retail audit gap.
+    // This never confirms a sector, earns points, or proves an unobserved shop
+    // absent: shell/refusal and independently observed retail evidence still win.
+    const confirmedNonCommerceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry);
     finalCommerceApplicability = resolveCommerceApplicability(confirmedNonCommerceIdentity);
-    if (finalCommerceApplicability.state === "absent" && !confirmedNonCommerceIdentity
-      && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
-      finalCommerceApplicability = {state:"unconfirmed",reason:"low_coverage"};
-    }
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
         if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
