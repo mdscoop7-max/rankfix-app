@@ -1,0 +1,78 @@
+TAP version 13
+# (node:16235) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/rankfix-before-evidence-20261110/lib/commerce-applicability.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/rankfix-before-evidence-20261110/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: unexamined retail evidence is uncertainty even when a service identity is established
+not ok 1 - unexamined retail evidence is uncertainty even when a service identity is established
+  ---
+  duration_ms: 3.832285
+  type: 'test'
+  location: '/tmp/rankfix-before-evidence-20261110/tests/incomplete-render-claims.test.mjs:8:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   reason: 'service_identity',
+    +   state: 'absent'
+    -   reason: 'low_coverage',
+    -   state: 'unconfirmed'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    state: 'unconfirmed'
+    reason: 'low_coverage'
+  actual:
+    state: 'absent'
+    reason: 'service_identity'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/rankfix-before-evidence-20261110/tests/incomplete-render-claims.test.mjs:9:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  ...
+# Subtest: real route agrees about unrendered H1 and never turns unexamined shop pages into absence
+not ok 2 - real route agrees about unrendered H1 and never turns unexamined shop pages into absence
+  ---
+  duration_ms: 5796.933921
+  type: 'test'
+  location: '/tmp/rankfix-before-evidence-20261110/tests/incomplete-render-claims.test.mjs:15:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'warning'
+    - 'unable_to_confirm'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'unable_to_confirm'
+  actual: 'warning'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/rankfix-before-evidence-20261110/tests/incomplete-render-claims.test.mjs:19:9)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6136.036884

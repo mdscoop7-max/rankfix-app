@@ -1,7 +1,21 @@
+import { aiContentText } from "./ai-content-text.ts";
+
 // Generic, site-independent scan policy. Keep it pure so the same decisions
 // can be used by both the primary scanner and representative-page scanner.
 export function isJavaScriptFramework(html: string): boolean {
   return /(?:__NUXT__|__NUXT_DATA__|\/_nuxt\/|__NEXT_DATA__|\/_next\/|data-reactroot|data-react-helmet|react-dom|ng-version\s*=|ng-app\s*=|__vue_app__|data-v-[a-f\d]{4,}|__APOLLO_STATE__|webpackJsonp|id\s*=\s*["'](?:__next|__nuxt)["']|id\s*=\s*["'](?:root|app)["'][^>]*>\s*<\/div>)/i.test(html);
+}
+
+/** Menu/footer words cannot establish a substantive server-rendered body. */
+export function hasSubstantiveBody(html: string): boolean {
+  return aiContentText(html, 12000).split(/\s+/).filter(Boolean).length >= 250;
+}
+
+/** Positive SSR content survives a poorer render; navigation alone does not. */
+export function missingH1NeedsRender(html: string, rendered: boolean): boolean {
+  if (rendered || hasSubstantiveBody(html)) return false;
+  const scripts = (html.match(/<script\b(?![^>]*type\s*=\s*["']application\/(?:ld\+)?json["'])/gi) || []).length;
+  return isJavaScriptFramework(html) || scripts >= 3;
 }
 
 export const DOM_DEPENDENT_CHECKS = new Set([

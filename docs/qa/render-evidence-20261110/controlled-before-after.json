@@ -1,0 +1,793 @@
+{
+  "type": "synthetic controlled route regressions, not live website scans",
+  "baselineCommit": "a3d6da5162a63d06b5309092690329c0a4151bac",
+  "sameFinalFixtureExecutedBeforeAndAfter": true,
+  "results": {
+    "before": {
+      "scripted": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "warning",
+          "message": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+          "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+          "points": 6,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "WARNING",
+          "severity": "HIGH",
+          "confidence": "high",
+          "impactClaim": "best_practice",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "UNABLE_TO_CONFIRM",
+          "details": "0 H1-heading(s) gevonden in de raw HTML. De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld."
+        },
+        "commerce": {
+          "state": "absent",
+          "reason": "service_identity",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "product_schema",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "positive": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "pass",
+          "message": "Er is precies één H1-heading gevonden.",
+          "fix": "Behoud één duidelijke primaire H1.",
+          "points": 8,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "PASS",
+          "severity": "MEDIUM",
+          "confidence": "high",
+          "impactClaim": "hygiene",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 1,
+            "details": "Er is precies één H1-heading gevonden.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "PASS",
+          "details": "1 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "absent",
+          "reason": "service_identity",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "product_schema",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "static": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "warning",
+          "message": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+          "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+          "points": 6,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "WARNING",
+          "severity": "HIGH",
+          "confidence": "high",
+          "impactClaim": "best_practice",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "WARNING",
+          "details": "0 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "absent",
+          "reason": "service_identity",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "product_schema",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "rendered": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "warning",
+          "message": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+          "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+          "points": 6,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "WARNING",
+          "severity": "HIGH",
+          "confidence": "high",
+          "impactClaim": "best_practice",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+            "source": "rendered_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "WARNING",
+          "details": "0 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "absent",
+          "reason": "service_identity",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+        },
+        "sector": "optician",
+        "rendered": true,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "product_schema",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      }
+    },
+    "after": {
+      "scripted": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "unable_to_confirm",
+          "message": "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.",
+          "fix": "Controleer de headingstructuur opnieuw met een volledige render.",
+          "points": 0,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "UNABLE_TO_CONFIRM",
+          "severity": "HIGH",
+          "confidence": "low",
+          "reasonCode": "weak_evidence",
+          "impactClaim": "hygiene",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "UNABLE_TO_CONFIRM",
+          "details": "0 H1-heading(s) gevonden in de raw HTML. De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld."
+        },
+        "commerce": {
+          "state": "unconfirmed",
+          "reason": "low_coverage",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "product_schema",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "positive": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "pass",
+          "message": "Er is precies één H1-heading gevonden.",
+          "fix": "Behoud één duidelijke primaire H1.",
+          "points": 8,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "PASS",
+          "severity": "MEDIUM",
+          "confidence": "high",
+          "impactClaim": "hygiene",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 1,
+            "details": "Er is precies één H1-heading gevonden.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "PASS",
+          "details": "1 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "unconfirmed",
+          "reason": "low_coverage",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "product_schema",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "static": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "warning",
+          "message": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+          "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+          "points": 6,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "WARNING",
+          "severity": "HIGH",
+          "confidence": "high",
+          "impactClaim": "best_practice",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+            "source": "raw_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "WARNING",
+          "details": "0 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "absent",
+          "reason": "service_identity",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+        },
+        "sector": "optician",
+        "rendered": false,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          },
+          {
+            "key": "product_schema",
+            "status": "not_applicable",
+            "message": "Scanbewijs bevestigt een primaire identiteit die geen webshop is (zoals dienstverlener, uitgever of organisatie), zonder aangetoonde retailproduct-/winkelwagenketen. Deze specifieke webshopcontrole is niet van toepassing; commerciële abonnementen, boekingen en dienstprijzen kunnen wel relevant zijn."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      },
+      "rendered": {
+        "h1": {
+          "key": "h1",
+          "category": "seo",
+          "title": "H1-heading",
+          "status": "warning",
+          "message": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+          "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+          "points": 6,
+          "maxPoints": 8,
+          "issue_id": "H1_MISSING",
+          "rule_id": "H1_MISSING",
+          "issue_status": "WARNING",
+          "severity": "HIGH",
+          "confidence": "high",
+          "impactClaim": "best_practice",
+          "evidence": {
+            "url": "https://incomplete.test/",
+            "found": 0,
+            "details": "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.",
+            "source": "rendered_html"
+          },
+          "fix_category": "B"
+        },
+        "sampleH1": {
+          "key": "h1",
+          "status": "WARNING",
+          "details": "0 H1-heading(s) gevonden."
+        },
+        "commerce": {
+          "state": "unconfirmed",
+          "reason": "low_coverage",
+          "marketSelector": false,
+          "representativePagesAudited": 3,
+          "serviceCommerce": {
+            "subscription": false,
+            "booking": false,
+            "lead": false,
+            "price": false,
+            "hasCommercialActivity": false
+          },
+          "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+        },
+        "sector": "optician",
+        "rendered": true,
+        "retailChecks": [
+          {
+            "key": "merchant_product_readiness",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "checkout_funnel_static",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "webshop_trust",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          },
+          {
+            "key": "product_schema",
+            "status": "unable_to_confirm",
+            "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+          }
+        ],
+        "pages": [
+          {
+            "url": "https://incomplete.test/",
+            "type": "homepage",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/contact",
+            "type": "contact",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/service",
+            "type": "service",
+            "status": "audited"
+          },
+          {
+            "url": "https://incomplete.test/brillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/zonnebrillen/outlet",
+            "type": "category",
+            "status": "unable_to_confirm"
+          },
+          {
+            "url": "https://incomplete.test/over-ons",
+            "type": "corporate",
+            "status": "audited"
+          }
+        ]
+      }
+    }
+  },
+  "fixtureSha256": "291ff79804378b2603724b8c29a2c841fd9512b9eeb89054021192f8d8677b03"
+}

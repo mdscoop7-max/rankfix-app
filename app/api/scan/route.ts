@@ -88,7 +88,7 @@ import { computeScanReliability } from "@/lib/scan-reliability";
 import { documentBaseUrl, resolveDocumentHref } from "@/lib/document-base";
 import { providerDirectoryIdentity } from "@/lib/provider-directory";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, hasSubstantiveBody, missingH1NeedsRender, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount, internalLinkCount, MIN_REFUSAL_RECOVERY_LINKS } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeLocationPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
@@ -3924,7 +3924,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       : h1s.length > 1 && h1Distinct.distinct.length === 1
         ? check("pass", "h1", "seo", "H1-heading", `Er is één H1-heading gevonden ("${h1Distinct.distinct[0].slice(0, 80)}"). De HTML bevat ${h1s.length} identieke kopieën, meestal responsieve varianten van een websitebouwer die per schermformaat worden getoond; RankFix telt dit als één H1.`, "Geen actie nodig voor SEO. Controleer alleen of verborgen kopieën ook voor schermlezers verborgen zijn (display:none of aria-hidden).", 8, 8)
       : h1s.length === 0
-        ? bodyStructureMayBeClientRendered
+        ? bodyStructureMayBeClientRendered || missingH1NeedsRender(html, javascriptExecuted)
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
           // The text matches the deduction (PDF P6: "niet als fout geteld" but −2).
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
@@ -5770,10 +5770,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
         });
-        // QA 30 Oct (nu.nl): a missing H1 in server HTML is only proven when the page
-        // was rendered or cannot add content with JavaScript (fewer than 3 scripts).
-        const pageScriptCount = (pageHtml.match(/<script\b(?![^>]*type\s*=\s*["']application\/(?:ld\+)?json["'])/gi) || []).length;
-        const pageH1UnverifiedWithoutRender = representativeEvidenceSource !== "rendered_html" && pageScriptCount >= 3;
+        // Share the primary heading rule: real SSR content remains evidence;
+        // failed JavaScript plus navigation-only HTML cannot prove absence.
+        const pageH1UnverifiedWithoutRender = partialHeadOnly
+          || (pageMissingEvidenceUnverified && !hasSubstantiveBody(pageHtml))
+          || missingH1NeedsRender(pageHtml, representativeEvidenceSource === "rendered_html");
         const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
@@ -5797,7 +5798,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":(pageMissingEvidenceUnverified||pageH1UnverifiedWithoutRender)?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1s.length===0&&pageH1UnverifiedWithoutRender?`0 H1-heading(s) in de server-HTML; deze pagina laadt ${pageScriptCount} scripts en is niet in een browser gerenderd, dus een via JavaScript toegevoegde H1 is niet uitgesloten. Niet als fout geteld.`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":pageH1UnverifiedWithoutRender?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageH1UnverifiedWithoutRender?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return canonicalEquivalent(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageMissingEvidenceUnverified ? "UNABLE_TO_CONFIRM" : "WARNING",
@@ -6422,6 +6423,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       marketSelector: marketSelectorPage,
       sectorUnknown: sectorProfile.sector === "unknown",
       hardCommerceSignals: hardStoreSignals.count > 0,
+      // A known retail signal plus an unexamined browser/catalogue is an audit
+      // gap, not proof that the service business has no secondary webshop.
+      retailEvidenceIncomplete: Boolean(
+        (storeSchemaTypes.some(type=>type.toLowerCase()==="onlinestore") || hardStoreSignals.count > 0 || euRetailSelfDescription)
+        && ((javascriptCandidate && !javascriptExecuted)
+          || multiPageAudits.some(item=>item && ["product","category"].includes(item.type) && item.status!=="audited"))
+      ),
       auditedRepresentativePages: representativeAuditedPageCount,
       // 31 Oct (five-site QA, P2): for a confirmed payment, financial or SaaS
       // service, transaction fees, /products/ URLs and its own pay/checkout demo
@@ -7407,7 +7415,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // (e.g. /products/checkout on a payment provider), so links named
       // "product" do not make retail product checks applicable there.
       const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
-      const serviceWithoutProductEvidence = confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused" && !finalCommerceDecision.confirmed &&
+      const serviceWithoutProductEvidence = confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused" && finalCommerceApplicability.reason !== "low_coverage" && !finalCommerceDecision.confirmed &&
         !isProductPage && !hasProductSchema && !verifiedRepresentativeProductDetail && !representativeCommercialProductIntent &&
         (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
@@ -7416,7 +7424,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
             ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
             : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
-        } else if (isStorefrontOnlyForService(item.key, confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused", finalCommerceDecision.confirmed)) {
+        } else if (isStorefrontOnlyForService(item.key, confirmedNonCommerceIdentity && finalCommerceApplicability.reason !== "thin_shell" && finalCommerceApplicability.reason !== "sample_refused" && finalCommerceApplicability.reason !== "low_coverage", finalCommerceDecision.confirmed)) {
           setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
         } else {
           setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
