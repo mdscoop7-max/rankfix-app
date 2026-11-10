@@ -1,0 +1,49 @@
+{
+  "registeredAfterEngineCommit": "4e2ec78",
+  "disjointFromExistingFresh144": true,
+  "purpose": "Additional real-site holdout selection. No classification/accuracy claims until independently reviewed and scanned.",
+  "sites": [
+    {
+      "host": "arup.com",
+      "requestedUrl": "https://arup.com/",
+      "at": "2026-11-10T10:54:12.820189+00:00",
+      "independentReview": "pending",
+      "expectedIndustry": null,
+      "expectedRole": null,
+      "httpStatus": 200,
+      "sourceUrl": "https://www.arup.com/en-us/",
+      "bodySha256": "e40aa63b385f2b9e18ba12eab41b73d5f054e3411af6b339830c2fe2555edfc0",
+      "title": "Planning, designing and engineering the future - Arup",
+      "description": "We are a global consultancy of designers, engineers and consultants. With offices across the US, we help plan, design, delivery and maintain transportation networks, buildings, energy, and water infrastructure that help shape our cities and communities.",
+      "readLimitBytes": 4000000
+    },
+    {
+      "host": "fairphone.com",
+      "requestedUrl": "https://fairphone.com/",
+      "at": "2026-11-10T10:54:12.822506+00:00",
+      "independentReview": "pending",
+      "expectedIndustry": null,
+      "expectedRole": null,
+      "httpStatus": 200,
+      "sourceUrl": "https://www.fairphone.com/",
+      "bodySha256": "6c02629f4d04e23b6e85fca154e6c541f45dd0865c68cb191e27e188c13647be",
+      "title": "Fairphone Shop | Fairphone",
+      "description": "Long-lasting smartphones and accessories that benefit the planet",
+      "readLimitBytes": 4000000
+    },
+    {
+      "host": "doctorswithoutborders.org",
+      "requestedUrl": "https://doctorswithoutborders.org/",
+      "at": "2026-11-10T10:54:12.824587+00:00",
+      "independentReview": "pending",
+      "expectedIndustry": null,
+      "expectedRole": null,
+      "httpStatus": 200,
+      "sourceUrl": "https://www.doctorswithoutborders.org/",
+      "bodySha256": "d1cada14e0f305ab5b649ccc36de17e90f8e10da9c0b1c689251d7803a906a25",
+      "title": "Home | Doctors Without Borders - USA",
+      "description": "Médecins Sans Frontières/Doctors Without Borders (MSF) treats people where the need is greatest. We are an international medical humanitarian organisation. We",
+      "readLimitBytes": 4000000
+    }
+  ]
+}

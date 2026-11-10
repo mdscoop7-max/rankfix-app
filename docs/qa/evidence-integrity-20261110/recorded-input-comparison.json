@@ -1,0 +1,200 @@
+{
+  "baseline": "d5e16b037d83e3ae8e663f6b6e97e33ec52ecab5",
+  "candidate": "4e2ec78325c302fb49e41b72485bcad9e365b6cf",
+  "inputSha256": "1b3881369edc1d6c1920167bd0b6adf890c4df62099688aa9fb66de3fcc6d267",
+  "rawInputRemainsPrivate": true,
+  "rendering": "off_in_both",
+  "missingRequests": 0,
+  "industryAccuracy": null,
+  "rows": [
+    {
+      "host": "feenstra.com",
+      "before": {
+        "sector": "home_services/home_services",
+        "score": 93,
+        "seo": 99,
+        "geo": 85,
+        "coverage": 78,
+        "misses": 0
+      },
+      "after": {
+        "sector": "home_services/home_services",
+        "score": 93,
+        "seo": 99,
+        "geo": 85,
+        "coverage": 78,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "treatwell.nl",
+      "before": {
+        "sector": "service_marketplace/service_marketplace",
+        "score": 98,
+        "seo": 98,
+        "geo": 98,
+        "coverage": 93,
+        "misses": 0
+      },
+      "after": {
+        "sector": "service_marketplace/service_marketplace",
+        "score": 98,
+        "seo": 98,
+        "geo": 98,
+        "coverage": 93,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "restaurantdekas.com",
+      "before": {
+        "sector": "hospitality/restaurant",
+        "score": 99,
+        "seo": 99,
+        "geo": 99,
+        "coverage": 47,
+        "misses": 0
+      },
+      "after": {
+        "sector": "hospitality/restaurant",
+        "score": 99,
+        "seo": 99,
+        "geo": 99,
+        "coverage": 47,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "asr.nl",
+      "before": {
+        "sector": "financial_services/financial_insurance",
+        "score": 95,
+        "seo": 99,
+        "geo": 89,
+        "coverage": 72,
+        "misses": 0
+      },
+      "after": {
+        "sector": "financial_services/financial_insurance",
+        "score": 95,
+        "seo": 99,
+        "geo": 89,
+        "coverage": 72,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "rodekruis.nl",
+      "before": {
+        "sector": "nonprofit/charities_nonprofits",
+        "score": 97,
+        "seo": 95,
+        "geo": 100,
+        "coverage": 98,
+        "misses": 0
+      },
+      "after": {
+        "sector": "nonprofit/charities_nonprofits",
+        "score": 97,
+        "seo": 95,
+        "geo": 99,
+        "coverage": 72,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "hartstichting.nl",
+      "before": {
+        "sector": "nonprofit/nonprofit",
+        "score": 98,
+        "seo": 98,
+        "geo": 99,
+        "coverage": 74,
+        "misses": 0
+      },
+      "after": {
+        "sector": "nonprofit/nonprofit",
+        "score": 98,
+        "seo": 98,
+        "geo": 99,
+        "coverage": 55,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "zilverenkruis.nl",
+      "before": {
+        "sector": "unknown/unknown",
+        "score": 99,
+        "seo": 98,
+        "geo": 100,
+        "coverage": 95,
+        "misses": 0
+      },
+      "after": {
+        "sector": "unknown/unknown",
+        "score": 99,
+        "seo": 98,
+        "geo": 100,
+        "coverage": 95,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "welkoop.nl",
+      "before": {
+        "sector": "ecommerce/ecommerce",
+        "score": 97,
+        "seo": 95,
+        "geo": 100,
+        "coverage": 78,
+        "misses": 0
+      },
+      "after": {
+        "sector": "ecommerce/ecommerce",
+        "score": 97,
+        "seo": 95,
+        "geo": 100,
+        "coverage": 78,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    },
+    {
+      "host": "soaptreatmentstore.com",
+      "before": {
+        "sector": "health_wellness/health_wellness",
+        "score": 99,
+        "seo": 99,
+        "geo": 99,
+        "coverage": 77,
+        "misses": 0
+      },
+      "after": {
+        "sector": "health_wellness/health_wellness",
+        "score": 99,
+        "seo": 99,
+        "geo": 99,
+        "coverage": 77,
+        "misses": 0
+      },
+      "independentlyReviewed": false,
+      "correct": null
+    }
+  ]
+}

@@ -25,3 +25,9 @@ The existing fresh144 catalog is present. CI additionally requires `tests/fixtur
 ## Acceptance
 
 Independent accuracy for industry, error classification, completeness and semantic evidence: not established. A numerical 0–10 reliability score is not justified by available independent labels. Automated regression success is not real-site accuracy. NO-GO for rollout. Remaining work: restore original inputs, complete fresh scans on the repaired engine, independently review labels/evidence, and measure the requested 90% industry / 95% error-classification targets.
+
+## Verified GitHub result on 4e2ec78
+
+Run https://github.com/mdscoop7-max/rankfix-app/actions/runs/42802739443 : `Test, lint and build` succeeded, including dependency audit, all 1232 tests (1224 pass, zero fail, eight skip), lint, build, axe/browser checks, TestLab stop/resume, local QA login, both catalogs/filters/exports and UI browser smoke. The separate mandatory MKB catalog/baseline job failed on its two missing files. Overall workflow remains red; no full-green claim.
+
+The 9-site repeated raw-input comparison is in `recorded-input-comparison.json`: no missing requests in either version, same sector outputs, no independently established accuracy gain. Additional real-site selection is in `additional-real-sites.json`, disjoint from fresh144, with actual collected public metadata and no invented expected labels. Those cases await independent review. The new full 144 run is still in progress and must not be reported complete.
