@@ -1,5 +1,5 @@
-import { fetchScanResponse } from "@/lib/scan-request-client";
 "use client";
+import { fetchScanResponse } from "@/lib/scan-request-client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
