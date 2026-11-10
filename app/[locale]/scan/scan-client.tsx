@@ -1,5 +1,5 @@
-import { fetchScanResponse } from "@/lib/scan-request-client";
 "use client";
+import { fetchScanResponse } from "@/lib/scan-request-client";
 import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import { useState } from "react";
