@@ -25,12 +25,17 @@ export function commerceApplicability(input: {
   sectorUnknown?: boolean;
   /** Cart link/API, add-to-cart, price + order button or payment logos were found. */
   hardCommerceSignals?: boolean;
+  /** Retail-specific signals exist, but required rendering or retail pages were not assessed. */
+  retailEvidenceIncomplete?: boolean;
 }): CommerceApplicability {
   if (input.referralPlatform) return { state: "unconfirmed", reason: "referral_platform" };
   if (input.confirmed) return { state: "confirmed" };
   // The shop pages themselves refused RankFix: whether checkout works is unknowable,
   // never "absent" and never a weak-signal verdict about the shop.
   if ((input.refusedRetailPages || 0) >= 2 && (input.commerceHints || input.verifiedSecondaryCommerce)) return { state: "unconfirmed", reason: "sample_refused" };
+  // A service can also operate a shop. Failure to inspect its retail evidence
+  // cannot establish absence, independently of how certain the main sector is.
+  if (input.retailEvidenceIncomplete) return { state: "unconfirmed", reason: "low_coverage" };
   // Unknown sector and no hard store signal: store checks are N.v.t. instead of a pile of
   // "unconfirmed" items. A JS shell, country picker, verified secondary commerce or an
   // explicitly requested thin-sample verdict still cannot prove absence.

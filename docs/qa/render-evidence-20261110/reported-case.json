@@ -1,0 +1,35 @@
+{
+  "website": "https://www.pearle.be/nl_BE",
+  "reportTime": "10 November 2026 22:45 Europe/Amsterdam",
+  "source": "user-pasted report, verified against corresponding saved scan using read-only SQL",
+  "sourceSha256": "33c5d4f9e6f811ddc47640e560f0254b678d1eedbff7178a12cbc314e2ed727c",
+  "rendering": {
+    "mode": "raw_html",
+    "javascriptExecuted": false,
+    "primaryFailure": "RENDER_TIMEOUT",
+    "sampleHomepageFailure": "RENDER_BUSY"
+  },
+  "pages": {
+    "selected": 15,
+    "assessed": 8,
+    "scored": 7,
+    "notFetched": 7
+  },
+  "before": {
+    "primaryH1": "warning",
+    "primaryH1Points": 6,
+    "primaryH1Max": 8,
+    "sampleH1": "UNABLE_TO_CONFIRM",
+    "commerceState": "absent",
+    "commerceReason": "service_identity",
+    "storeSchemaObserved": true,
+    "retailPagesUnexamined": true,
+    "rawVisibleWords": 800,
+    "ownBodyEvidence": "Saved sample aiText contains only document/title text after boilerplate removal, not a substantive body."
+  },
+  "limits": [
+    "No new live acceptance run of the repaired commit is claimed.",
+    "Actual rendering failed on Render; this patch does not add compute capacity or extend scan deadlines.",
+    "Score-model and coverage-formula files were not changed."
+  ]
+}

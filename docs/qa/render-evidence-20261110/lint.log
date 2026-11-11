@@ -1,0 +1,117 @@
+
+> rankfix-app@0.1.0 lint
+> eslint
+
+[BABEL] Note: The code generator has deoptimised the styling of /workspace/rankfix-app/app/api/scan/route.ts as it exceeds the max of 500KB.
+
+/workspace/rankfix-app/app/account/page.tsx
+  21:27  warning  'setLanguage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/api/scan/route.ts
+     6:10  warning  'classifyLinkOutcome' is defined but never used                 @typescript-eslint/no-unused-vars
+     6:31  warning  'findConflictingAnchorTargets' is defined but never used        @typescript-eslint/no-unused-vars
+     6:61  warning  'isErrorPagePath' is defined but never used                     @typescript-eslint/no-unused-vars
+     6:94  warning  'LINK_RETRY_DELAY_MS' is defined but never used                 @typescript-eslint/no-unused-vars
+   278:10  warning  'medianOf' is defined but never used                            @typescript-eslint/no-unused-vars
+   516:5   warning  'strongest' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  1967:11  warning  'pageLanguage' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  1997:11  warning  'goal' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+  2023:11  warning  'localClassificationText' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  2453:11  warning  'unconfirmedInternalLinks' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  3550:11  warning  'accessibilityIssueCount' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  3839:11  warning  'schemaMayBeClientInjected' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  4896:17  warning  'byKey' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+  5066:11  warning  'overallScore' is assigned a value but never used               @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/dashboard/audit/[id]/page.tsx
+  118:40   warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  126:6    warning  React Hook useEffect has a missing dependency: 't.failed'. Either include it or remove the dependency array                                                                                                                                                  react-hooks/exhaustive-deps
+  143:5    warning  React Hook useEffect has a missing dependency: 'refreshFixFlow'. Either include it or remove the dependency array                                                                                                                                            react-hooks/exhaustive-deps
+  157:26   warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  163:5    warning  React Hook useEffect has missing dependencies: 't.failed' and 'tr'. Either include them or remove the dependency array                                                                                                                                       react-hooks/exhaustive-deps
+  170:182  warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/workspace/rankfix-app/app/dashboard/audit/[id]/report/page.tsx
+  134:303  warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  134:541  warning  React Hook useEffect has a missing dependency: 't.failed'. Either include it or remove the dependency array                                                                                                                                                  react-hooks/exhaustive-deps
+
+/workspace/rankfix-app/app/dashboard/github/page.tsx
+  457:713  warning  Do not use `window.location.assign()` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  505:404  warning  Do not use `window.location.assign()` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/workspace/rankfix-app/app/dashboard/history/page.tsx
+  20:401  warning  React Hook useEffect has a missing dependency: 'language'. Either include it or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setError' needs the current value of 'language'  react-hooks/exhaustive-deps
+
+/workspace/rankfix-app/app/dashboard/local-seo/page.tsx
+  12:40  warning  'scanId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/dashboard/nav.tsx
+  40:47  warning  'currentOverride' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/dashboard/page.tsx
+  57:27  warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  64:6   warning  React Hook useEffect has missing dependencies: 'loadHistory' and 'x.dashboardError'. Either include them or remove the dependency array                                                                                                                      react-hooks/exhaustive-deps
+  79:9   warning  'steps' is assigned a value but never used                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/dashboard/reviews/page.tsx
+  16:257  warning  Do not use `location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/workspace/rankfix-app/app/dashboard/scan/page.tsx
+  128:5  warning  React Hook useEffect has a missing dependency: 'runScan'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/rankfix-app/app/dashboard/search-console/page.tsx
+  19:526  warning  React Hook useEffect has a missing dependency: 'loadPerformance'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/rankfix-app/app/dashboard/testlab/report/page.tsx
+  26:186  warning  'otherPages' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/app/page.tsx
+   272:9    warning  'sc' is assigned a value but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   368:6    warning  React Hook useEffect has a missing dependency: 'scanSteps.length'. Either include it or remove the dependency array                                                                                                                                                                      react-hooks/exhaustive-deps
+   532:5    warning  Do not use `window.location.assign()` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination                   @next/next/no-location-assign-relative-destination
+   716:9    warning  The 'summaryChecks' conditional could make the dependencies of useMemo Hook (at line 721) change on every render. To fix this, wrap the initialization of 'summaryChecks' in its own useMemo() Hook                                                                                      react-hooks/exhaustive-deps
+   716:9    warning  The 'summaryChecks' conditional could make the dependencies of useMemo Hook (at line 725) change on every render. To fix this, wrap the initialization of 'summaryChecks' in its own useMemo() Hook                                                                                      react-hooks/exhaustive-deps
+   778:189  warning  Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination                       @next/next/no-location-assign-relative-destination
+   792:140  warning  Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination                       @next/next/no-location-assign-relative-destination
+   938:11   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1143:31   warning  'data' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  1483:15   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/workspace/rankfix-app/components/ai-assistant.tsx
+  133:5   warning  Do not use `window.location.assign()` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  218:76  warning  Do not use `window.location.assign()` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/workspace/rankfix-app/components/qa-testlab.tsx
+  86:8  warning  The 'sites' logical expression could make the dependencies of useMemo Hook (at line 100) change on every render. To fix this, wrap the initialization of 'sites' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  92:5  warning  React Hook useMemo has a missing dependency: 'catalog?.catalogId'. Either include it or remove the dependency array                                                                         react-hooks/exhaustive-deps
+
+/workspace/rankfix-app/lib/safe-fetch.ts
+  217:9  warning  'endTag' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/scripts/engine-benchmark/run-pilot.mjs
+  45:11  warning  'rawHtml' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  45:20  warning  'html' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  45:26  warning  'renderedHtml' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  45:40  warning  'headers' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  45:49  warning  'cookies' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  45:58  warning  'responseHeaders' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/scripts/testlab/run-fresh144-local.mjs
+  41:7  warning  'siteByHost' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/tests/autofix-merge-safety.test.mjs
+  283:85  warning  'suite' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/tests/scan-matrix/run-engine-35.mjs
+  26:31  warning  'lang' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/rankfix-app/tests/scan-matrix/run-network-404.mjs
+  66:29  warning  'r' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 60 problems (0 errors, 60 warnings)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

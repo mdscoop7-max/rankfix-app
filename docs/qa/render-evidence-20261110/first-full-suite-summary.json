@@ -1,0 +1,11 @@
+{
+  "command": "npm test",
+  "tests": 1237,
+  "passed": 1228,
+  "failed": 1,
+  "skipped": 8,
+  "durationMs": 517158.939021,
+  "failedScenario": "ssr-degraded-render",
+  "cause": "First H1 rule treated a substantive SSR body like navigation-only HTML.",
+  "correction": "Reuse own-body extraction, preserve genuine SSR evidence and apply the shared heading policy to primary and sample. Existing 17-case rendering test unchanged."
+}
