@@ -148,6 +148,12 @@ export function speedNotMeasured(url: string, httpStatus: number): WebsiteSpeed 
   };
 }
 
+/** Measuring is on with an own API key unless explicitly switched off, or when explicitly enabled. */
+export function pageSpeedEnabled(input: { key: string; enabled: string | undefined }): boolean {
+  if (input.enabled === "false") return false;
+  return input.enabled === "true" || input.key.length > 0;
+}
+
 export async function measureWebsiteSpeed(
   url: string,
   options: { apiKey?: string; fetcher?: typeof fetch; timeoutMs?: number; allowAnonymous?: boolean; now?: () => number; wait?: (ms: number) => Promise<void> } = {},
@@ -164,11 +170,14 @@ export async function measureWebsiteSpeed(
   // Anonymous use is explicit so batch scans do not hammer a shared public quota.
   // QA default: no external PageSpeed requests until explicitly enabled.
   // Injected fetchers are test doubles; production scan calls never inject one.
-  if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true" && !options.fetcher) {
+  // A server-side PAGESPEED_API_KEY (a secret environment variable, never code)
+  // switches measuring on. RANKFIX_PAGESPEED_ENABLED=false is the kill switch;
+  // "true" also enables anonymous use when PAGESPEED_ALLOW_ANONYMOUS=1.
+  const key = (options.apiKey ?? process.env.PAGESPEED_API_KEY ?? "").trim();
+  if (!pageSpeedEnabled({ key, enabled: process.env.RANKFIX_PAGESPEED_ENABLED }) && !options.fetcher) {
     report.note = "Speed Test tijdelijk uitgeschakeld; geen externe PageSpeed-aanvragen.";
     return bothUnavailable("Speed Test tijdelijk uitgeschakeld; later beschikbaar", "not_configured");
   }
-  const key = (options.apiKey ?? process.env.PAGESPEED_API_KEY ?? "").trim();
   const anonymous = options.allowAnonymous ?? process.env.PAGESPEED_ALLOW_ANONYMOUS === "1";
   if (!key && !anonymous) return bothUnavailable("De snelheidsmeting is nog niet ingesteld voor deze omgeving.", "not_configured");
   let safeUrl: URL;

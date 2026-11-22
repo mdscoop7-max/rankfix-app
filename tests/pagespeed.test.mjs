@@ -261,3 +261,23 @@ test("No key means unavailable, without a provider request or SEO score changes"
   assert.equal(speed.mobile.score, null);
   assert.equal(speed.desktop.score, null);
 });
+
+test("PageSpeed switches on with an own server-side key; false is a kill switch", async () => {
+  const { pageSpeedEnabled } = await import("../lib/pagespeed.ts");
+  assert.equal(pageSpeedEnabled({ key: "", enabled: undefined }), false); // QA default: no external requests
+  assert.equal(pageSpeedEnabled({ key: "k", enabled: undefined }), true);
+  assert.equal(pageSpeedEnabled({ key: "k", enabled: "false" }), false);
+  assert.equal(pageSpeedEnabled({ key: "", enabled: "true" }), true); // anonymous still needs PAGESPEED_ALLOW_ANONYMOUS=1
+});
+
+test("PageSpeed never writes the API key into the report, even when Google echoes it", async () => {
+  const { measureWebsiteSpeed } = await import("../lib/pagespeed.ts");
+  const secret = "AIzaSy-test-key-must-not-leak";
+  const fetcher = async (url) => {
+    assert.ok(String(url).includes(`key=${secret}`)); // sent to Google only
+    return new Response(JSON.stringify({ error: { code: 400, message: `API key not valid: ${secret}` } }), { status: 400, headers: { "content-type": "application/json" } });
+  };
+  const report = await measureWebsiteSpeed("https://shop.example.nl/", { apiKey: secret, fetcher, timeoutMs: 5000 });
+  assert.equal(report.mobile.status, "unavailable");
+  assert.ok(!JSON.stringify(report).includes(secret));
+});
