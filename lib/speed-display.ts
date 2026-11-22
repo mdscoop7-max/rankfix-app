@@ -53,3 +53,12 @@ const speedAdviceTranslations: Record<Locale,Record<"images"|"scripts"|"layout",
 export function speedAdviceMessage(kind: "images"|"scripts"|"layout", locale: Locale): string {
   return speedAdviceTranslations[locale][kind];
 }
+
+/** Shown when Lighthouse measured but Google has no real-user (CrUX) data. */
+export const MISSING_FIELD_DATA_NL = "Google heeft onvoldoende echte bezoekersgegevens om LCP, CLS en INP uit praktijkmetingen te tonen. De Lighthouse-labmetingen voor mobiel en desktop zijn wel beschikbaar.";
+
+/** True when at least one device was measured and no measured device has any CrUX value. */
+export function fieldDataMissing(speed: { mobile?: SpeedDevice | null; desktop?: SpeedDevice | null } | null | undefined): boolean {
+  const measured = [speed?.mobile, speed?.desktop].filter((d): d is SpeedDevice => d?.status === "measured" && d.score !== null);
+  return measured.length > 0 && measured.every((d) => d.field?.lcpMs == null && d.field?.cls == null && d.field?.inpMs == null);
+}

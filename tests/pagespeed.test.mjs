@@ -281,3 +281,25 @@ test("PageSpeed never writes the API key into the report, even when Google echoe
   assert.equal(report.mobile.status, "unavailable");
   assert.ok(!JSON.stringify(report).includes(secret));
 });
+
+test("Missing CrUX field data is explained once, only when Lighthouse did measure", async () => {
+  const { fieldDataMissing, MISSING_FIELD_DATA_NL } = await import("../lib/speed-display.ts");
+  const lab = { fcpMs: 600, lcpMs: 1420, cls: 0.02, tbtMs: 10, speedIndexMs: 942 };
+  const noField = { inpMs: null, lcpMs: null, cls: null, scope: null };
+  const measured = (field) => ({ status: "measured", score: 95, lab, field });
+  // Nuvemixa, 22 Nov: mobile 67 and desktop 95 measured, no real-user data.
+  assert.equal(fieldDataMissing({ mobile: measured(noField), desktop: measured(noField) }), true);
+  assert.equal(MISSING_FIELD_DATA_NL, "Google heeft onvoldoende echte bezoekersgegevens om LCP, CLS en INP uit praktijkmetingen te tonen. De Lighthouse-labmetingen voor mobiel en desktop zijn wel beschikbaar.");
+  // Real-user data on any measured device: no explanation.
+  assert.equal(fieldDataMissing({ mobile: measured({ ...noField, inpMs: 180, scope: "origin" }), desktop: measured(noField) }), false);
+  // Nothing measured: the "not measured" reason applies instead.
+  const failed = { status: "unavailable", score: null, lab: {}, field: noField, reasonCode: "not_configured" };
+  assert.equal(fieldDataMissing({ mobile: failed, desktop: failed }), false);
+  assert.equal(fieldDataMissing(null), false);
+});
+
+test("Report shows the missing field data explanation below the speed lines", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const page = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /\{fieldDataMissing\(r\.websiteSpeed\)&&<p><small>\{language==="nl"\?MISSING_FIELD_DATA_NL:/);
+});

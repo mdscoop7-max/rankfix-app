@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { reportCheckReason as reasonFor } from "@/lib/report-check-reason";
-import { formatSpeedField, formatSpeedLab, speedAdviceMessage, speedFailureMessage } from "@/lib/speed-display";
+import { fieldDataMissing, formatSpeedField, formatSpeedLab, MISSING_FIELD_DATA_NL, speedAdviceMessage, speedFailureMessage } from "@/lib/speed-display";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Locale } from "@/lib/locales";
@@ -237,6 +237,7 @@ export default function FullAuditReport(){
       <div className="box">
         <p>{language==="nl"?"Onderdeel van deze algemene audit; aparte snelheidsmeting, zonder invloed op SEO/GEO-punten.":"Part of this general audit; separate performance measurements do not change SEO/GEO points."}</p>
         {(["mobile","desktop"] as const).map(device=>{const measurement=r.websiteSpeed?.[device];return <p key={device}><b>{device==="mobile"?(language==="nl"?"Mobiel":"Mobile"):"Desktop"}:</b> {measurement?.status==="measured"&&measurement.score!==null?`${measurement.score}/100`:(language==="nl"?"Niet gemeten / niet te bevestigen":"Not measured / unconfirmed")}{measurement?.status==="measured"&&<span> · {formatSpeedLab(measurement.lab)} · Veldgegevens (28 dagen): {formatSpeedField(measurement.field)} {measurement.field?.scope==="origin"?"(domein)":measurement.field?.scope==="url"?"(URL)":""}</span>}{measurement?.status!=="measured"&&<small> · {speedFailureMessage(measurement, language)}</small>}{measurement?.status==="measured"&&measurement.advice?.map((a:{kind:"images"|"scripts"|"layout";auditId:string;target:string|null},i:number)=><span key={a.auditId+i}> · {speedAdviceMessage(a.kind, language)}{a.target?" — "+a.target:""} (Lighthouse: {a.auditId})</span>)}</p>})}
+        {fieldDataMissing(r.websiteSpeed)&&<p><small>{language==="nl"?MISSING_FIELD_DATA_NL:"Google does not have enough real-visitor data to show LCP, CLS and INP from field measurements. The Lighthouse lab measurements for mobile and desktop are available."}</small></p>}
         <p><small>{language==="nl"?"Bron: Google PageSpeed Insights (indien beschikbaar). Geen automatische fixes.":"Source: Google PageSpeed Insights (when available). No automatic fixes."}</small></p>
       </div>
     </section>
