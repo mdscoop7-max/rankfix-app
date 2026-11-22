@@ -106,3 +106,9 @@
 }
 
 .lc-platforms{margin-top:26px;padding-top:20px;border-top:1px solid rgba(148,163,184,.18)}.lc-platforms>span{display:block;margin-bottom:10px;color:#94a3b8;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.12em}.lc-platform-badges{display:flex;flex-wrap:wrap;gap:9px}.lc-platform-badges a{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid rgba(148,163,184,.18);border-radius:10px;background:rgba(255,255,255,.04);color:#e2e8f0;font-size:12px;font-weight:750;text-decoration:none}.lc-platform-mark{display:grid;place-items:center;min-width:24px;height:24px;padding:0 4px;border-radius:6px;background:#fff;color:#0f172a;font-size:12px}.lc-platform-mark.shopify{background:#95bf47;color:#fff}.lc-platform-mark.wordpress{border-radius:50%;background:#21759b;color:#fff}.lc-platform-mark.woo{background:#96588a;color:#fff;font-size:9px}.lc-platforms small{display:block;margin-top:8px;color:#64748b;font-size:10px}
+
+/* Free scan progress: what RankFix works through, with real elapsed time */
+.lc-scan-progress{margin:8px 0 4px}
+.lc-scan-progress p{margin:0 0 6px}
+.lc-scan-progress ol{margin:0 0 8px;padding-left:20px;line-height:1.6}
+.lc-scan-progress .tabular-nums{font-variant-numeric:tabular-nums}

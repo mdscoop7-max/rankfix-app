@@ -232,3 +232,26 @@ export async function measureWebsiteSpeed(
   report.measuredAt = new Date().toISOString();
   return report;
 }
+
+/** Report when Google did not answer within the time the scan could wait. Never an estimate. */
+export function speedTimedOut(url: string): WebsiteSpeed {
+  const reason = "Niet gemeten: Google PageSpeed antwoordde niet op tijd binnen deze scan. Dit is geen bewijs van een trage website.";
+  return {
+    source: "Google PageSpeed Insights", status: "unavailable", measuredAt: new Date().toISOString(), url,
+    mobile: emptyDevice(reason, "timeout"), desktop: emptyDevice(reason, "timeout"),
+    note: "Geen snelheidsmeting voor deze scan; er zijn geen mobiele of desktopwaarden geschat.",
+  };
+}
+
+/**
+ * Wait for a speed measurement that was started early (in parallel with the rest
+ * of the scan) for at most `waitMs` more. A slow Google answer never holds up the
+ * finished scan: it then reports "not measured" instead.
+ */
+export async function settleSpeed(pending: Promise<WebsiteSpeed>, url: string, waitMs: number): Promise<WebsiteSpeed> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<WebsiteSpeed>((resolve) => { timer = setTimeout(() => resolve(speedTimedOut(url)), Math.max(0, waitMs)); });
+  try {
+    return await Promise.race([pending.catch(() => speedTimedOut(url)), timeout]);
+  } finally { if (timer) clearTimeout(timer); }
+}

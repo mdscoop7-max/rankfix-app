@@ -108,7 +108,7 @@ import { normalizeSchemaType, schemaTypesOf } from "@/lib/schema-type";
 import { sectionCoverage } from "@/lib/section-coverage";
 import { ALTERNATE_START_CODES, locValues, pickAlternateStartUrls, sitemapUrlsFromRobots } from "@/lib/alternate-start";
 import { decideSalesChannel } from "@/lib/sales-channel";
-import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
+import { measureWebsiteSpeed, settleSpeed, speedNotMeasured, speedTimedOut, type WebsiteSpeed } from "@/lib/pagespeed";
 
 // Either of two patterns (keeps an existing pattern and adds a shared lexicon).
 // Activities whose primary website purpose is booking (stay, table, salon
@@ -1512,6 +1512,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       return NextResponse.json({ error: parkedMessages[scanLanguage] || parkedMessages.en, code: "PARKED_DOMAIN", charged: false }, { status: 422 });
     }
     trace.phase = "analysis";
+    // PageSpeed is an external Google measurement of this final URL: start it now,
+    // in parallel with the analysis, instead of after it (QA 22 Nov: 12-29 s saved).
+    const earlySpeed: Promise<WebsiteSpeed> | null = response.status === 200
+      ? measureWebsiteSpeed(finalUrl.toString(), { timeoutMs: Math.min(60000, Math.max(0, 250000 - (Date.now() - started))) }).catch(() => speedTimedOut(finalUrl.toString()))
+      : null;
 
     const headDirectives = readHeadDirectives(html,finalUrl.toString(),response.headers.get("x-robots-tag")||"");
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
@@ -7989,7 +7994,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const catalogProvenProductUrls = [...new Set(multiPageAudits.filter((page) => page?.status === "audited").flatMap((page) => [...(page.type === "product" ? [page.url] : []), ...(page.productLinks || [])]))];
     const catalogBudgetMs = Math.min(50000, Math.max(0, 285000 - (Date.now() - started) - 15000));
     const [websiteSpeed, productCatalog] = await Promise.all([
-      response.status === 200 ? measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : Promise.resolve(speedNotMeasured(finalUrl.toString(), response.status)),
+      // Started early; wait at most 15 s more (and never past the scan budget) so a
+      // slow Google answer cannot hold up a finished scan.
+      earlySpeed ? settleSpeed(earlySpeed, finalUrl.toString(), Math.min(15000, Math.max(0, 265000 - (Date.now() - started)))) : Promise.resolve(speedNotMeasured(finalUrl.toString(), response.status)),
       // Never after the site signalled a request limit (HTTP 429) during this scan.
       finalCommerceApplicability.state === "confirmed" && catalogBudgetMs >= 10000 && sampleRateLimit.hits === 0 && linkProbeRateLimited === 0
         ? auditProductCatalog({ siteUrl: finalUrl.toString(), fetchText: catalogFetch, budgetMs: catalogBudgetMs, provenProductUrls: catalogProvenProductUrls }).catch(() => null)

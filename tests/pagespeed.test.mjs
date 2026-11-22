@@ -303,3 +303,25 @@ test("Report shows the missing field data explanation below the speed lines", as
   const page = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
   assert.match(page, /\{fieldDataMissing\(r\.websiteSpeed\)&&<p><small>\{language==="nl"\?MISSING_FIELD_DATA_NL:/);
 });
+
+test("Early PageSpeed: a finished measurement is used, a slow one becomes 'not measured', never a score", async () => {
+  const { settleSpeed } = await import("../lib/pagespeed.ts");
+  const measured = { source: "Google PageSpeed Insights", status: "measured", measuredAt: "x", url: "https://a.example/", note: "",
+    mobile: { status: "measured", score: 67, lab: {}, field: {} }, desktop: { status: "measured", score: 95, lab: {}, field: {} } };
+  assert.equal(await settleSpeed(Promise.resolve(measured), "https://a.example/", 50), measured);
+  const started = Date.now();
+  const slow = await settleSpeed(new Promise(() => {}), "https://a.example/", 30);
+  assert.ok(Date.now() - started < 1000);
+  assert.equal(slow.status, "unavailable");
+  for (const d of [slow.mobile, slow.desktop]) { assert.equal(d.score, null); assert.equal(d.reasonCode, "timeout"); assert.match(d.reason, /^Niet gemeten/); }
+  const failed = await settleSpeed(Promise.reject(new Error("boom")), "https://a.example/", 50);
+  assert.equal(failed.mobile.score, null);
+});
+
+test("Scan route starts PageSpeed during the analysis and waits at most 15 s at the end", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const early = route.indexOf("const earlySpeed");
+  assert.ok(early > 0 && early < route.indexOf('phaseMark("internalLinksChecked")'), "PageSpeed starts before the link checks");
+  assert.match(route, /earlySpeed \? settleSpeed\(earlySpeed, finalUrl\.toString\(\), Math\.min\(15000,/);
+});
