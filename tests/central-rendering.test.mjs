@@ -57,8 +57,8 @@ test("scan route reuses a single primary and representative render attempt", asy
   assert.equal((scanner.match(/await renderRepresentativeOnce\(\)/g) || []).length, 2);
   assert.match(scanner, /representativeNeedsJavaScriptRendering\(/);
   assert.match(scanner, /representativeEvidenceSource !== "rendered_html"/);
-  assert.match(headless, /MAX_CONCURRENT_BROWSERS = 2/);
-  assert.match(headless, /MAX_QUEUED_BROWSERS = 8/);
+  assert.match(headless, /MAX_CONCURRENT_BROWSERS = boundedEnv\("RANKFIX_MAX_BROWSERS", 2, 1, 4\)/);
+  assert.match(headless, /MAX_QUEUED_BROWSERS = boundedEnv\("RANKFIX_MAX_QUEUED_BROWSERS", 8, 0, 16\)/);
   assert.match(headless, /withinTimeout\(\(\) => page\.content\(\), remaining\(\)\)/);
   assert.doesNotMatch(headless, /setUserAgent\("RankFixBrowser\/1\.0"\)/);
 });

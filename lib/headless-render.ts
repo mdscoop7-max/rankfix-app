@@ -44,8 +44,10 @@ const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
 const MAX_REQUESTS = 90;
 // Time kept back from navigation so a slow page can still be snapshotted.
 const SNAPSHOT_RESERVE_MS = 2500;
-const MAX_CONCURRENT_BROWSERS = 2;
-const MAX_QUEUED_BROWSERS = 8;
+// Small instances (e.g. a 512 MB test service) set RANKFIX_MAX_BROWSERS=1 and a short queue.
+const boundedEnv = (name: string, fallback: number, min: number, max: number) => { const v = Number(process.env[name]); return Number.isInteger(v) && v >= min && v <= max ? v : fallback; };
+const MAX_CONCURRENT_BROWSERS = boundedEnv("RANKFIX_MAX_BROWSERS", 2, 1, 4);
+const MAX_QUEUED_BROWSERS = boundedEnv("RANKFIX_MAX_QUEUED_BROWSERS", 8, 0, 16);
 const MAX_QUEUE_WAIT_MS = 15000;
 let activeBrowsers = 0;
 const queuedBrowsers: Array<{ grant: () => void }> = [];
