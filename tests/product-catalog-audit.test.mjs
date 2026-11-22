@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { auditProductCatalog, catalogSentence, discoverProductUrls, evaluateProductPage } from "../lib/product-catalog-audit.ts";
+import { auditProductCatalog, catalogSentence, discoverProductUrls, evaluateProductPage, sitemapUrlsBesideProducts } from "../lib/product-catalog-audit.ts";
 
 const ld = (product) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...product })}</script>`;
 const page = (body) => `<html><head><title>Product</title></head><body><header><a href="/winkelwagen">Winkelwagen</a></header><main>${body}</main></body></html>`;
@@ -73,7 +73,7 @@ test("catalogue: the limit bounds the work and is stated in the summary", async 
 test("catalogue: no products in the sitemap means not run, never zero problems", async () => {
   const summary = await auditProductCatalog({ siteUrl: SHOP + "/", fetchText: async () => ({ status: 404, text: "" }), budgetMs: 10_000 });
   assert.equal(summary.status, "not_run");
-  assert.equal(catalogSentence(summary), "Geen productpagina's in de sitemap gevonden.");
+  assert.equal(catalogSentence(summary), "Geen productpagina's gevonden in de sitemap of op de onderzochte pagina's.");
 });
 
 test("catalogue: product evaluation reads JSON-LD @graph, microdata and visible stock", () => {
@@ -85,4 +85,64 @@ test("catalogue: product evaluation reads JSON-LD @graph, microdata and visible 
   assert.deepEqual([m.outcome, m.dataStock, m.issues], ["checked", "out_of_stock", []]);
   assert.equal(evaluateProductPage(`${SHOP}/x`, 500, "").outcome, "unreachable");
   assert.equal(evaluateProductPage(`${SHOP}/x`, 429, "").outcome, "blocked");
+});
+
+// Nuvemixa-style shop: products live under a plain category slug (/gadgets/<name>),
+// which the generic product-path rule does not recognise in the sitemap.
+const GADGET = "https://gadgets.example.nl";
+const gadgetPages = {
+  "/robots.txt": [200, "User-agent: *"],
+  "/sitemap.xml": [200, `<urlset>${["/", "/shop", "/contact", "/gadgets/oordopjes", "/gadgets/powerbank", "/gadgets/projector", "/smart-home/lamp"].map((p) => `<url><loc>${GADGET}${p}</loc></url>`).join("")}</urlset>`],
+  "/gadgets/oordopjes": [200, page(`${ld({ "@type": "Product", name: "Oordopjes", offers: offer("InStock") })}<h1>Oordopjes</h1><button name="add-to-cart">In winkelwagen</button>`)],
+  "/gadgets/powerbank": [200, page(`${ld({ "@type": "Product", name: "Powerbank", offers: { "@type": "Offer", price: "29.95", priceCurrency: "EUR" } })}<h1>Powerbank</h1><button name="add-to-cart">In winkelwagen</button>`)],
+  "/gadgets/projector": [200, page(`${ld({ "@type": "Product", name: "Projector", offers: offer("OutOfStock") })}<h1>Projector</h1>`)],
+  "/smart-home/lamp": [200, page(`${ld({ "@type": "Product", name: "Lamp", offers: offer("InStock") })}<h1>Lamp</h1><button name="add-to-cart">In winkelwagen</button>`)],
+  "/winkelwagen": [200, page("<h1>Winkelwagen</h1>")],
+};
+const gadgetFetch = async (url) => { const e = gadgetPages[new URL(url).pathname]; return e ? { status: e[0], text: e[1] } : { status: 404, text: "" }; };
+
+test("catalogue: without proven products, plain-slug sitemap URLs are not guessed to be products", async () => {
+  const summary = await auditProductCatalog({ siteUrl: GADGET + "/", fetchText: gadgetFetch, budgetMs: 30_000 });
+  assert.equal(summary.status, "not_run");
+  assert.equal(summary.discovered, 0);
+});
+
+test("catalogue: product pages the scan found are checked, plus sitemap URLs beside them", async () => {
+  const summary = await auditProductCatalog({ siteUrl: GADGET + "/", fetchText: gadgetFetch, budgetMs: 30_000,
+    provenProductUrls: [`${GADGET}/gadgets/oordopjes`, `${GADGET}/smart-home/lamp`, "https://elders.example.com/product/x"] });
+  // Same-directory sitemap URLs (/gadgets/*) are added; /shop and /contact are not; other hosts are ignored.
+  assert.deepEqual(summary.products.map((p) => new URL(p.url).pathname).sort(), ["/gadgets/oordopjes", "/gadgets/powerbank", "/gadgets/projector", "/smart-home/lamp"]);
+  // The proven lamp page is itself listed in the sitemap, so it counts there once.
+  assert.deepEqual(summary.sources, { sitemap: 4, site: 0 });
+  assert.equal(summary.checked, 4);
+  assert.equal(summary.counts.no_availability, 1);
+  assert.equal(summary.counts.out_of_stock, 1);
+  assert.match(catalogSentence(summary), /^4 van 4 producten uit de sitemap gecontroleerd/);
+});
+
+test("catalogue: only links found on the site, no usable sitemap", async () => {
+  const summary = await auditProductCatalog({ siteUrl: GADGET + "/", fetchText: async (u) => new URL(u).pathname.startsWith("/sitemap") ? { status: 404, text: "" } : gadgetFetch(u),
+    budgetMs: 30_000, provenProductUrls: [`${GADGET}/gadgets/oordopjes`] });
+  assert.deepEqual(summary.sources, { sitemap: 0, site: 1 });
+  assert.match(catalogSentence(summary), /gevonden via links op de site; de sitemap gaf geen productpagina's/);
+});
+
+test("catalogue: sitemap URLs beside proven products exclude the root and category paths", () => {
+  const xml = `<urlset><url><loc>${GADGET}/gadgets/a</loc></url><url><loc>${GADGET}/gadgets/category/x</loc></url><url><loc>${GADGET}/b</loc></url></urlset>`;
+  assert.deepEqual(sitemapUrlsBesideProducts(xml, "gadgets.example.nl", [`${GADGET}/gadgets/z`]), [`${GADGET}/gadgets/a`]);
+  assert.deepEqual(sitemapUrlsBesideProducts(xml, "gadgets.example.nl", [`${GADGET}/root-product`]), []);
+});
+
+test("catalogue: an HTTP 429 stops the catalogue at once, without more requests", async () => {
+  const asked = [];
+  const limited = async (url) => {
+    asked.push(new URL(url).pathname);
+    return new URL(url).pathname.startsWith("/gadgets/") ? { status: 429, text: "" } : gadgetFetch(url);
+  };
+  const summary = await auditProductCatalog({ siteUrl: GADGET + "/", fetchText: limited, budgetMs: 30_000, concurrency: 1,
+    provenProductUrls: [`${GADGET}/gadgets/oordopjes`] });
+  assert.equal(asked.filter((p) => p.startsWith("/gadgets/")).length, 1);
+  assert.equal(summary.checkout, null);
+  assert.match(summary.reason, /HTTP 429/);
+  assert.equal(summary.counts.unreachable, 0);
 });

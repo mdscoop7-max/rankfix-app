@@ -75,17 +75,30 @@ export function reviewEvidence(html: string): ReviewEvidence {
   return { ratingValue: Number.isFinite(ratingValue as number) ? ratingValue : null, reviewCount, widgets, visibleReviews };
 }
 
+/**
+ * A language switch without links to translated URLs: a language <select>, an anchor
+ * carrying hreflang, or the scan's own structural language-selector signal. The
+ * switch is visible, but translated URLs are not proven.
+ */
+export function languageSwitchWithoutUrls(html: string): boolean {
+  return /<select\b[^>]*(?:lang|language|taal|sprache|idioma|lingua)[^>]*>/i.test(html) || /<a\b[^>]*\shreflang\s*=/i.test(html);
+}
+
 export type BrowserContentEvidence = {
   javascriptExecuted: boolean;
-  language: { source: "hreflang" | "switcher" | "none"; options: LanguageOption[]; onlyAfterJavascript: boolean };
+  language: { source: "hreflang" | "switcher" | "switch_without_urls" | "none"; options: LanguageOption[]; onlyAfterJavascript: boolean };
   reviews: ReviewEvidence & { onlyAfterJavascript: boolean };
 };
 
 /** Compare raw server HTML with the browser-rendered HTML (when rendering ran). */
-export function browserContentEvidence(input: { rawHtml: string; renderedHtml: string | null; pageUrl: string }): BrowserContentEvidence {
+export function browserContentEvidence(input: { rawHtml: string; renderedHtml: string | null; pageUrl: string; /** The scan's language-selector signal (same as the hreflang check). */ languageSwitchVisible?: boolean }): BrowserContentEvidence {
   const rendered = input.renderedHtml && input.renderedHtml.length > 20 ? input.renderedHtml : null;
   const finalHtml = rendered || input.rawHtml;
-  const lang = languageOptions(finalHtml, input.pageUrl);
+  const found = languageOptions(finalHtml, input.pageUrl);
+  // Same conclusion as the hreflang check: a visible switch whose translated URLs are not proven.
+  const lang = found.options.length === 0 && (input.languageSwitchVisible || languageSwitchWithoutUrls(finalHtml))
+    ? { source: "switch_without_urls" as const, options: [] }
+    : found;
   const rawLang = languageOptions(input.rawHtml, input.pageUrl);
   const reviews = reviewEvidence(finalHtml);
   const rawReviews = reviewEvidence(input.rawHtml);
@@ -105,7 +118,9 @@ export function browserContentSentences(e: BrowserContentEvidence | null | undef
   if (e.language.options.length) {
     const langs = [...new Set(e.language.options.map((o) => o.lang || o.label))].slice(0, 8).join(", ");
     out.push(`Taalkeuze: ${e.language.options.length} taalversie(s) (${langs})${e.language.source === "hreflang" ? " via hreflang" : " via een taalkiezer"}.${e.language.onlyAfterJavascript ? " Alleen zichtbaar na JavaScript: zoekmachines die geen scripts uitvoeren zien de andere talen mogelijk niet." : ""}`);
-  } else out.push("Taalkeuze: geen andere taalversies gevonden.");
+  } else if (e.language.source === "switch_without_urls") {
+    out.push("Taalkeuze: een taal- of landkeuze is zichtbaar, maar vertaalde URL's zijn niet bevestigd (geen hreflang-links of links naar taalversies gevonden).");
+  } else out.push("Taalkeuze: geen taalkeuze en geen andere taalversies gevonden.");
   const r = e.reviews;
   if (r.ratingValue !== null || r.visibleReviews || r.widgets.length) {
     const parts = [r.ratingValue !== null ? `beoordeling ${r.ratingValue}${r.reviewCount ? ` (${r.reviewCount} reviews)` : ""} in de productgegevens` : null, r.visibleReviews ? "zichtbare reviewtekst" : null, r.widgets.length ? `widget: ${r.widgets.join(", ")}` : null].filter(Boolean);

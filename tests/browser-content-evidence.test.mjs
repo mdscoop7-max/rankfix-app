@@ -43,3 +43,24 @@ test("browser vs raw: server-rendered content is not flagged; no raw HTML means 
   assert.equal(e.javascriptExecuted, false);
   assert.match(browserContentSentences(e).at(-1), /Browserweergave niet uitgevoerd/);
 });
+
+test("language: a visible switch without translated URLs agrees with the hreflang check", () => {
+  const selectOnly = `<html><body><select name="language"><option>NL</option><option>EN</option></select><p>Welkom</p></body></html>`;
+  const e = browserContentEvidence({ rawHtml: selectOnly, renderedHtml: null, pageUrl: "https://shop.example.nl/" });
+  assert.equal(e.language.source, "switch_without_urls");
+  assert.deepEqual(e.language.options, []);
+  assert.match(browserContentSentences(e)[0], /taal- of landkeuze is zichtbaar, maar vertaalde URL's zijn niet bevestigd/);
+  // The scan's own selector signal (e.g. links into another locale folder) gives the same answer.
+  const plain = "<html><body><p>Welkom</p></body></html>";
+  assert.equal(browserContentEvidence({ rawHtml: plain, renderedHtml: null, pageUrl: "https://shop.example.nl/", languageSwitchVisible: true }).language.source, "switch_without_urls");
+  const none = browserContentEvidence({ rawHtml: plain, renderedHtml: null, pageUrl: "https://shop.example.nl/" });
+  assert.equal(none.language.source, "none");
+  assert.match(browserContentSentences(none)[0], /geen taalkeuze en geen andere taalversies/);
+});
+
+test("language: proven language URLs still win over the bare switch", () => {
+  const html = `<html><head><link rel="alternate" hreflang="en" href="https://shop.example.nl/en/"></head><body><select name="lang"></select></body></html>`;
+  const e = browserContentEvidence({ rawHtml: html, renderedHtml: null, pageUrl: "https://shop.example.nl/", languageSwitchVisible: true });
+  assert.equal(e.language.source, "hreflang");
+  assert.equal(e.language.options.length, 1);
+});

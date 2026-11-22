@@ -1,4 +1,6 @@
 // Product catalogue audit: every product the sitemap lists (bounded), not one sample.
+// Product URLs come only from evidence: the sitemap, and product pages or product
+// links the scan itself found on the site. No URL is guessed.
 // Read-only GET requests; nothing is added to a cart. Per product: reachability,
 // Product/Offer data (price, availability) and whether the visible stock state
 // matches the data, with the same visible-offer rules as the scanned page.
@@ -6,7 +8,7 @@
 // the time budget are counted separately and never reported as defects. The
 // catalogue result adds no SEO/GEO points.
 
-import { childSitemapsFromIndex, productUrlsFromSitemap } from "./product-links.ts";
+import { childSitemapsFromIndex, looksLikeCategoryPath, productUrlsFromSitemap } from "./product-links.ts";
 import { offerPrice } from "./price.ts";
 import { visibleOfferEvidence } from "./visible-offer-evidence.ts";
 import { checkoutActionInHtml, purchaseActionInHtml } from "./commerce-markup.ts";
@@ -45,6 +47,8 @@ export type CatalogSummary = {
   examples: Partial<Record<CatalogIssue | "out_of_stock", string[]>>;
   checkout: CatalogCheckout | null;
   products: CatalogProduct[];
+  /** Where the selected product URLs came from. */
+  sources: { sitemap: number; site: number };
 };
 
 const stockOf = (value: unknown): StockState | null => {
@@ -125,7 +129,7 @@ export function cartLinkFromHtml(html: string, pageUrl: string): string | null {
   } catch { return null; }
 }
 
-export function summarizeCatalog(input: { discovered: number; selected: string[]; products: CatalogProduct[]; checkout: CatalogCheckout | null; reason?: string | null }): CatalogSummary {
+export function summarizeCatalog(input: { discovered: number; selected: string[]; products: CatalogProduct[]; checkout: CatalogCheckout | null; reason?: string | null; sources?: { sitemap: number; site: number } }): CatalogSummary {
   const counts = { no_product_data: 0, no_price: 0, no_availability: 0, stock_mismatch: 0, unreachable: 0, out_of_stock: 0, in_stock: 0 };
   const examples: CatalogSummary["examples"] = {};
   const add = (key: CatalogIssue | "out_of_stock", url: string) => { const list = (examples[key] ||= []); if (list.length < 5) list.push(url); };
@@ -139,7 +143,7 @@ export function summarizeCatalog(input: { discovered: number; selected: string[]
   const status: CatalogSummary["status"] = input.selected.length === 0 ? "not_run" : notCheckedBudget > 0 ? "partial" : "completed";
   return {
     status,
-    reason: input.reason ?? (input.selected.length === 0 ? "Geen productpagina's in de sitemap gevonden." : notCheckedBudget > 0 ? `${notCheckedBudget} product(en) niet gecontroleerd binnen de tijdslimiet.` : null),
+    reason: input.reason ?? (input.selected.length === 0 ? "Geen productpagina's gevonden in de sitemap of op de onderzochte pagina's." : notCheckedBudget > 0 ? `${notCheckedBudget} product(en) niet gecontroleerd binnen de tijdslimiet.` : null),
     discovered: input.discovered,
     selected: input.selected.length,
     checked: input.products.filter((p) => p.outcome === "checked").length,
@@ -151,13 +155,42 @@ export function summarizeCatalog(input: { discovered: number; selected: string[]
     examples,
     checkout: input.checkout,
     products: input.products,
+    sources: input.sources ?? { sitemap: input.discovered, site: 0 },
   };
 }
 
 export type CatalogFetch = (url: string, timeoutMs: number) => Promise<{ status: number; text: string; finalUrl?: string }>;
 
+const parentDir = (pathname: string) => pathname.replace(/\/+$/, "").replace(/\/[^/]*$/, "/");
+
+/**
+ * Sitemap URLs in the same directory as a product page the scan proved (e.g.
+ * /gadgets/ when /gadgets/oordopjes is a confirmed product). Many shops use plain
+ * category slugs that the generic product-path rule cannot recognise. Each URL is
+ * still fetched and judged on its own page; non-products are counted, not reported.
+ */
+export function sitemapUrlsBesideProducts(xml: string, siteHost: string, provenProductUrls: string[], limit = 5000): string[] {
+  const host = siteHost.toLowerCase().replace(/^www\./, "");
+  const dirs = new Set<string>();
+  for (const u of provenProductUrls) {
+    try { const d = parentDir(new URL(u).pathname); if (d !== "/") dirs.add(d); } catch { /* skip */ }
+  }
+  if (!dirs.size) return [];
+  const found: string[] = [];
+  for (const match of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
+    let url: URL;
+    try { url = new URL(match[1].replace(/&amp;/g, "&")); } catch { continue; }
+    if (url.hostname.toLowerCase().replace(/^www\./, "") !== host) continue;
+    const path = url.pathname.replace(/\/+$/, "");
+    if (!dirs.has(parentDir(path)) || looksLikeCategoryPath(path)) continue;
+    found.push(url.toString());
+    if (found.length >= limit) break;
+  }
+  return found;
+}
+
 /** Discover product URLs from robots.txt sitemaps, /sitemap.xml and sitemap indexes. */
-export async function discoverProductUrls(siteUrl: string, fetchText: CatalogFetch, options: { maxSitemaps?: number; timeoutMs?: number } = {}): Promise<string[]> {
+export async function discoverProductUrls(siteUrl: string, fetchText: CatalogFetch, options: { maxSitemaps?: number; timeoutMs?: number; provenProductUrls?: string[] } = {}): Promise<string[]> {
   const site = new URL(siteUrl);
   const host = site.hostname;
   const timeoutMs = options.timeoutMs ?? 6000;
@@ -181,6 +214,7 @@ export async function discoverProductUrls(siteUrl: string, fetchText: CatalogFet
     const children = childSitemapsFromIndex(xml);
     if (children.length) { queue.unshift(...children.filter((c) => !seenSitemaps.has(c))); continue; }
     for (const url of productUrlsFromSitemap(xml, host, 5000)) found.add(url);
+    for (const url of sitemapUrlsBesideProducts(xml, host, options.provenProductUrls || [])) found.add(url);
   }
   return [...found];
 }
@@ -192,24 +226,36 @@ export async function auditProductCatalog(input: {
   concurrency?: number;
   budgetMs: number;
   now?: () => number;
+  /** Product pages and product links the scan itself found on the site (evidence, never guessed). */
+  provenProductUrls?: string[];
 }): Promise<CatalogSummary> {
   const now = input.now ?? Date.now;
   const started = now();
   const deadline = started + Math.max(0, input.budgetMs);
   const limit = input.limit ?? CATALOG_LIMIT;
-  let discovered: string[] = [];
-  try { discovered = await discoverProductUrls(input.siteUrl, input.fetchText, { timeoutMs: Math.min(6000, Math.max(1000, deadline - now())) }); }
-  catch { discovered = []; }
+  const siteHost = new URL(input.siteUrl).hostname.replace(/^www\./, "");
+  const normal = (u: string) => { try { const x = new URL(u); x.hash = ""; return x.toString().replace(/\/$/, ""); } catch { return null; } };
+  const proven = [...new Set((input.provenProductUrls || []).filter((u) => { try { return new URL(u).hostname.replace(/^www\./, "") === siteHost; } catch { return false; } }))];
+  let fromSitemap: string[] = [];
+  try { fromSitemap = await discoverProductUrls(input.siteUrl, input.fetchText, { timeoutMs: Math.min(6000, Math.max(1000, deadline - now())), provenProductUrls: proven }); }
+  catch { fromSitemap = []; }
+  const seen = new Set(fromSitemap.map(normal));
+  const siteOnly = proven.filter((u) => !seen.has(normal(u)));
+  // Pages the scan found first, so they are always within the per-scan limit.
+  const discovered = [...siteOnly, ...fromSitemap];
   const selected = discovered.slice(0, limit);
   const results: Array<CatalogProduct | undefined> = new Array(selected.length);
   const htmlByIndex: string[] = [];
   let next = 0;
+  // A site that answers 429 asks for fewer requests: stop at once, never retry.
+  let rateLimited = false;
   const worker = async () => {
-    while (next < selected.length && now() < deadline - 1500) {
+    while (!rateLimited && next < selected.length && now() < deadline - 1500) {
       const index = next++;
       const url = selected[index];
       try {
         const res = await input.fetchText(url, Math.min(8000, Math.max(1000, deadline - now())));
+        if (res.status === 429) rateLimited = true;
         results[index] = evaluateProductPage(url, res.status, res.text);
         htmlByIndex[index] = res.status < 400 ? res.text : "";
       } catch {
@@ -227,7 +273,7 @@ export async function auditProductCatalog(input: {
     const withCheckout = checkedIndexes.filter((i) => checkoutActionInHtml(htmlByIndex[i] || "") || Boolean(cartLinkFromHtml(htmlByIndex[i] || "", selected[i])));
     const cartUrl = checkedIndexes.map((i) => cartLinkFromHtml(htmlByIndex[i] || "", selected[i])).find(Boolean) || null;
     checkout = { url: cartUrl, httpStatus: null, reachable: null, foundOnProducts: withCheckout.length };
-    if (cartUrl && now() < deadline - 1000) {
+    if (cartUrl && !rateLimited && now() < deadline - 1000) {
       try {
         const res = await input.fetchText(cartUrl, Math.min(6000, Math.max(1000, deadline - now())));
         checkout.httpStatus = res.status;
@@ -235,14 +281,18 @@ export async function auditProductCatalog(input: {
       } catch { checkout.reachable = null; }
     }
   }
-  return summarizeCatalog({ discovered: discovered.length, selected, products, checkout });
+  return summarizeCatalog({ discovered: discovered.length, selected, products, checkout, sources: { sitemap: fromSitemap.length, site: siteOnly.length },
+    reason: rateLimited ? "De website beperkte het aantal verzoeken (HTTP 429); RankFix heeft de productcontrole daarom gestopt. Geen bewijs van een fout." : undefined });
 }
 
 /** One-line Dutch summary for the report. */
 export function catalogSentence(summary: CatalogSummary | null | undefined): string {
   if (!summary) return "Productcatalogus niet gecontroleerd.";
   if (summary.status === "not_run") return summary.reason || "Productcatalogus niet gecontroleerd.";
-  const parts = [`${summary.checked} van ${summary.discovered} producten uit de sitemap gecontroleerd`];
+  const src = summary.sources ?? { sitemap: summary.discovered, site: 0 };
+  const parts = [src.site && src.sitemap ? `${summary.checked} van ${summary.discovered} producten gecontroleerd (${src.sitemap} uit de sitemap, ${src.site} via links op de site)`
+    : src.site ? `${summary.checked} van ${summary.discovered} producten gecontroleerd (gevonden via links op de site; de sitemap gaf geen productpagina's)`
+    : `${summary.checked} van ${summary.discovered} producten uit de sitemap gecontroleerd`];
   if (summary.selected < summary.discovered) parts.push(`maximaal ${summary.selected} per scan`);
   if (summary.notCheckedBudget) parts.push(`${summary.notCheckedBudget} niet gecontroleerd binnen de tijdslimiet`);
   if (summary.blocked) parts.push(`${summary.blocked} geblokkeerd voor de scanner`);

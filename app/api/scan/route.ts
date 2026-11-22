@@ -7662,7 +7662,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const finalCheckOf = (key: string) => { const item = [...seoChecks,...geoChecks].find((c)=>c.key===key); return item ? { status: item.status, message: item.message, url: item.evidence?.url || null } : null; };
     // Language switch and reviews as a visitor sees them versus raw server HTML
     // (lib/browser-content-evidence.ts). Evidence only; adds no points.
-    const browserContentReport = browserContentEvidence({ rawHtml, renderedHtml: javascriptExecuted ? html : null, pageUrl: finalUrl.toString() });
+    const browserContentReport = browserContentEvidence({ rawHtml, renderedHtml: javascriptExecuted ? html : null, pageUrl: finalUrl.toString(), languageSwitchVisible: languageSelectorSignal });
     const essentialFactsReport = essentialFacts({
       scannedUrl: finalUrl.toString(),
       scannedRegistration: findCompanyRegistration(text),
@@ -7981,11 +7981,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (fetched.response.status >= 400) { try { await fetched.response.body?.cancel(); } catch {} }
       return { status: fetched.response.status, text, finalUrl: fetched.finalUrl.toString() };
     };
+    // Product URLs the scan itself found: audited product pages and product-card or
+    // product links on audited pages. Used next to the sitemap; never guessed.
+    const catalogProvenProductUrls = [...new Set(multiPageAudits.filter((page) => page?.status === "audited").flatMap((page) => [...(page.type === "product" ? [page.url] : []), ...(page.productLinks || [])]))];
     const catalogBudgetMs = Math.min(50000, Math.max(0, 285000 - (Date.now() - started) - 15000));
     const [websiteSpeed, productCatalog] = await Promise.all([
       response.status === 200 ? measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : Promise.resolve(speedNotMeasured(finalUrl.toString(), response.status)),
-      finalCommerceApplicability.state === "confirmed" && catalogBudgetMs >= 10000
-        ? auditProductCatalog({ siteUrl: finalUrl.toString(), fetchText: catalogFetch, budgetMs: catalogBudgetMs }).catch(() => null)
+      // Never after the site signalled a request limit (HTTP 429) during this scan.
+      finalCommerceApplicability.state === "confirmed" && catalogBudgetMs >= 10000 && sampleRateLimit.hits === 0 && linkProbeRateLimited === 0
+        ? auditProductCatalog({ siteUrl: finalUrl.toString(), fetchText: catalogFetch, budgetMs: catalogBudgetMs, provenProductUrls: catalogProvenProductUrls }).catch(() => null)
         : Promise.resolve(null),
     ]);
     phaseMark("pageSpeed");
