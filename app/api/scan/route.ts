@@ -51,6 +51,7 @@ import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
 import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
+import { essentialFacts, openEssentialFacts } from "@/lib/essential-facts";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
 import { explainCoreScore } from "@/lib/score-reconciliation";
@@ -7654,6 +7655,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // GEO score built on a few confirmed checks is not carried by a well evidenced SEO.
     const seoDimensionEvidence = mode === "geo" ? null : dimensionEvidence(selectedSeoChecks, "seo");
     const geoDimensionEvidence = mode === "seo" ? null : dimensionEvidence(selectedGeoChecks, "geo");
+    // Essential customer facts (lib/essential-facts.ts): confirmed, proven missing or
+    // not confirmed. They add no points; an open fact keeps the headline provisional.
+    const finalCheckOf = (key: string) => { const item = [...seoChecks,...geoChecks].find((c)=>c.key===key); return item ? { status: item.status, message: item.message, url: item.evidence?.url || null } : null; };
+    const essentialFactsReport = essentialFacts({
+      scannedUrl: finalUrl.toString(),
+      scannedRegistration: findCompanyRegistration(text),
+      scannedContact: hasContactLink,
+      scannedIndirectContactOnly: !hasContactLink && Boolean(helpOnlyContactAnchor),
+      scannedThin: thinRawHtmlEvidence,
+      placeholders: placeholderMatches.length,
+      testData: Boolean(businessContactDetails.suspectedTestData?.length),
+      pages: auditedMultiPages.map((item)=>({ url:item.url, status:item.status, businessDetails:item.businessDetails, thin:Boolean(item.nonContent), formCount:item.formEvidence?.formCount })),
+      commerceConfirmed: finalCommerceApplicability.state === "confirmed",
+      stockCheck: finalCheckOf("product_availability"),
+      checkoutCheck: finalCheckOf("checkout_funnel_static"),
+    });
     const scoreEvidence = evidenceLevel({
       dimensions: [
         ...(seoDimensionEvidence ? [{ name: "SEO" as const, coveragePercent: seoDimensionEvidence.coveragePercent }] : []),
@@ -7667,7 +7684,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // Heavy checks (8+ points: title, description, H1, structured data, entity, …)
       // that stayed unconfirmed make a 98/99 provisional, never "definitief".
       // Organization + WebSite is a homepage concern; on a product or article URL it is not decisive.
-      importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
+      // Essential facts (registration, contact, stock, checkout) count whatever their points.
+      importantUnconfirmed: [...[...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title), ...openEssentialFacts(essentialFactsReport)],
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
       sectorUnknown: sectorProfile.sector === "unknown",
       // Same page counts as multiPage.coverageDimensions (noindex exclusions count as fetched).
@@ -8084,7 +8102,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -8324,6 +8342,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       scanReliability,
       summary: scanSummary,
       websiteSpeed,
+      essentialFacts: essentialFactsReport,
       rendering,
       recovery,
       access,
