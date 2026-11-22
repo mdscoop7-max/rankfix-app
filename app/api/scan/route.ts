@@ -79,6 +79,7 @@ import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
+import { emptyClientMount, emptyMountShell } from "@/lib/render-limits";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
 import { pageIdentityType } from "@/lib/page-identity";
@@ -1335,7 +1336,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // and no empty client mount point or framework runtime. Such a page is never a
     // shell, however short: a missing element there is a real finding (thin
     // content), not missing evidence.
-    const rawEmptyMount = /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt|___gatsby|svelte)["'][^>]*>\s*<\/div>/i.test(rawHtml);
+    const rawEmptyMount = emptyClientMount(rawHtml);
     const rawServerRendered = !recoveredHtml && !rawEmptyMount && !javascriptFrameworkSignal
       && /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml)
       && /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml)
@@ -1350,7 +1351,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // was scored 59 without a render attempt).
     const rawHasIdentity = /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml) || /<meta[^>]+name\s*=\s*["']description["'][^>]+content\s*=\s*["'][^"']{10,}/i.test(rawHtml) || /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml);
     const identitylessThinDocument = rawVisibleWords < 80 && !rawHasIdentity;
-    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell || identitylessThinDocument);
+    // A thin page whose app mounts into an empty element (one bundled script is enough).
+    const rawEmptyMountShell = emptyMountShell({ html: rawHtml, visibleWords: rawVisibleWords, scriptCount: rawScriptCount });
+    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell || identitylessThinDocument || rawEmptyMountShell);
     // A thin raw document with scripts (fewer than 80 visible words) is incomplete
     // evidence when no browser render succeeded: missing metadata there is not a
     // proven website defect. A substantive server-rendered body (250+ words, not a

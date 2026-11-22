@@ -58,3 +58,19 @@ export function hardenedServerlessArgs(args: string[], singleProcess: boolean): 
   return args.filter((arg) => !DROPPED_SERVERLESS_ARGS.has(arg) || (singleProcess && arg === "--single-process"));
 }
 
+
+// ---------------------------------------------------------------------------
+// An empty client-side mount point (<div id="root"></div>, <section id="app">…)
+// means the visible page is built by JavaScript. Together with a thin raw body
+// and at least one script, one bounded browser render is needed to see the page.
+// ---------------------------------------------------------------------------
+const EMPTY_MOUNT = /<(div|section|main|app-root)\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt|___gatsby|svelte|main-app|application)["'][^>]*>\s*<\/\1>/i;
+const EMPTY_CUSTOM_ROOT = /<(app-root|my-app)\b[^>]*>\s*<\/\1>/i;
+
+export function emptyClientMount(html: string): boolean {
+  return EMPTY_MOUNT.test(html) || EMPTY_CUSTOM_ROOT.test(html);
+}
+
+export function emptyMountShell(input: { html: string; visibleWords: number; scriptCount: number }): boolean {
+  return input.visibleWords < 80 && input.scriptCount >= 1 && emptyClientMount(input.html);
+}
