@@ -70,3 +70,15 @@ test("facts: stock and checkout only for a confirmed webshop, from the final che
   facts = essentialFacts({ ...base, commerceConfirmed: true, stockCheck: { status: "pass" }, checkoutCheck: { status: "pass" } });
   assert.deepEqual([fact(facts, "stock").state, fact(facts, "checkout").state], ["confirmed", "confirmed"]);
 });
+
+test("facts: an open essential fact keeps an otherwise complete score provisional", async () => {
+  const { evidenceLevel, headlineScore } = await import("../lib/audit-score.ts");
+  const complete = evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, importantUnconfirmed: [] });
+  assert.equal(complete.level, "complete");
+  const facts = essentialFacts({ ...base, scannedContact: true });
+  const open = evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, importantUnconfirmed: openEssentialFacts(facts) });
+  assert.equal(open.level, "provisional");
+  assert.ok(open.reasons.some((r) => r.includes("Bedrijfsregistratie (KvK/btw) niet bevestigd")));
+  // The number itself is unchanged; only its status says it is not final.
+  assert.deepEqual(headlineScore(99, { low: 99, high: 99 }, 100, open.level), { numeric: 99, kind: "score", display: "99", indication: false });
+});
