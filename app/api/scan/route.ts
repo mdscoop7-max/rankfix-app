@@ -53,6 +53,7 @@ import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
 import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
 import { essentialFacts, openEssentialFacts } from "@/lib/essential-facts";
 import { auditProductCatalog } from "@/lib/product-catalog-audit";
+import { browserContentEvidence } from "@/lib/browser-content-evidence";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
 import { explainCoreScore } from "@/lib/score-reconciliation";
@@ -7659,6 +7660,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Essential customer facts (lib/essential-facts.ts): confirmed, proven missing or
     // not confirmed. They add no points; an open fact keeps the headline provisional.
     const finalCheckOf = (key: string) => { const item = [...seoChecks,...geoChecks].find((c)=>c.key===key); return item ? { status: item.status, message: item.message, url: item.evidence?.url || null } : null; };
+    // Language switch and reviews as a visitor sees them versus raw server HTML
+    // (lib/browser-content-evidence.ts). Evidence only; adds no points.
+    const browserContentReport = browserContentEvidence({ rawHtml, renderedHtml: javascriptExecuted ? html : null, pageUrl: finalUrl.toString() });
     const essentialFactsReport = essentialFacts({
       scannedUrl: finalUrl.toString(),
       scannedRegistration: findCompanyRegistration(text),
@@ -8118,7 +8122,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, productCatalog, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, productCatalog, browserContent: browserContentReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -8360,6 +8364,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       websiteSpeed,
       essentialFacts: essentialFactsReport,
       productCatalog,
+      browserContent: browserContentReport,
       rendering,
       recovery,
       access,

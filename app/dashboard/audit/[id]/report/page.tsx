@@ -8,7 +8,8 @@ import { useParams } from "next/navigation";
 import type { Locale } from "@/lib/locales";
 import "./report.css";
 import { renderFailureText } from "@/lib/report-quality";
-import { catalogImprovements, factImprovements, topImprovements } from "@/lib/report-priorities";
+import { browserImprovements, catalogImprovements, factImprovements, topImprovements } from "@/lib/report-priorities";
+import { browserContentSentences } from "@/lib/browser-content-evidence";
 import { catalogSentence } from "@/lib/product-catalog-audit";
 import { FACT_STATE_LABEL } from "@/lib/essential-facts";
 import { ScoreQualifier } from "@/components/score-qualifier";
@@ -39,6 +40,7 @@ type ReportResult = import("@/lib/score-qualifier").QualifiableResult & {
 type ReportExtras = {
  essentialFacts?:import("@/lib/essential-facts").EssentialFact[];
  productCatalog?:import("@/lib/product-catalog-audit").CatalogSummary|null;
+ browserContent?:import("@/lib/browser-content-evidence").BrowserContentEvidence|null;
  websiteProfile?:import("@/lib/website-profile").WebsiteProfile;
  securityAccessibilityActions?:import("@/lib/security-access-actions").SecurityAccessAction[];
  accessibility?:{scoreShown?:boolean;axeStatus?:string};
@@ -147,7 +149,8 @@ export default function FullAuditReport(){
   // Short report (lib/report-priorities.ts): essential facts and the top proven improvements first.
   const essentialFactRows=(scan?.result?.essentialFacts||[]).filter((fact)=>fact.state!=="not_applicable");
   const productCatalog=scan?.result?.productCatalog||null;
-  const improvements=topImprovements(checks,[...factImprovements(essentialFactRows),...catalogImprovements(productCatalog)]);
+  const browserContent=scan?.result?.browserContent||null;
+  const improvements=topImprovements(checks,[...factImprovements(essentialFactRows),...catalogImprovements(productCatalog),...browserImprovements(browserContent)]);
   const sitewideNotFullyConfirmed = new Set<string>((scan?.result?.multiPage?.sitewideCheckAggregation||[]).filter((item)=>item.unconfirmedPages>0).map((item)=>String(item.key)));
   const groups=[
     [t.groups[0],checks.filter(c=>c.status==="fail"||c.status==="warning")],
@@ -214,6 +217,7 @@ export default function FullAuditReport(){
     <section className="report-priorities"><h2>{language==="nl"?"Belangrijkste verbeterpunten":"Top improvements"}</h2><div className="box">
       {essentialFactRows.length>0&&<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,marginBottom:12}}><tbody>{essentialFactRows.map(fact=><tr key={fact.key} style={{borderTop:"1px solid rgba(128,128,128,.2)"}}><td style={{padding:"6px 4px"}}><b>{fact.label}</b></td><td style={{padding:"6px 4px",whiteSpace:"nowrap"}}><span className={"status "+(fact.state==="confirmed"?"pass":fact.state==="missing"?"fail":"unable_to_confirm")}>{FACT_STATE_LABEL[fact.state as keyof typeof FACT_STATE_LABEL]||fact.state}</span></td><td style={{padding:"6px 4px"}}>{fact.detail}</td></tr>)}</tbody></table></div>}
       {improvements.length?<ol style={{paddingLeft:18,margin:0}}>{improvements.map((item,i)=><li key={item.title+i} style={{marginBottom:10}}><b>{item.title}</b> <span className={"status "+(item.severity==="Hoog"?"fail":item.severity==="Middel"?"warning":"unable_to_confirm")}>{language==="nl"?"Ernst: "+item.severity:"Severity: "+({Hoog:"high",Middel:"medium",Laag:"low"} as Record<string,string>)[item.severity]}</span>{item.problem&&<div>{item.problem}</div>}<div><b>{language==="nl"?"Oplossing:":"Fix:"}</b> {item.fix}</div></li>)}</ol>:<p>{language==="nl"?"Geen bewezen verbeterpunten gevonden. Controles die niet bevestigd konden worden, staan hieronder apart.":"No proven improvements found. Checks that could not be confirmed are listed separately below."}</p>}
+      {browserContent&&<div style={{marginTop:12}}><p><b>{language==="nl"?"Weergave in de browser":"Browser view"}:</b></p>{browserContentSentences(browserContent).map((line,i)=><p key={i}><small>{line}</small></p>)}</div>}
       {productCatalog&&<div style={{marginTop:12}}><p><b>{language==="nl"?"Productcontrole":"Product check"}:</b> {catalogSentence(productCatalog)}</p>{productCatalog.checked>0&&<p><small>{[`Op voorraad: ${productCatalog.counts.in_stock}`,`Uitverkocht: ${productCatalog.counts.out_of_stock}`,`Voorraad klopt niet: ${productCatalog.counts.stock_mismatch}`,`Zonder voorraadstatus: ${productCatalog.counts.no_availability}`,`Zonder prijs: ${productCatalog.counts.no_price}`,`Zonder productgegevens: ${productCatalog.counts.no_product_data}`,`Niet bereikbaar: ${productCatalog.counts.unreachable}`].join(" · ")}</small></p>}{productCatalog.checkout&&<p><small>{productCatalog.checkout.reachable===true?`Winkelwagen/checkout bereikbaar (${productCatalog.checkout.url ? (()=>{try{return new URL(productCatalog.checkout!.url!).pathname}catch{return productCatalog.checkout!.url}})() : ""}); koop- of winkelwagenactie op ${productCatalog.checkout.foundOnProducts} productpagina('s).`:productCatalog.checkout.reachable===false?`Winkelwagen/checkout gaf HTTP ${productCatalog.checkout.httpStatus}.`:`Winkelwagen/checkout niet bevestigd${productCatalog.checkout.url?" (pagina gaf geen bruikbaar antwoord)":" (geen link op de productpagina's gevonden)"}.`}</small></p>}</div>}
     </div></section>
     <section><h2>{language==="nl"?"Website Speed — mobiel en desktop":"Website Speed — mobile and desktop"}</h2>

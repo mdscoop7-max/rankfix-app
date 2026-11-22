@@ -113,3 +113,21 @@ export function catalogImprovements(catalog: CatalogLike | null | undefined): Im
     problem: `${n("no_product_data")} van ${catalog.checked} gecontroleerde producten hebben geen Product-gegevens voor zoekmachines.${eg("no_product_data")}`, fix: "Voeg Product-gegevens (JSON-LD) toe met naam, afbeelding, prijs, valuta en voorraad." });
   return out;
 }
+
+type BrowserLike = {
+  language: { options: unknown[]; onlyAfterJavascript: boolean };
+  reviews: { onlyAfterJavascript: boolean };
+};
+
+/** Content crawlers may miss because it only appears after JavaScript. */
+export function browserImprovements(evidence: BrowserLike | null | undefined): Improvement[] {
+  if (!evidence) return [];
+  const out: Improvement[] = [];
+  if (evidence.reviews.onlyAfterJavascript) out.push({ title: "Reviews alleen zichtbaar met JavaScript", severity: "Middel", key: "browser_reviews",
+    problem: "De reviews en beoordeling verschijnen pas na JavaScript; zoekmachines en AI-crawlers zien ze mogelijk niet.",
+    fix: "Zet de beoordeling (AggregateRating) en een samenvatting van de reviews ook in de server-HTML." });
+  if (evidence.language.onlyAfterJavascript) out.push({ title: "Taalkeuze alleen zichtbaar met JavaScript", severity: "Middel", key: "browser_language",
+    problem: `De ${evidence.language.options.length} taalversies zijn pas na JavaScript te vinden.`,
+    fix: "Voeg hreflang-links toe in de <head> of toon de taalkiezer al in de server-HTML." });
+  return out;
+}

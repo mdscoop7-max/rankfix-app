@@ -53,7 +53,7 @@ test("report page: top improvements and essential facts come first, technical bl
   assert.ok(priorities < at("<h2>{ux.mainProblems}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("<h2>{deep.basis}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("Scoreweging en puntenaftrek"));
-  assert.match(page, /topImprovements\(checks,\[\.\.\.factImprovements\(essentialFactRows\),\.\.\.catalogImprovements\(productCatalog\)\]\)/);
+  assert.match(page, /topImprovements\(checks,\[\.\.\.factImprovements\(essentialFactRows\),\.\.\.catalogImprovements\(productCatalog\),\.\.\.browserImprovements\(browserContent\)\]\)/);
 });
 
 test("short report: catalogue problems become improvements with counts and examples", async () => {
@@ -75,4 +75,12 @@ test("short report: catalogue problems become improvements with counts and examp
   assert.deepEqual(catalogImprovements(null), []);
   // A checkout that blocked the scanner (reachable null) is not reported as broken.
   assert.deepEqual(catalogImprovements({ checked: 1, counts: {}, checkout: { url: "x", httpStatus: 403, reachable: null } }), []);
+});
+
+test("short report: content only visible after JavaScript becomes an improvement", async () => {
+  const { browserImprovements } = await import("../lib/report-priorities.ts");
+  assert.deepEqual(browserImprovements({ language: { options: [1, 2, 3], onlyAfterJavascript: true }, reviews: { onlyAfterJavascript: true } }).map((i) => [i.title, i.severity]),
+    [["Reviews alleen zichtbaar met JavaScript", "Middel"], ["Taalkeuze alleen zichtbaar met JavaScript", "Middel"]]);
+  assert.deepEqual(browserImprovements({ language: { options: [], onlyAfterJavascript: false }, reviews: { onlyAfterJavascript: false } }), []);
+  assert.deepEqual(browserImprovements(null), []);
 });
