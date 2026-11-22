@@ -83,3 +83,33 @@ export function factImprovements(facts: Array<{ key: string; label: string; stat
     key: fact.key,
   }));
 }
+
+type CatalogLike = {
+  checked: number;
+  counts: Record<string, number>;
+  examples?: Record<string, string[] | undefined>;
+  checkout?: { url: string | null; httpStatus: number | null; reachable: boolean | null } | null;
+};
+
+const pathList = (urls: string[] | undefined) => (urls || []).slice(0, 3).map((u) => { try { return new URL(u).pathname; } catch { return u; } }).join(", ");
+
+/** Proven catalogue problems as improvements, with counts and example pages. */
+export function catalogImprovements(catalog: CatalogLike | null | undefined): Improvement[] {
+  if (!catalog) return [];
+  const out: Improvement[] = [];
+  const n = (key: string) => catalog.counts[key] || 0;
+  const eg = (key: string) => { const list = pathList(catalog.examples?.[key]); return list ? ` Bijvoorbeeld: ${list}.` : ""; };
+  if (catalog.checkout && catalog.checkout.reachable === false) out.push({ title: "Winkelwagen of checkout niet bereikbaar", severity: "Hoog", key: "catalog_checkout",
+    problem: `De winkelwagen-/checkoutpagina gaf HTTP ${catalog.checkout.httpStatus}.`, fix: "Herstel de winkelwagen- en checkoutpagina en test een bestelling van begin tot eind." });
+  if (n("unreachable")) out.push({ title: "Productpagina's uit de sitemap geven een foutpagina", severity: "Hoog", key: "catalog_unreachable",
+    problem: `${n("unreachable")} product(en) uit de sitemap zijn niet bereikbaar (404/5xx).${eg("unreachable")}`, fix: "Herstel deze producten of haal ze uit de sitemap en stuur oude URL's door." });
+  if (n("stock_mismatch")) out.push({ title: "Zichtbare voorraad klopt niet met de productgegevens", severity: "Hoog", key: "catalog_stock_mismatch",
+    problem: `Bij ${n("stock_mismatch")} product(en) verschilt de voorraad op de pagina van de productgegevens.${eg("stock_mismatch")}`, fix: "Laat de zichtbare voorraad en de availability in de productgegevens uit dezelfde bron komen." });
+  if (n("no_price")) out.push({ title: "Prijs ontbreekt in de productgegevens", severity: "Middel", key: "catalog_no_price",
+    problem: `${n("no_price")} van ${catalog.checked} gecontroleerde producten hebben geen prijs in de productgegevens.${eg("no_price")}`, fix: "Vul price en priceCurrency in de Product-gegevens (Offer) van elk product." });
+  if (n("no_availability")) out.push({ title: "Voorraadstatus ontbreekt in de productgegevens", severity: "Middel", key: "catalog_no_availability",
+    problem: `${n("no_availability")} van ${catalog.checked} gecontroleerde producten hebben geen voorraadstatus in de productgegevens.${eg("no_availability")}`, fix: "Vul availability (bijv. InStock of OutOfStock) in de Product-gegevens van elk product." });
+  if (n("no_product_data")) out.push({ title: "Productgegevens ontbreken", severity: "Middel", key: "catalog_no_product_data",
+    problem: `${n("no_product_data")} van ${catalog.checked} gecontroleerde producten hebben geen Product-gegevens voor zoekmachines.${eg("no_product_data")}`, fix: "Voeg Product-gegevens (JSON-LD) toe met naam, afbeelding, prijs, valuta en voorraad." });
+  return out;
+}

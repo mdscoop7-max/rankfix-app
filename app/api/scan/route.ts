@@ -52,6 +52,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
 import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
 import { essentialFacts, openEssentialFacts } from "@/lib/essential-facts";
+import { auditProductCatalog } from "@/lib/product-catalog-audit";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { classifyScanInfrastructureFailure, uncaughtScanErrorCode } from "@/lib/scan-runtime-errors";
 import { explainCoreScore } from "@/lib/score-reconciliation";
@@ -7967,7 +7968,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Not measured when the page itself was refused or only recovered through the
     // browser; the report then says why mobile and desktop are missing.
     phaseMark("beforePageSpeed");
-    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : speedNotMeasured(finalUrl.toString(), response.status);
+    // Product catalogue audit (lib/product-catalog-audit.ts) runs alongside the speed
+    // measurement on a confirmed webshop only: every sitemap product up to the limit,
+    // GET only, bounded by the remaining scan time. It adds no SEO/GEO points.
+    const catalogFetch = async (url: string, timeoutMs: number) => {
+      const fetched = await safePublicFetch(url, { timeoutMs, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,application/xml,text/xml,text/plain" });
+      const text = fetched.response.status < 400 ? await readResponseTextLimited(fetched.response, 1_500_000, Math.max(1000, timeoutMs)) : "";
+      if (fetched.response.status >= 400) { try { await fetched.response.body?.cancel(); } catch {} }
+      return { status: fetched.response.status, text, finalUrl: fetched.finalUrl.toString() };
+    };
+    const catalogBudgetMs = Math.min(50000, Math.max(0, 285000 - (Date.now() - started) - 15000));
+    const [websiteSpeed, productCatalog] = await Promise.all([
+      response.status === 200 ? measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : Promise.resolve(speedNotMeasured(finalUrl.toString(), response.status)),
+      finalCommerceApplicability.state === "confirmed" && catalogBudgetMs >= 10000
+        ? auditProductCatalog({ siteUrl: finalUrl.toString(), fetchText: catalogFetch, budgetMs: catalogBudgetMs }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
     phaseMark("pageSpeed");
 
     // The client already received SCAN_TIMEOUT: never store a report or count usage
@@ -8102,7 +8118,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, productCatalog, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -8343,6 +8359,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       summary: scanSummary,
       websiteSpeed,
       essentialFacts: essentialFactsReport,
+      productCatalog,
       rendering,
       recovery,
       access,

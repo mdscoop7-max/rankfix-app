@@ -55,3 +55,24 @@ test("report page: top improvements and essential facts come first, technical bl
   assert.ok(at("<h2>{ux.actions}</h2>") < at("Scoreweging en puntenaftrek"));
   assert.match(page, /topImprovements\(checks,factImprovements\(essentialFactRows\)\)/);
 });
+
+test("short report: catalogue problems become improvements with counts and examples", async () => {
+  const { catalogImprovements } = await import("../lib/report-priorities.ts");
+  const catalog = { checked: 118, counts: { unreachable: 2, stock_mismatch: 3, no_price: 0, no_availability: 5, no_product_data: 0, out_of_stock: 12 },
+    examples: { unreachable: ["https://s.nl/p/a", "https://s.nl/p/b"], stock_mismatch: ["https://s.nl/p/c"], no_availability: ["https://s.nl/p/d"] },
+    checkout: { url: "https://s.nl/winkelwagen", httpStatus: 500, reachable: false } };
+  const items = catalogImprovements(catalog);
+  assert.deepEqual(items.map((i) => [i.title, i.severity]), [
+    ["Winkelwagen of checkout niet bereikbaar", "Hoog"],
+    ["Productpagina's uit de sitemap geven een foutpagina", "Hoog"],
+    ["Zichtbare voorraad klopt niet met de productgegevens", "Hoog"],
+    ["Voorraadstatus ontbreekt in de productgegevens", "Middel"],
+  ]);
+  assert.equal(items[1].problem, "2 product(en) uit de sitemap zijn niet bereikbaar (404/5xx). Bijvoorbeeld: /p/a, /p/b.");
+  assert.match(items[3].problem, /^5 van 118 gecontroleerde producten/);
+  // Out-of-stock products are information, not a problem.
+  assert.ok(!items.some((i) => /uitverkocht/i.test(i.title)));
+  assert.deepEqual(catalogImprovements(null), []);
+  // A checkout that blocked the scanner (reachable null) is not reported as broken.
+  assert.deepEqual(catalogImprovements({ checked: 1, counts: {}, checkout: { url: "x", httpStatus: 403, reachable: null } }), []);
+});
