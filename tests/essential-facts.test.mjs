@@ -82,3 +82,31 @@ test("facts: an open essential fact keeps an otherwise complete score provisiona
   // The number itself is unchanged; only its status says it is not final.
   assert.deepEqual(headlineScore(99, { low: 99, high: 99 }, 100, open.level), { numeric: 99, kind: "score", display: "99", indication: false });
 });
+
+test("catalogue evidence refines stock and checkout facts (Nuvemixa: 20 products, no stock state)", async () => {
+  const { refineFactsWithCatalog } = await import("../lib/essential-facts.ts");
+  const base = [
+    { key: "company_registration", label: "Bedrijfsregistratie (KvK/btw)", state: "missing", detail: "x", url: null },
+    { key: "stock", label: "Voorraadinformatie", state: "not_confirmed", detail: "op 1 pagina", url: null },
+    { key: "checkout", label: "Winkelwagen en checkout", state: "not_confirmed", detail: "statisch", url: null },
+  ];
+  const product = (dataStock, visibleStock) => ({ outcome: "checked", dataStock, visibleStock });
+  const none = { checked: 20, counts: { no_availability: 20, in_stock: 0, out_of_stock: 0, stock_mismatch: 0 }, products: Array.from({ length: 20 }, () => product(null, null)),
+    checkout: { url: "https://shop.example.nl/winkelwagen", httpStatus: 200, reachable: true, foundOnProducts: 20 } };
+  const out = refineFactsWithCatalog(base, none);
+  assert.equal(out[0], base[0]);
+  assert.equal(out[1].state, "missing");
+  assert.match(out[1].detail, /Op 20 van 20 gecontroleerde productpagina's geen voorraadstatus/);
+  assert.equal(out[2].state, "not_confirmed");
+  assert.match(out[2].detail, /Winkelwagen bereikbaar \(\/winkelwagen, HTTP 200\) vanaf 20 productpagina\('s\)\. Afrekenen zelf is niet doorlopen/);
+
+  const all = { ...none, counts: { ...none.counts, no_availability: 0, in_stock: 2 }, products: [product("in_stock", null), product(null, "in_stock")], checkout: { url: "https://shop.example.nl/cart", httpStatus: 404, reachable: false, foundOnProducts: 2 } };
+  const out2 = refineFactsWithCatalog(base, all);
+  assert.equal(out2[1].state, "confirmed");
+  assert.equal(out2[2].state, "missing");
+
+  const mixed = { ...none, products: [product("in_stock", null), product(null, null)], checkout: null };
+  assert.equal(refineFactsWithCatalog(base, mixed)[1].state, "not_confirmed");
+  assert.equal(refineFactsWithCatalog(base, null), base);
+  assert.equal(refineFactsWithCatalog(base, { ...none, checked: 0 }), base);
+});

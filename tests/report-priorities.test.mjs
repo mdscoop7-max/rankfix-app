@@ -53,7 +53,7 @@ test("report page: top improvements and essential facts come first, technical bl
   assert.ok(priorities < at("<h2>{ux.mainProblems}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("<h2>{deep.basis}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("Scoreweging en puntenaftrek"));
-  assert.match(page, /topImprovements\(checks,\[\.\.\.factImprovements\(essentialFactRows\),\.\.\.catalogImprovements\(productCatalog\),\.\.\.browserImprovements\(browserContent\)\]\)/);
+  assert.match(page, /reportImprovements\(\{checks,facts:essentialFactRows,catalog:productCatalog,browser:browserContent\}\)/);
 });
 
 test("short report: catalogue problems become improvements with counts and examples", async () => {
@@ -83,4 +83,14 @@ test("short report: content only visible after JavaScript becomes an improvement
     [["Reviews alleen zichtbaar met JavaScript", "Middel"], ["Taalkeuze alleen zichtbaar met JavaScript", "Middel"]]);
   assert.deepEqual(browserImprovements({ language: { options: [], onlyAfterJavascript: false }, reviews: { onlyAfterJavascript: false } }), []);
   assert.deepEqual(browserImprovements(null), []);
+});
+
+test("report improvements: the catalogue stock finding replaces the stock fact, no duplicate", async () => {
+  const { reportImprovements } = await import("../lib/report-priorities.ts");
+  const facts = [{ key: "stock", label: "Voorraadinformatie", state: "missing", detail: "Op 20 van 20 producten geen voorraadstatus." }];
+  const catalog = { checked: 20, counts: { no_product_data: 0, no_price: 0, no_availability: 20, stock_mismatch: 0, unreachable: 0 }, examples: {}, checkout: null };
+  const titles = reportImprovements({ checks: [], facts, catalog, browser: null }).map((i) => i.title);
+  assert.deepEqual(titles, ["Voorraadstatus ontbreekt in de productgegevens"]);
+  const withoutCatalog = reportImprovements({ checks: [], facts, catalog: null, browser: null }).map((i) => i.title);
+  assert.deepEqual(withoutCatalog, ["Voorraadinformatie ontbreekt"]);
 });

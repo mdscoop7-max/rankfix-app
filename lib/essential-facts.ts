@@ -122,3 +122,43 @@ export const FACT_STATE_LABEL: Record<FactState, string> = {
   missing: "Ontbreekt",
   not_applicable: "N.v.t.",
 };
+
+type CatalogEvidence = {
+  checked: number;
+  counts: { no_availability: number; in_stock: number; out_of_stock: number; stock_mismatch: number };
+  products?: Array<{ outcome: string; dataStock: string | null; visibleStock: string | null }>;
+  checkout?: { url: string | null; httpStatus: number | null; reachable: boolean | null; foundOnProducts: number } | null;
+} | null | undefined;
+
+/**
+ * The catalogue audit runs after the facts are first derived and reads many more
+ * product pages. Its evidence replaces the single-page stock and checkout facts:
+ * - stock is "missing" only when every checked product lacks both a data and a
+ *   visible stock state, "confirmed" when every checked product shows one;
+ * - checkout stays "not_confirmed" (no order is placed) but states what was proven.
+ */
+export function refineFactsWithCatalog(facts: EssentialFact[], catalog: CatalogEvidence): EssentialFact[] {
+  if (!catalog || catalog.checked <= 0) return facts;
+  const checked = (catalog.products || []).filter((p) => p.outcome === "checked");
+  const withStock = checked.filter((p) => p.dataStock || p.visibleStock).length;
+  return facts.map((fact) => {
+    if (fact.state === "not_applicable") return fact;
+    if (fact.key === "stock" && checked.length) {
+      if (withStock === 0) return { ...fact, state: "missing" as const, url: null,
+        detail: `Op ${checked.length} van ${checked.length} gecontroleerde productpagina's geen voorraadstatus in de productgegevens en geen zichtbare voorraadtekst.` };
+      if (withStock === checked.length && catalog.counts.stock_mismatch === 0) return { ...fact, state: "confirmed" as const, url: null,
+        detail: `Voorraadstatus aanwezig op alle ${checked.length} gecontroleerde productpagina's.` };
+      return { ...fact, state: "not_confirmed" as const, url: null,
+        detail: `Voorraadstatus op ${withStock} van ${checked.length} gecontroleerde productpagina's${catalog.counts.stock_mismatch ? `; bij ${catalog.counts.stock_mismatch} klopt de zichtbare voorraad niet met de productgegevens` : ""}.` };
+    }
+    if (fact.key === "checkout" && catalog.checkout) {
+      const c = catalog.checkout;
+      const path = (() => { try { return c.url ? new URL(c.url).pathname : null; } catch { return c.url; } })();
+      if (c.reachable === true) return { ...fact, state: "not_confirmed" as const, url: c.url,
+        detail: `Winkelwagen bereikbaar (${path}, HTTP ${c.httpStatus}) vanaf ${c.foundOnProducts} productpagina('s). Afrekenen zelf is niet doorlopen: RankFix plaatst geen bestellingen.` };
+      if (c.reachable === false) return { ...fact, state: "missing" as const, url: c.url,
+        detail: `De winkelwagen-/checkoutpagina (${path}) gaf HTTP ${c.httpStatus}.` };
+    }
+    return fact;
+  });
+}

@@ -8,7 +8,7 @@ import { useParams } from "next/navigation";
 import type { Locale } from "@/lib/locales";
 import "./report.css";
 import { renderFailureText } from "@/lib/report-quality";
-import { browserImprovements, catalogImprovements, factImprovements, topImprovements } from "@/lib/report-priorities";
+import { reportImprovements } from "@/lib/report-priorities";
 import { browserContentSentences } from "@/lib/browser-content-evidence";
 import { catalogSentence } from "@/lib/product-catalog-audit";
 import { FACT_STATE_LABEL } from "@/lib/essential-facts";
@@ -150,7 +150,7 @@ export default function FullAuditReport(){
   const essentialFactRows=(scan?.result?.essentialFacts||[]).filter((fact)=>fact.state!=="not_applicable");
   const productCatalog=scan?.result?.productCatalog||null;
   const browserContent=scan?.result?.browserContent||null;
-  const improvements=topImprovements(checks,[...factImprovements(essentialFactRows),...catalogImprovements(productCatalog),...browserImprovements(browserContent)]);
+  const improvements=reportImprovements({checks,facts:essentialFactRows,catalog:productCatalog,browser:browserContent});
   const sitewideNotFullyConfirmed = new Set<string>((scan?.result?.multiPage?.sitewideCheckAggregation||[]).filter((item)=>item.unconfirmedPages>0).map((item)=>String(item.key)));
   const groups=[
     [t.groups[0],checks.filter(c=>c.status==="fail"||c.status==="warning")],

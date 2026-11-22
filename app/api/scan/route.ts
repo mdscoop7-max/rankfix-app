@@ -51,7 +51,7 @@ import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
 import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
-import { essentialFacts, openEssentialFacts } from "@/lib/essential-facts";
+import { essentialFacts, openEssentialFacts, refineFactsWithCatalog } from "@/lib/essential-facts";
 import { auditProductCatalog } from "@/lib/product-catalog-audit";
 import { browserContentEvidence } from "@/lib/browser-content-evidence";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
@@ -7996,6 +7996,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         : Promise.resolve(null),
     ]);
     phaseMark("pageSpeed");
+    // Stock and checkout facts from the catalogue's many product pages, not one sample.
+    const reportedEssentialFacts = refineFactsWithCatalog(essentialFactsReport, productCatalog);
 
     // The client already received SCAN_TIMEOUT: never store a report or count usage
     // for a scan the customer was told did not complete.
@@ -8129,7 +8131,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started, phaseMs,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: essentialFactsReport, productCatalog, browserContent: browserContentReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(evidenceGradeBasis(selectedOverallScore, scoreModel.range, scoreEvidence.level)), coverage: overallCoverage, scoreModel, selfCheck, scanReliability, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, essentialFacts: reportedEssentialFacts, productCatalog, browserContent: browserContentReport, security: securityEngine, accessibility: accessibilityEngine, securityAccessibilityActions: securityAccessibilityActions({ securityChecks, accessibilityChecks, missingHeaders: missingSecurityHeaders, isHttps }), multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -8369,7 +8371,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       scanReliability,
       summary: scanSummary,
       websiteSpeed,
-      essentialFacts: essentialFactsReport,
+      essentialFacts: reportedEssentialFacts,
       productCatalog,
       browserContent: browserContentReport,
       rendering,

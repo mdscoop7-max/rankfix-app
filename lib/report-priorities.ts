@@ -131,3 +131,16 @@ export function browserImprovements(evidence: BrowserLike | null | undefined): I
     fix: "Voeg hreflang-links toe in de <head> of toon de taalkiezer al in de server-HTML." });
   return out;
 }
+
+/** All report improvements; the catalogue's stock finding replaces the stock fact (no duplicate). */
+export function reportImprovements(input: {
+  checks: PriorityCheck[];
+  facts: Array<{ key: string; label: string; state: string; detail: string }>;
+  catalog: CatalogLike | null | undefined;
+  browser: BrowserLike | null | undefined;
+  limit?: number;
+}): Improvement[] {
+  const catalogCoversStock = (input.catalog?.counts?.no_availability || 0) > 0;
+  const facts = input.facts.filter((fact) => !(fact.key === "stock" && catalogCoversStock));
+  return topImprovements(input.checks, [...factImprovements(facts), ...catalogImprovements(input.catalog), ...browserImprovements(input.browser)], input.limit);
+}
