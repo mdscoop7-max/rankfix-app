@@ -49,6 +49,7 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { visibleEscapeSample } from "@/lib/html-escape-evidence";
 import { visibleOfferEvidence } from "@/lib/visible-offer-evidence";
 import { financialServiceOfferPage, settleSampleProductCheck, SAMPLE_PRODUCT_CHECK_KEYS, type SampleProductPage } from "@/lib/sample-product-checks";
 import { essentialFacts, openEssentialFacts, refineFactsWithCatalog } from "@/lib/essential-facts";
@@ -79,7 +80,7 @@ import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
-import { emptyClientMount, emptyMountShell } from "@/lib/render-limits";
+import { emptyClientMount, emptyMountShell, scaledMs } from "@/lib/render-limits";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
 import { pageIdentityType } from "@/lib/page-identity";
@@ -1085,7 +1086,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       primaryRenderAttempts++;
       return renderPublicPage(finalUrl.toString(), ms, renderBudget);
     // The retry gets the same time as the first try: a page that missed 12 s will not load in 7 s.
-    }, 12000, 12000));
+    }, scaledMs(12000), scaledMs(12000)));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     phaseMark("homepageFetched");
@@ -3623,14 +3624,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     });
     const hasStockImages = stockImageUrls.length > 0;
     const hasExternalImageHotlinks = externalImageUrls.length > 0;
-    // stripHtml keeps entities encoded, so decode the visible text before checking rendering.
-    // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
-    const decodedVisibleText = decode(text);
     const VISIBLE_ENTITY = /&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i;
     // After one decode an entity left in title/description/H1 is double-encoded:
     // search results and the page show it literally ("Nederland&#x27;s").
     const metadataEscapes = [["title", title], ["meta description", description], ["H1", h1s.join(" ")]].filter(([, value]) => VISIBLE_ENTITY.test(value)).map(([field, value]) => ({ field, sample: (value.match(/&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i) || [""])[0] }));
-    const hasVisibleHtmlEscape = VISIBLE_ENTITY.test(decodedVisibleText) || metadataEscapes.length > 0;
+    // Quote-aware: attribute values (JSON, data-*, srcdoc) are never visible text.
+    const visibleEscape = visibleEscapeSample(html);
+    const hasVisibleHtmlEscape = Boolean(visibleEscape) || metadataEscapes.length > 0;
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
@@ -4250,7 +4250,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     );
 
     seoChecks.push(hasVisibleHtmlEscape
-      ? check("warning", "html_escape", "seo", "Tekstweergave", metadataEscapes.length ? `Dubbel gecodeerde tekst in ${metadataEscapes.map((item) => `${item.field} (${item.sample})`).join(", ")}: bezoekers en zoekmachines zien deze code letterlijk.` : "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
+      ? check("warning", "html_escape", "seo", "Tekstweergave", metadataEscapes.length ? `Dubbel gecodeerde tekst in ${metadataEscapes.map((item) => `${item.field} (${item.sample})`).join(", ")}: bezoekers en zoekmachines zien deze code letterlijk.` : `Dubbel gecodeerde tekst is zichtbaar in de inhoud: "…${visibleEscape}…". Bezoekers zien deze code letterlijk.`, "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
@@ -5545,7 +5545,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms, renderBudget), 10000, 6000));
+        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms, renderBudget), scaledMs(10000), scaledMs(6000)));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)

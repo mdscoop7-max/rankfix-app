@@ -64,3 +64,12 @@ test("no customer or QA surface prints a bare SEO/GEO score next to its evidence
     assert.doesNotMatch(src, /\{data\.score\}/, file + " prints the bare dimension score");
   }
 });
+
+test("dimension: fully confirmed core but unconfirmed other checks shows the range as provisional (Peter Mark)", () => {
+  const data = { seo: { score: 98 }, geo: { score: 99 }, scoreModel: {
+    dimensionEvidence: { seo: { level: "complete", coveragePercent: 100 }, geo: { level: "complete", coveragePercent: 100 } },
+    seoRange: { low: 75, high: 99, unverifiedWeight: 44 }, geoRange: { low: 99, high: 99, unverifiedWeight: 0 } } };
+  assert.equal(dimensionDisplayOf(data, "seo").text, "75–99 (voorlopig)");
+  assert.equal(dimensionDisplayOf(data, "seo", "en").text, "75–99 (provisional)");
+  assert.equal(dimensionDisplayOf(data, "geo").text, "99");
+});

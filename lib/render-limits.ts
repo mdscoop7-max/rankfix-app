@@ -22,6 +22,13 @@ export const BROWSER_IDLE_MS = 15_000;
 // After a failed launch, do not retry (slow) launches for this long.
 export const LAUNCH_FAILURE_COOLDOWN_MS = 60_000;
 
+// Slow, small instances (e.g. 0.1 CPU) need longer browser timeouts: launch,
+// navigation and axe all scale by this factor. Default 1 keeps other hosts unchanged.
+export const RENDER_TIME_SCALE = envNumber("RANKFIX_RENDER_TIME_SCALE", 1, 1, 4);
+export function scaledMs(ms: number, scale = RENDER_TIME_SCALE): number {
+  return Math.round(ms * (Number.isFinite(scale) && scale >= 1 && scale <= 4 ? scale : 1));
+}
+
 export type RenderBudget = { remaining: number; deadline: number };
 
 export function createRenderBudget(maxRenders = DEFAULT_RENDERS_PER_SCAN, maxDurationMs = DEFAULT_RENDER_DEADLINE_MS, now = Date.now()): RenderBudget {

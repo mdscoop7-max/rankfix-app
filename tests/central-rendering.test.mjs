@@ -72,6 +72,6 @@ test("rendering: blocked images/fonts do not use up the request cap; slow pages 
   assert.match(renderer, /partialNavigation = true/);
   assert.match(renderer, /remaining\(\) - SNAPSHOT_RESERVE_MS/);
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(route, /\}, 12000, 12000\)\);/);
+  assert.match(route, /\}, scaledMs\(12000\), scaledMs\(12000\)\)\);/);
   assert.match(route, /renderPartial: Boolean\(javascriptExecuted && renderedDocument\?\.partialNavigation\)/);
 });

@@ -26,3 +26,12 @@ test("scan route renders a thin empty-mount page once", async () => {
   assert.match(route, /const javascriptCandidate = !recoveredHtml && \(javascriptFrameworkSignal \|\| thinClientShell \|\| identitylessThinDocument \|\| rawEmptyMountShell\)/);
   assert.match(route, /const rawEmptyMount = emptyClientMount\(rawHtml\)/);
 });
+
+test("render time scale: default 1 keeps timeouts, slow instances may scale up to 4x", async () => {
+  const { scaledMs } = await import("../lib/render-limits.ts");
+  assert.equal(scaledMs(12000), 12000);
+  assert.equal(scaledMs(12000, 2.5), 30000);
+  assert.equal(scaledMs(3500, 4), 14000);
+  assert.equal(scaledMs(3500, 9), 3500);
+  assert.equal(scaledMs(3500, 0.5), 3500);
+});

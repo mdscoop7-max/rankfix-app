@@ -1,7 +1,7 @@
 import { AXE_RUN_SCRIPT } from "./axe-script.ts";
 import type { Browser, HTTPRequest } from "puppeteer-core";
 import { createBrowserDiagnostics, type BrowserAbortCause, type BrowserDiagnostics } from "./browser-diagnostics.ts";
-import { claimRender, launchSourceFor, hardenedServerlessArgs, type RenderBudget } from "@/lib/render-limits";
+import { claimRender, launchSourceFor, hardenedServerlessArgs, scaledMs, type RenderBudget } from "@/lib/render-limits";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export { createRenderBudget } from "@/lib/render-limits";
@@ -173,7 +173,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     const puppeteer = (await import("puppeteer-core")).default;
     browser = await puppeteer.launch({
       headless: true, args, executablePath,
-      timeout: Math.min(8000, remaining()), protocolTimeout: 20000,
+      timeout: Math.min(scaledMs(8000), remaining()), protocolTimeout: scaledMs(20000),
     });
     const page = await browser.newPage();
     // A bare custom UA breaks sites expecting browser capabilities. Keep Chrome's
@@ -339,11 +339,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // A partially loaded page is not a basis for an accessibility rule run.
     if (!partialNavigation && !structuredMode) try {
       const axeCore = (await import("axe-core")).default;
-      await withinTimeout(() => page.evaluate(axeCore.source), Math.min(2500, remaining()));
+      await withinTimeout(() => page.evaluate(axeCore.source), Math.min(scaledMs(2500), remaining()));
       // Passed as a STRING, not a function: a bundled/transpiled async function
       // carries helper references (e.g. "t") that do not exist in the page and
       // failed with "t is not defined" (QA 144). A string is evaluated as-is.
-      axeReport = await withinTimeout(() => page.evaluate(AXE_RUN_SCRIPT) as Promise<AxeSummary>, Math.min(3500, remaining()));
+      axeReport = await withinTimeout(() => page.evaluate(AXE_RUN_SCRIPT) as Promise<AxeSummary>, Math.min(scaledMs(3500), remaining()));
     } catch (error) {
       axeError = error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE";
       console.info("RankFix axe-core fallback", { reason: axeError });
