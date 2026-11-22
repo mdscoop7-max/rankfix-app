@@ -53,7 +53,7 @@ test("report page: top improvements and essential facts come first, technical bl
   assert.ok(priorities < at("<h2>{ux.mainProblems}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("<h2>{deep.basis}</h2>"));
   assert.ok(at("<h2>{ux.actions}</h2>") < at("Scoreweging en puntenaftrek"));
-  assert.match(page, /topImprovements\(checks,factImprovements\(essentialFactRows\)\)/);
+  assert.match(page, /topImprovements\(checks,\[\.\.\.factImprovements\(essentialFactRows\),\.\.\.catalogImprovements\(productCatalog\)\]\)/);
 });
 
 test("short report: catalogue problems become improvements with counts and examples", async () => {
