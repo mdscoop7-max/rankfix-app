@@ -1,5 +1,5 @@
 "use client";
-import { fetchScanResponse, readScanJson } from "@/lib/scan-request-client";
+import { fetchScanResponse, readScanJson, ScanResponseError } from "@/lib/scan-request-client";
 import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import { useState } from "react";
@@ -48,7 +48,18 @@ export default function ScanClient({ locale }: { locale: Locale }) {
       const normalized = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
       try { window.localStorage.setItem("rankfix:last-scan-url", normalized); } catch {}
       setUrl(normalized); setResult(data);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : t.error); } finally { setBusy(false); }
+    } catch (cause) {
+      // Free scans are not saved, so a lost answer cannot be recovered: say so and ask to retry.
+      if (cause instanceof ScanResponseError) setError(({
+        nl:`RankFix kreeg een onverwacht antwoord van de server (HTTP ${cause.httpStatus}) in plaats van scanresultaten. Probeer de scan opnieuw.`,
+        en:`RankFix received an unexpected answer from the server (HTTP ${cause.httpStatus}) instead of scan results. Please run the scan again.`,
+        de:`RankFix erhielt eine unerwartete Antwort des Servers (HTTP ${cause.httpStatus}) statt Scanergebnissen. Bitte starte den Scan erneut.`,
+        fr:`RankFix a reçu une réponse inattendue du serveur (HTTP ${cause.httpStatus}) au lieu des résultats. Relancez l’analyse.`,
+        it:`RankFix ha ricevuto una risposta inattesa dal server (HTTP ${cause.httpStatus}) invece dei risultati. Riprova la scansione.`,
+        es:`RankFix recibió una respuesta inesperada del servidor (HTTP ${cause.httpStatus}) en lugar de resultados. Vuelve a ejecutar el análisis.`,
+      } as Record<Locale,string>)[locale]);
+      else setError(cause instanceof Error ? cause.message : t.error);
+    } finally { setBusy(false); }
   }
   const checks = [...(result?.seo?.checks || []), ...(result?.geo?.checks || [])];
   const issues = checks.filter(check => check.status === "fail" || check.status === "warning").length;
