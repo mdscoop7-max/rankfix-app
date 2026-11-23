@@ -1,5 +1,5 @@
 "use client";
-import { fetchScanResponse } from "@/lib/scan-request-client";
+import { fetchScanResponse, readScanJson } from "@/lib/scan-request-client";
 import { useStoredString } from "@/lib/browser-snapshot";
 import Link from "next/link";
 import { useState } from "react";
@@ -43,7 +43,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
     setBusy(true); setError(""); setResult(null);
     try {
       const response = await fetchScanResponse({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale });
-      const data = await response.json();
+      const data = await readScanJson<ReturnType<typeof JSON.parse>>(response);
       if (!response.ok) throw new Error(data?.error || t.error);
       const normalized = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
       try { window.localStorage.setItem("rankfix:last-scan-url", normalized); } catch {}

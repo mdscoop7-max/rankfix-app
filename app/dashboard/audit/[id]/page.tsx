@@ -1,5 +1,6 @@
 "use client";
 
+import { readScanJson } from "@/lib/scan-request-client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -152,7 +153,7 @@ export default function AuditDetail() {
       setVerificationMessage(tr({nl:"RankFix controleert nu automatisch of de wijziging live staat…",en:"RankFix is automatically checking whether the change is live…",de:"RankFix prüft automatisch, ob die Änderung live ist…",fr:"RankFix vérifie automatiquement si la modification est en ligne…",it:"RankFix controlla automaticamente se la modifica è online…",es:"RankFix comprueba automáticamente si el cambio ya está online…"}));
       try{
         const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:auditedUrl,mode:"both",dashboard:true,language})});
-        const data=await response.json();
+        const data=await readScanJson<ReturnType<typeof JSON.parse>>(response);
         if(!response.ok) throw new Error(data.error||t.failed);
         if(data.scanId){ location.href="/dashboard/audit/"+encodeURIComponent(data.scanId); return; }
       }catch(cause){

@@ -1,5 +1,5 @@
 "use client";
-import { fetchScanResponse } from "@/lib/scan-request-client";
+import { fetchScanResponse, findSavedScan, readScanJson, ScanResponseError } from "@/lib/scan-request-client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,9 +82,10 @@ export default function DashboardScan() {
     const normalized=/^https?:\/\//i.test(clean)?clean:`https://${clean}`;
     try{new URL(normalized);}catch{setUrlError(language==="nl"?"Vul een geldige website in, bijvoorbeeld example.com.":"Enter a valid website, for example example.com.");return;}
     setUrl(normalized); setBusy(true);
+    const scanStarted=Date.now();
     try{
       const response=await fetchScanResponse({url:normalized,mode:"both",dashboard:true,language});
-      const data=await response.json();
+      const data=await readScanJson<ReturnType<typeof JSON.parse>>(response);
       if(response.status===401&&fixIssue){window.location.replace("/account?next="+encodeURIComponent(window.location.pathname+window.location.search));return;}
       if(!response.ok) throw new Error(data.error||t.failed);
       if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",normalized);
@@ -114,7 +115,18 @@ export default function DashboardScan() {
         return;
       }
       throw new Error(t.reportFailed);
-    }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
+    }catch(cause){
+      const message=cause instanceof Error?cause.message:t.failed;
+      // The answer was lost or was not RankFix JSON (e.g. a hosting error page), but the
+      // server may have finished and saved the scan: open that report instead of failing.
+      const lostAnswer=cause instanceof ScanResponseError||/verbroken|niet op tijd/i.test(message);
+      if(lostAnswer&&!fixIssue){
+        setError(message+" "+(language==="nl"?"RankFix zoekt de scan nu in je scanhistorie…":"RankFix is now looking for the scan in your history…"));
+        const savedId=await findSavedScan(normalized,scanStarted);
+        if(savedId){router.push("/dashboard/audit/"+encodeURIComponent(savedId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""));return;}
+        setError(message+" "+(language==="nl"?"De scan is niet in je historie gevonden. Probeer het opnieuw.":"The scan was not found in your history. Please try again."));
+      }else setError(message);
+    }
     finally{setBusy(false);}
   }
   const checks=[...(result?.seo?.checks||[]),...(result?.geo?.checks||[])];

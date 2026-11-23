@@ -1,5 +1,6 @@
 "use client";
 
+import { readScanJson } from "@/lib/scan-request-client";
 import { dimensionScoreText } from "@/lib/score-qualifier";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -67,7 +68,7 @@ export default function Dashboard() {
     setBusy(scan.id); setError(""); setMessage("");
     try {
       const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both", dashboard: true, language }) });
-      const data = await response.json();
+      const data = await readScanJson<ReturnType<typeof JSON.parse>>(response);
       if (!response.ok) throw new Error(data.error || x.scanError);
       setSelectedResult(data);
       setMessage(t.scanDone);
